@@ -103,6 +103,11 @@
                         <span id="topCallTimer">00:00:00</span>
                     </div>
 
+                    <button onclick="simulateIncomingStudent()" class="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition" title="Simular que un estudiante entra por el link">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Simular Estudiante</span>
+                    </button>
+
                     <button onclick="openShareModal()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition">
                         <i class="fas fa-share-alt"></i>
                         <span>Enviar Link a Estudiantes</span>
@@ -137,8 +142,58 @@
         <!-- TAB 1: VIDEO CALL & INTERACTIVE ANNOTATION CANVAS -->
         <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
             
+            <!-- STUDENT JOINING SCREEN (Shown when opening as student link) -->
+            <div id="studentJoinView" class="hidden bg-white rounded-2xl shadow-xl border border-pombo-200 p-8 max-w-lg mx-auto text-center animate-fade-in">
+                <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Escuela Rafael Pombo</h2>
+                <p class="text-xs text-slate-500 mb-6">Clase Virtual del <strong>Prof. Fannor Alejandro Andrade Soto</strong></p>
+                
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ingresa tu Nombre Completo</label>
+                        <input type="text" id="studentJoinName" placeholder="Ej: Juan José Restrepo" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                    </div>
+                    <button onclick="submitStudentJoinRequest()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-semibold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-door-open"></i> Solicitar Ingreso a la Clase
+                    </button>
+                </div>
+
+                <div id="studentWaitStatus" class="hidden mt-6 p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-200 text-xs font-medium animate-pulse">
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Solicitud enviada al profesor. Esperando que el Prof. Fannor te admita...
+                </div>
+            </div>
+
+            <!-- WAITING ROOM (SALA DE ESPERA) BANNER FOR TEACHER -->
+            <div id="waitingRoomCard" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 shadow-md transition">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow shrink-0">
+                            <i class="fas fa-clock animate-bounce"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-outfit font-bold text-amber-900 text-base">Sala de Espera (<span id="waitingCount">0</span>)</h3>
+                                <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">Estudiantes solicitando ingreso</span>
+                            </div>
+                            <p class="text-xs text-amber-700">Admite a los estudiantes que han abierto tu enlace para que ingresen al aula viva.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="admitAllStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-user-check"></i> Admitir a Todos
+                        </button>
+                    </div>
+                </div>
+                <!-- Waiting Queue List -->
+                <div id="waitingStudentsList" class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <!-- Rendered by JS -->
+                </div>
+            </div>
+
             <!-- Video Stage Container -->
-            <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
+            <div id="teacherVideoStage" class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 
                 <!-- Top Overlay Info Bar -->
                 <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-slate-950/80 to-transparent p-4 flex justify-between items-center text-white">
@@ -149,11 +204,41 @@
                         <h2 class="font-outfit font-semibold text-sm sm:text-base text-slate-200" id="currentCallTitle">Aula Virtual - Escuela Rafael Pombo</h2>
                     </div>
                     <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+                        <i class="fas fa-users text-emerald-400"></i>
+                        <span>En Aula: <strong id="liveOnlineCount" class="text-white">1 (Docente)</strong></span>
+                        <span class="text-slate-500">|</span>
                         <i class="fas fa-clock text-pombo-500"></i>
                         <span id="callDuration">00:00:00</span>
-                        <span class="text-slate-500">|</span>
-                        <i class="fas fa-shield-alt text-emerald-400"></i>
-                        <span>Conexión ilimitada</span>
+                    </div>
+                </div>
+
+                <!-- Video Viewport Frame -->
+                <div class="relative w-full aspect-video min-h-[420px] max-h-[640px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                    
+                    <!-- Placeholder when Video is Off -->
+                    <div id="videoPlaceholder" class="text-center p-8 z-0">
+                        <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
+                            <i class="fas fa-chalkboard-teacher text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-outfit font-bold text-white mb-2">Videollamada en Espera</h3>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
+                            Haz clic en <strong>"Iniciar Clase Virtual"</strong> para transmitir tu cámara o compartir tu pantalla con herramientas de rayado digital.
+                        </p>
+                        <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-pombo-500/20 transition flex items-center gap-2 mx-auto">
+                            <i class="fas fa-play"></i> Iniciar Clase Virtual
+                        </button>
+                    </div>
+
+                    <!-- Video Elements -->
+                    <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
+                    <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
+
+                    <!-- Interactive Annotation Canvas Overlay (Rayar la Pantalla) -->
+                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+
+                    <!-- Floating Student Video Miniatures -->
+                    <div id="participantMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto">
+                        <!-- Rendered by JS dynamically when students join -->
                     </div>
                 </div>
 
@@ -685,6 +770,13 @@
         let isScreenSharing = false;
         let isAnnotationActive = false;
 
+        // Waiting Room & Connected Students Realtime State
+        let waitingRoom = [];
+        let connectedStudents = [];
+        let roomCode = 'POMBO-LIVE-CLASS';
+        let userRole = 'teacher'; // 'teacher' or 'student'
+        let roomChannel = null;
+
         // Timer State
         let callSeconds = 0;
         let callTimerInterval = null;
@@ -709,15 +801,6 @@
                 time: "08:00",
                 notes: "Tener a mano el libro guía de matemáticas pág 45.",
                 code: "POMBO-MATH-5B"
-            },
-            {
-                id: 2,
-                title: "Ciencias Naturales - Ecosistemas de Colombia",
-                grade: "Grado 4°A - Rafael Pombo",
-                date: "2026-08-26",
-                time: "10:30",
-                notes: "Revisión de la maqueta previa.",
-                code: "POMBO-NAT-4A"
             }
         ];
 
@@ -734,7 +817,225 @@
             renderStudentTable();
             renderSchedules();
             updateAttendanceStats();
+            initRoomSync();
         });
+
+        // Initialize Realtime Sync across windows/tabs
+        function initRoomSync() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            const roleParam = urlParams.get('role');
+
+            if (roomParam) roomCode = roomParam;
+
+            // Setup BroadcastChannel for multi-tab / same-network communication
+            try {
+                roomChannel = new BroadcastChannel(`classroom_${roomCode}`);
+                roomChannel.onmessage = handleChannelMessage;
+            } catch (e) {
+                console.log('BroadcastChannel not supported fallbacking to localStorage sync');
+            }
+
+            // Listen to LocalStorage cross-tab events fallback
+            window.addEventListener('storage', (e) => {
+                if (e.key === `room_event_${roomCode}` && e.newValue) {
+                    try {
+                        const eventData = JSON.parse(e.newValue);
+                        handleChannelMessage({ data: eventData });
+                    } catch(err) {}
+                }
+            });
+
+            if (roleParam === 'student') {
+                userRole = 'student';
+                setupStudentModeUI();
+            } else {
+                updateConnectedCount();
+            }
+        }
+
+        function broadcastRoomEvent(type, payload) {
+            const data = { type, payload, timestamp: Date.now() };
+            if (roomChannel) {
+                roomChannel.postMessage(data);
+            }
+            // Sync via localStorage for high compatibility
+            localStorage.setItem(`room_event_${roomCode}`, JSON.stringify(data));
+        }
+
+        function handleChannelMessage(event) {
+            const { type, payload } = event.data;
+
+            if (userRole === 'teacher') {
+                if (type === 'STUDENT_JOIN_REQUEST') {
+                    addStudentToWaitingRoom(payload.studentName, payload.studentId);
+                } else if (type === 'STUDENT_RAISE_HAND') {
+                    showToast(`🖐️ ${payload.studentName} ha levantado la mano en la clase`, 'warning');
+                }
+            } else if (userRole === 'student') {
+                if (type === 'STUDENT_ADMITTED' && payload.studentId === window.currentStudentId) {
+                    document.getElementById('studentJoinView').classList.add('hidden');
+                    document.getElementById('teacherVideoStage').classList.remove('hidden');
+                    showToast('¡Has sido admitido a la clase por el Prof. Fannor Andrade!', 'success');
+                }
+            }
+        }
+
+        function setupStudentModeUI() {
+            document.getElementById('teacherVideoStage').classList.add('hidden');
+            document.getElementById('waitingRoomCard').classList.add('hidden');
+            document.getElementById('studentJoinView').classList.remove('hidden');
+        }
+
+        function submitStudentJoinRequest() {
+            const nameInput = document.getElementById('studentJoinName');
+            const name = nameInput.value.trim();
+            if (!name) {
+                showToast('Por favor ingresa tu nombre completo', 'warning');
+                return;
+            }
+
+            window.currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('studentWaitStatus').classList.remove('hidden');
+
+            // Send real-time request to teacher
+            broadcastRoomEvent('STUDENT_JOIN_REQUEST', {
+                studentName: name,
+                studentId: window.currentStudentId
+            });
+
+            showToast('Solicitud enviada al profesor Fannor Andrade', 'info');
+        }
+
+        // ==========================================
+        // WAITING ROOM & ADMISSION CONTROLS
+        // ==========================================
+        function addStudentToWaitingRoom(name, id) {
+            if (waitingRoom.some(s => s.id === id)) return;
+
+            waitingRoom.push({ id, name, timestamp: new Date() });
+            renderWaitingRoom();
+            showToast(`🔔 ${name} está solicitando ingresar a la clase`, 'warning');
+
+            // Play audio notification chime
+            playChimeSound();
+        }
+
+        function renderWaitingRoom() {
+            const card = document.getElementById('waitingRoomCard');
+            const list = document.getElementById('waitingStudentsList');
+            const count = document.getElementById('waitingCount');
+
+            count.textContent = waitingRoom.length;
+
+            if (waitingRoom.length === 0) {
+                card.classList.add('hidden');
+                return;
+            }
+
+            card.classList.remove('hidden');
+            list.innerHTML = waitingRoom.map(s => `
+                <div class="bg-white p-2.5 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center text-xs shrink-0">
+                            ${s.name.charAt(0)}
+                        </div>
+                        <span class="text-xs font-semibold text-slate-800 truncate">${s.name}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition">
+                            Admitir
+                        </button>
+                        <button onclick="rejectStudent('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold px-2 py-1 rounded-lg transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function admitStudent(studentId) {
+            const student = waitingRoom.find(s => s.id === studentId);
+            if (!student) return;
+
+            waitingRoom = waitingRoom.filter(s => s.id !== studentId);
+            connectedStudents.push(student);
+
+            // Add student automatically to Attendance List as Present
+            const existingInRoster = students.find(s => s.name.toLowerCase() === student.name.toLowerCase());
+            if (existingInRoster) {
+                existingInRoster.status = 'present';
+            } else {
+                students.push({ id: Date.now(), name: student.name, status: 'present' });
+            }
+
+            renderStudentTable();
+            renderWaitingRoom();
+            updateConnectedCount();
+            renderParticipantMiniatures();
+
+            // Broadcast admittance to student tab
+            broadcastRoomEvent('STUDENT_ADMITTED', { studentId: student.id, studentName: student.name });
+            showToast(`${student.name} ha ingresado a la clase`, 'success');
+        }
+
+        function admitAllStudents() {
+            const copy = [...waitingRoom];
+            copy.forEach(s => admitStudent(s.id));
+        }
+
+        function rejectStudent(studentId) {
+            waitingRoom = waitingRoom.filter(s => s.id !== studentId);
+            renderWaitingRoom();
+            showToast('Solicitud rechazada', 'info');
+        }
+
+        function simulateIncomingStudent() {
+            const sampleNames = ["Juan Diego Restrepo", "Camila Andrea Torres", "Santiago López", "Valentina Morales", "Esteban Ramírez"];
+            const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)] + " (Prueba)";
+            const fakeId = 'sim_' + Date.now();
+
+            addStudentToWaitingRoom(randomName, fakeId);
+        }
+
+        function updateConnectedCount() {
+            const totalInClass = connectedStudents.length + 1; // +1 for Teacher
+            const elem = document.getElementById('liveOnlineCount');
+            if (elem) elem.textContent = `${totalInClass} (${totalInClass === 1 ? 'Docente' : 'Docente + Alumnos'})`;
+        }
+
+        function renderParticipantMiniatures() {
+            const container = document.getElementById('participantMiniatures');
+            if (!container) return;
+
+            container.innerHTML = connectedStudents.map(s => `
+                <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex flex-col items-center justify-center p-1">
+                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs mb-1">
+                        ${s.name.charAt(0)}
+                    </div>
+                    <span class="text-[11px] text-slate-200 font-medium truncate w-full text-center">${s.name}</span>
+                    <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[9px] text-emerald-400">
+                        <i class="fas fa-microphone"></i>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function playChimeSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {}
+        }
 
         // Navigation Tabs
         function switchTab(tabId) {
@@ -1333,7 +1634,7 @@
         // ==========================================
         function openShareModal(code = 'CLASE-ENVIVO') {
             const baseUrl = window.location.origin + window.location.pathname;
-            document.getElementById('shareRoomUrl').value = `${baseUrl}?room=${code}`;
+            document.getElementById('shareRoomUrl').value = `${baseUrl}?room=${code}&role=student`;
             document.getElementById('shareModal').classList.remove('hidden');
         }
 
