@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aula Virtual Docente - Escuela Rafael Pombo 1 (Tuluá1)</title>
+    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -11,9 +11,9 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- PeerJS CDN for Real-time Internet Cross-Device Communication -->
+    <!-- PeerJS CDN for Real-time Internet Cross-Device WebRTC Communication -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
     <script>
@@ -73,7 +73,6 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
 
-    <!-- Top Bar Navigation Header -->
     <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
@@ -95,9 +94,7 @@
                     </div>
                 </div>
 
-                <!-- Call Status Badge & Waiting Room Actions -->
                 <div class="flex items-center space-x-3">
-                    <!-- Permanent Waiting Room Button with Dynamic Counter -->
                     <button id="teacherNavWaitingBtn" onclick="openWaitingRoomModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 transition hover:scale-105">
                         <i class="fas fa-user-clock text-base"></i>
                         <span>Solicitudes de Ingreso</span>
@@ -116,7 +113,6 @@
                 </div>
             </div>
 
-            <!-- Navigation Tabs (Teacher Mode) -->
             <nav id="teacherNavTabs" class="flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1">
                 <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
                     <i class="fas fa-video"></i> Videollamada y Tablero
@@ -132,12 +128,12 @@
                 </button>
                 <button onclick="switchTab('chat')" id="tab-btn-chat" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
                     <i class="fas fa-comments"></i> Participación e Interacción
+                    <span id="handTabBadge" class="hidden w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
                 </button>
             </nav>
         </div>
     </header>
 
-    <!-- Main Content Body -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- ==================================================== -->
@@ -169,37 +165,53 @@
                 </div>
             </div>
 
-            <!-- Student Active Classroom View (Unlocked upon admission) -->
             <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800">
                     <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
-                        <i class="fas fa-circle text-[8px] animate-pulse"></i> CONECTADO EN VIVO A LA CLASE
+                        <i class="fas fa-circle text-[8px] animate-pulse"></i> TRANSMISIÓN EN VIVO DEL DOCENTE
                     </span>
                     <span id="studentWelcomeBadge" class="text-slate-300 font-medium"></span>
                 </div>
 
                 <!-- Live Stream Display for Student -->
                 <div class="relative aspect-video min-h-[360px] max-h-[540px] bg-slate-950 flex items-center justify-center overflow-hidden">
-                    <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+                    <!-- Real WebRTC Received Video Stream from Teacher -->
+                    <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline controls></video>
+                    
+                    <!-- Canvas Drawing Overlay Mirrored from Teacher -->
+                    <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
 
+                    <!-- Student Self Webcam Small Overlay -->
+                    <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
+
+                    <!-- Placeholder when Teacher Has Not Turned On Camera / Screen -->
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0 text-slate-400">
-                        <i class="fas fa-chalkboard text-5xl text-pombo-500 mb-3 animate-bounce"></i>
-                        <h3 class="text-white font-bold text-lg">En Clase con Prof. Fannor Andrade</h3>
+                        <i class="fas fa-video-slash text-5xl text-amber-400 mb-3 animate-pulse"></i>
+                        <h3 class="text-white font-bold text-lg">Conectado a la Clase Virtual</h3>
                         <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                            ¡Bienvenido! Estás dentro del aula virtual. Cuando el profesor encienda su cámara o comparta pantalla y tablero, los verás aquí.
+                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video o pantalla se activará automáticamente tan pronto el profesor encienda su cámara o tablero.
                         </p>
                     </div>
                 </div>
 
-                <!-- Student Quick Actions Toolbar -->
-                <div class="p-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center">
-                    <button onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition">
-                        <i class="fas fa-hand-paper"></i> Levantar la Mano
-                    </button>
-                    <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
-                        Salir de Clase
-                    </button>
+                <div class="p-3 bg-slate-950 border-t border-slate-800 flex flex-wrap justify-between items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <button id="studentCamBtn" onclick="studentToggleCam()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                            <i class="fas fa-video-slash text-red-400"></i> Mi Cámara
+                        </button>
+                        <button id="studentMicBtn" onclick="studentToggleMic()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                            <i class="fas fa-microphone text-emerald-400"></i> Mi Micro
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button id="studentHandBtn" onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md">
+                            <i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>
+                        </button>
+                        <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
+                            Salir
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -245,7 +257,6 @@
                 </div>
             </div>
 
-            <!-- SINGLE VIDEO STAGE CONTAINER -->
             <div id="teacherVideoStage" class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 
                 <!-- Overlay Header Bar -->
@@ -275,10 +286,10 @@
                         </div>
                         <h3 class="text-xl font-outfit font-bold text-white mb-2">Transmisión de Videollamada</h3>
                         <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                            Haz clic en <strong>"Iniciar Cámara"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir a los alumnos con herramientas de rayado digital.
+                            Haz clic en <strong>"Iniciar Cámara"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir en vivo a la pantalla de todos los estudiantes.
                         </p>
                         <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-pombo-500/20 transition flex items-center gap-2 mx-auto">
-                            <i class="fas fa-play"></i> Iniciar Cámara Docente
+                            <i class="fas fa-play"></i> Iniciar Transmisión Cámara
                         </button>
                     </div>
 
@@ -295,7 +306,6 @@
                     </div>
                 </div>
 
-                <!-- Drawing & Annotation Toolbar (Barra de Rayado / Tablero) -->
                 <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
                         <!-- Tools Selection -->
@@ -347,10 +357,9 @@
                     </div>
                 </div>
 
-                <!-- Bottom Control Bar -->
                 <div class="bg-slate-950 p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Cámara">
+                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Cámara Docente">
                             <i class="fas fa-video-slash text-red-400"></i>
                         </button>
                         <button id="btnToggleMic" onclick="toggleMic()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Micrófono">
@@ -376,7 +385,6 @@
                 </div>
             </div>
 
-            <!-- Institutional Information Widgets -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
@@ -778,31 +786,32 @@
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
-        // ====================================================
-        // GLOBAL APP STATE & REAL-TIME CLOUD SIGNALING
-        // ====================================================
         let currentRole = 'teacher'; // 'teacher' or 'student'
         let roomCode = 'RAFAEL-POMBO-CLASS';
         let broadcastChannel = null;
         let peerInstance = null;
         let activePeerConnections = {};
+        let activeMediaCalls = {};
 
-        // Video & Media Streams
+        // Media Stream & Video Call Controls
         let localMediaStream = null;
         let screenShareStream = null;
+        let activeTeacherStream = null;
+        let studentLocalStream = null;
         let isCameraActive = false;
         let isMicActive = true;
         let isScreenSharing = false;
         let isAnnotationActive = false;
+        let isStudentCamActive = false;
+        let isStudentMicActive = false;
+        let isHandRaised = false;
 
-        // Timer State
+        // Timer & Real Time Queue State
         let callSeconds = 0;
         let callTimerInterval = null;
-
-        // Real Real-time Admitted & Pending Students
-        let realWaitingStudents = []; // { id, name, requestedAt }
-        let realAdmittedStudents = []; // { id, name, status: 'present', joinedAt }
-        let currentStudentId = null; // For student view
+        let realWaitingStudents = [];
+        let realAdmittedStudents = [];
+        let currentStudentId = null;
         let pollingInterval = null;
 
         // Canvas Drawing State
@@ -812,8 +821,6 @@
         let currentColor = '#ef4444';
         let currentLineWidth = 4;
         let isWhiteBackground = false;
-
-        // Schedules Storage
         let schedules = [];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -851,7 +858,8 @@
         }
 
         function initCloudSignaling() {
-            const teacherPeerId = `${getCleanRoomId()}-host`;
+            const cleanRoom = getCleanRoomId();
+            const teacherPeerId = `${cleanRoom}-host`;
 
             if (currentRole === 'teacher') {
                 try {
@@ -873,8 +881,15 @@
                             });
                         });
 
+                        peerInstance.on('call', (mediaCall) => {
+                            mediaCall.answer();
+                            mediaCall.on('stream', (remoteStudentStream) => {
+                                handleIncomingStudentVideoStream(mediaCall.peer, remoteStudentStream);
+                            });
+                        });
+
                         peerInstance.on('error', (err) => {
-                            console.warn('Network signaling fallback active:', err.message || err.type || err);
+                            console.warn('Network signaling notice:', err.message || err.type || err);
                         });
                     }
                 } catch(e) {
@@ -883,13 +898,94 @@
             } else if (currentRole === 'student') {
                 try {
                     if (typeof Peer !== 'undefined') {
-                        peerInstance = new Peer({ debug: 0 });
+                        currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
+                        const studentPeerId = `${cleanRoom}-${currentStudentId}`;
+
+                        peerInstance = new Peer(studentPeerId, { debug: 0 });
+
+                        peerInstance.on('open', (id) => {
+                            console.log('Conexión Estudiante Conectada:', id);
+                        });
+
+                        peerInstance.on('call', (call) => {
+                            call.answer(studentLocalStream || null);
+                            call.on('stream', (remoteTeacherStream) => {
+                                handleIncomingTeacherVideoStream(remoteTeacherStream);
+                            });
+                        });
+
                         peerInstance.on('error', (err) => {
                             console.warn('Student signal notice:', err.message || err.type || err);
                         });
                     }
                 } catch(e) {}
             }
+        }
+
+        function handleIncomingTeacherVideoStream(remoteTeacherStream) {
+            const stdVideo = document.getElementById('studentReceivedVideo');
+            const placeholder = document.getElementById('studentStreamPlaceholder');
+            
+            if (stdVideo && remoteTeacherStream) {
+                stdVideo.srcObject = remoteTeacherStream;
+                stdVideo.classList.remove('hidden');
+                if (placeholder) placeholder.classList.add('hidden');
+
+                stdVideo.play().catch(err => {
+                    console.log('Autoplay handled by user interaction:', err);
+                });
+
+                showToast('¡Videollamada en vivo recibida del profesor!', 'success');
+            }
+        }
+
+        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
+            const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
+            const student = realAdmittedStudents.find(s => s.id === studentId);
+            const studentName = student ? student.name : 'Estudiante';
+
+            const container = document.getElementById('realStudentMiniatures');
+            if (!container) return;
+
+            let existing = document.getElementById(`std-video-${studentId}`);
+            if (!existing) {
+                const wrapper = document.createElement('div');
+                wrapper.id = `std-wrapper-${studentId}`;
+                wrapper.className = "w-40 h-24 bg-slate-900 rounded-xl border-2 border-emerald-500 relative overflow-hidden shadow-lg animate-fade-in";
+                wrapper.innerHTML = `
+                    <video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <div class="absolute bottom-1 left-1 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-white font-bold truncate max-w-[90%]">
+                        <i class="fas fa-video text-emerald-400"></i> ${studentName}
+                    </div>
+                `;
+                container.appendChild(wrapper);
+                existing = document.getElementById(`std-video-${studentId}`);
+            }
+
+            if (existing) {
+                existing.srcObject = remoteStudentStream;
+            }
+        }
+
+        function broadcastTeacherStreamToStudents() {
+            if (currentRole !== 'teacher' || !peerInstance) return;
+
+            const streamToTransmit = activeTeacherStream || localMediaStream || screenShareStream;
+            if (!streamToTransmit) return;
+
+            const cleanRoom = getCleanRoomId();
+
+            realAdmittedStudents.forEach(student => {
+                const studentPeerId = `${cleanRoom}-${student.id}`;
+                try {
+                    const mediaCall = peerInstance.call(studentPeerId, streamToTransmit);
+                    if (mediaCall) {
+                        activeMediaCalls[student.id] = mediaCall;
+                    }
+                } catch(err) {
+                    console.warn(`Call attempt to ${student.name} queued:`, err);
+                }
+            });
         }
 
         function getRoomState() {
@@ -939,7 +1035,8 @@
         }
 
         function sendStudentCloudRequest(reqObj) {
-            const teacherPeerId = `${getCleanRoomId()}-host`;
+            const cleanRoom = getCleanRoomId();
+            const teacherPeerId = `${cleanRoom}-host`;
 
             const sendData = () => {
                 try {
@@ -1031,7 +1128,40 @@
         }
 
         function mirrorCanvasDraw(stroke) {
-            // Mirroring handler
+            const stdCanvas = document.getElementById('studentCanvasMirror');
+            if (!stdCanvas) return;
+            const stdCtx = stdCanvas.getContext('2d');
+            if (!stdCtx) return;
+
+            const rect = stdCanvas.getBoundingClientRect();
+            stdCanvas.width = rect.width;
+            stdCanvas.height = rect.height;
+
+            if (stroke.type === 'start') {
+                stdCtx.beginPath();
+                stdCtx.moveTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
+            } else if (stroke.type === 'draw') {
+                stdCtx.lineWidth = (stroke.width || 4);
+                stdCtx.lineCap = 'round';
+                stdCtx.lineJoin = 'round';
+                stdCtx.strokeStyle = stroke.color || '#ef4444';
+
+                if (stroke.tool === 'eraser') {
+                    stdCtx.globalCompositeOperation = 'destination-out';
+                    stdCtx.lineWidth = (stroke.width || 4) * 3;
+                } else if (stroke.tool === 'highlighter') {
+                    stdCtx.globalCompositeOperation = 'source-over';
+                    stdCtx.globalAlpha = 0.35;
+                } else {
+                    stdCtx.globalCompositeOperation = 'source-over';
+                    stdCtx.globalAlpha = 1.0;
+                }
+
+                stdCtx.lineTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
+                stdCtx.stroke();
+                stdCtx.globalAlpha = 1.0;
+                stdCtx.globalCompositeOperation = 'source-over';
+            }
         }
 
         function mirrorCanvasClear() {
@@ -1081,6 +1211,21 @@
             localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
         }
 
+        function sendSignalToTeacher(type, payload) {
+            const cleanRoom = getCleanRoomId();
+            const teacherPeerId = `${cleanRoom}-host`;
+
+            if (peerInstance) {
+                try {
+                    const conn = peerInstance.connect(teacherPeerId);
+                    conn.on('open', () => {
+                        conn.send({ type, payload });
+                    });
+                } catch(e) {}
+            }
+            sendSignal(type, payload);
+        }
+
         function handleSignalMessage(event, connection = null) {
             const { type, payload } = event.data;
 
@@ -1091,7 +1236,9 @@
                     }
                     handleIncomingStudentRequest(payload.studentId || payload.id, payload.studentName || payload.name);
                 } else if (type === 'STUDENT_RAISE_HAND') {
-                    addHandRaised(payload.studentId, payload.studentName);
+                    handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
+                } else if (type === 'STUDENT_LOWER_HAND') {
+                    handleTeacherReceivedLowerHand(payload.studentId);
                 } else if (type === 'STUDENT_CHAT') {
                     appendChatMessage(payload.senderName, 'Estudiante', payload.text);
                 }
@@ -1111,6 +1258,30 @@
             }
         }
 
+        function handleTeacherReceivedRaiseHand(studentId, studentName) {
+            addHandRaised(studentId, studentName);
+            playChimeSound();
+            showToast(`✋ ¡${studentName} ha levantado la mano!`, 'warning');
+
+            const handBadge = document.getElementById('handTabBadge');
+            if (handBadge) handBadge.classList.remove('hidden');
+        }
+
+        function handleTeacherReceivedLowerHand(studentId) {
+            const list = document.getElementById('handQueueList');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(item => {
+                if (item.getAttribute('data-student-id') === studentId) {
+                    item.remove();
+                }
+            });
+            const countElem = document.getElementById('handCount');
+            if (countElem) {
+                countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
+            }
+        }
+
         function requestEntryAsStudent() {
             const nameInput = document.getElementById('studentInputName');
             const name = nameInput.value.trim();
@@ -1119,7 +1290,7 @@
                 return;
             }
 
-            currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
+            currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
 
             const reqObj = {
@@ -1188,6 +1359,11 @@
             renderParticipantMiniatures();
             updateAdmittedCount();
 
+            // Transmit live teacher WebRTC stream to the admitted student
+            setTimeout(() => {
+                broadcastTeacherStreamToStudents();
+            }, 500);
+
             showToast(`Acceso permitido a ${student.name}`, 'success');
         }
 
@@ -1240,7 +1416,7 @@
         function onStudentAdmittedByTeacher() {
             document.getElementById('studentFormBox').classList.add('hidden');
             document.getElementById('studentClassroomBox').classList.remove('hidden');
-            const name = document.getElementById('studentInputName').value;
+            const name = document.getElementById('studentInputName').value || 'Estudiante';
             document.getElementById('studentWelcomeBadge').textContent = `Bienvenido: ${name}`;
             showToast('¡Has sido admitido por el Prof. Fannor Andrade!', 'success');
         }
@@ -1255,7 +1431,7 @@
             if (!container) return;
 
             container.innerHTML = realAdmittedStudents.map(s => `
-                <div class="w-36 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2 animate-fade-in">
+                <div id="std-wrapper-${s.id}" class="w-36 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2 animate-fade-in">
                     <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow">
                         ${s.name.charAt(0).toUpperCase()}
                     </div>
@@ -1275,6 +1451,8 @@
             if (!isCameraActive) {
                 try {
                     localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isMicActive });
+                    activeTeacherStream = localMediaStream;
+
                     videoElem.srcObject = localMediaStream;
                     videoElem.classList.remove('hidden');
                     placeholder.classList.add('hidden');
@@ -1285,10 +1463,12 @@
 
                     isCameraActive = true;
                     startCallTimer();
-                    showToast('Cámara iniciada correctamente', 'success');
+                    broadcastTeacherStreamToStudents();
+
+                    showToast('Transmisión de cámara iniciada en vivo para todos los alumnos', 'success');
                 } catch (err) {
                     console.error('Error cámara:', err);
-                    showToast('No se pudo acceder a la cámara. Revisa permisos.', 'error');
+                    showToast('No se pudo acceder a la cámara. Revisa los permisos.', 'error');
                 }
             } else {
                 if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
@@ -1300,7 +1480,8 @@
                 btnCam.innerHTML = `<i class="fas fa-video-slash text-red-400"></i>`;
 
                 isCameraActive = false;
-                showToast('Cámara desactivada', 'info');
+                activeTeacherStream = isScreenSharing ? screenShareStream : null;
+                showToast('Transmisión de cámara finalizada', 'info');
             }
         }
 
@@ -1329,6 +1510,8 @@
             if (!isScreenSharing) {
                 try {
                     screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    activeTeacherStream = screenShareStream;
+
                     screenVideo.srcObject = screenShareStream;
                     screenVideo.classList.remove('hidden');
                     webcamVideo.classList.add('hidden');
@@ -1337,6 +1520,8 @@
                     isScreenSharing = true;
 
                     if (!isAnnotationActive) toggleAnnotationBoard();
+
+                    broadcastTeacherStreamToStudents();
 
                     showToast('Compartiendo pantalla con los estudiantes', 'success');
 
@@ -1364,12 +1549,71 @@
             screenVideo.classList.add('hidden');
             if (isCameraActive) {
                 webcamVideo.classList.remove('hidden');
+                activeTeacherStream = localMediaStream;
             } else {
                 placeholder.classList.remove('hidden');
+                activeTeacherStream = null;
             }
 
             isScreenSharing = false;
             showToast('Pantalla compartida finalizada', 'info');
+        }
+
+        async function studentToggleCam() {
+            const selfVideo = document.getElementById('studentSelfVideo');
+            const btn = document.getElementById('studentCamBtn');
+
+            if (!isStudentCamActive) {
+                try {
+                    studentLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isStudentMicActive });
+                    selfVideo.srcObject = studentLocalStream;
+                    selfVideo.classList.remove('hidden');
+
+                    btn.classList.remove('bg-slate-800');
+                    btn.classList.add('bg-emerald-600');
+                    btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
+
+                    isStudentCamActive = true;
+
+                    // Transmit student webcam stream to teacher
+                    if (peerInstance) {
+                        const cleanRoom = getCleanRoomId();
+                        const teacherPeerId = `${cleanRoom}-host`;
+                        peerInstance.call(teacherPeerId, studentLocalStream);
+                    }
+
+                    showToast('Cámara de estudiante activada', 'success');
+                } catch(e) {
+                    showToast('No se pudo activar la cámara', 'error');
+                }
+            } else {
+                if (studentLocalStream) studentLocalStream.getVideoTracks().forEach(t => t.stop());
+                selfVideo.classList.add('hidden');
+
+                btn.classList.remove('bg-emerald-600');
+                btn.classList.add('bg-slate-800');
+                btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
+
+                isStudentCamActive = false;
+                showToast('Cámara desactivada', 'info');
+            }
+        }
+
+        function studentToggleMic() {
+            const btn = document.getElementById('studentMicBtn');
+            isStudentMicActive = !isStudentMicActive;
+
+            if (studentLocalStream) {
+                studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
+            }
+
+            if (isStudentMicActive) {
+                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`;
+                showToast('Micrófono activado', 'success');
+            } else {
+                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`;
+                showToast('Micrófono silenciado', 'warning');
+            }
         }
 
         function stopAllStreams() {
@@ -1383,6 +1627,7 @@
 
                 isCameraActive = false;
                 isScreenSharing = false;
+                activeTeacherStream = null;
                 stopCallTimer();
 
                 showToast('La clase ha finalizado', 'info');
@@ -1505,7 +1750,7 @@
             ctx.beginPath();
             ctx.moveTo(coords.x, coords.y);
 
-            sendSignal('CANVAS_DRAW', { type: 'start', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth });
+            sendSignal('CANVAS_DRAW', { stroke: { type: 'start', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth } });
         }
 
         function draw(e) {
@@ -1539,7 +1784,7 @@
             ctx.lineTo(coords.x, coords.y);
             ctx.stroke();
 
-            sendSignal('CANVAS_DRAW', { type: 'draw', x: coords.x / canvas.width, y: coords.y / canvas.height });
+            sendSignal('CANVAS_DRAW', { stroke: { type: 'draw', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth } });
 
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
@@ -1867,7 +2112,7 @@
             if (!msg) return;
 
             appendChatMessage('Prof. Fannor Andrade', 'Docente', msg);
-            sendSignal('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
+            sendSignalToTeacher('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
             input.value = '';
         }
 
@@ -1891,9 +2136,25 @@
         }
 
         function studentRaiseHand() {
-            const name = document.getElementById('studentInputName').value;
-            sendSignal('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
-            showToast('Has levantado la mano. El profesor ha sido notificado.', 'info');
+            isHandRaised = !isHandRaised;
+            const btn = document.getElementById('studentHandBtn');
+            const name = document.getElementById('studentInputName').value || 'Estudiante';
+
+            if (isHandRaised) {
+                if (btn) {
+                    btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md";
+                    btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Mano Levantada (Bajar)</span>`;
+                }
+                sendSignalToTeacher('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
+                showToast('Has levantado la mano. El profesor ha sido notificado.', 'info');
+            } else {
+                if (btn) {
+                    btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md";
+                    btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>`;
+                }
+                sendSignalToTeacher('STUDENT_LOWER_HAND', { studentId: currentStudentId, studentName: name });
+                showToast('Has bajado la mano', 'info');
+            }
         }
 
         function addHandRaised(id, name) {
@@ -1902,9 +2163,10 @@
             if (emptyMsg) emptyMsg.remove();
 
             const countElem = document.getElementById('handCount');
-            countElem.textContent = parseInt(countElem.textContent) + 1;
+            if (countElem) countElem.textContent = parseInt(countElem.textContent || 0) + 1;
 
             const li = document.createElement('li');
+            li.setAttribute('data-student-id', id);
             li.className = 'p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs animate-fade-in';
             li.innerHTML = `
                 <span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${name}</span>
@@ -1916,7 +2178,7 @@
         function lowerHand(btn) {
             btn.closest('li').remove();
             const countElem = document.getElementById('handCount');
-            countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
+            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
         }
 
         function studentLeaveClass() {
@@ -1940,6 +2202,11 @@
             if (activeBtn) {
                 activeBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
                 activeBtn.classList.remove('text-slate-400');
+            }
+
+            if (tabId === 'chat') {
+                const handBadge = document.getElementById('handTabBadge');
+                if (handBadge) handBadge.classList.add('hidden');
             }
 
             if (tabId === 'live') setTimeout(resizeCanvas, 100);
