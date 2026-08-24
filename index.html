@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
+    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá1)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -11,8 +11,11 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700" rel="stylesheet">
     
+    <!-- PeerJS CDN for Real-time Internet Cross-Device Communication -->
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
     <script>
         tailwind.config = {
             theme: {
@@ -208,7 +211,7 @@
         <!-- TAB 1: VIDEO CALL & RAYADO TABLERO -->
         <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
 
-            <!-- REAL-TIME WAITING ROOM PANEL (SIEMPRE VISIBLE O CUANDO HAY SOLICITUDES) -->
+            <!-- REAL-TIME WAITING ROOM PANEL -->
             <div id="teacherWaitingRoomPanel" class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-4 shadow-lg transition">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
@@ -776,11 +779,13 @@
 
     <script>
         // ====================================================
-        // GLOBAL APP STATE & REAL-TIME SIGNALING
+        // GLOBAL APP STATE & REAL-TIME CLOUD SIGNALING
         // ====================================================
         let currentRole = 'teacher'; // 'teacher' or 'student'
         let roomCode = 'RAFAEL-POMBO-CLASS';
         let broadcastChannel = null;
+        let peerInstance = null;
+        let activePeerConnections = {};
 
         // Video & Media Streams
         let localMediaStream = null;
@@ -814,15 +819,13 @@
         window.addEventListener('DOMContentLoaded', () => {
             detectRoleAndRoom();
             initRealtimeChannel();
+            initCloudSignaling();
             startStatePolling();
             initCanvas();
             renderRealAttendanceTable();
             renderSchedules();
         });
 
-        // ====================================================
-        // ROLE DETECTION & REAL-TIME BROADCAST ENGINE
-        // ====================================================
         function detectRoleAndRoom() {
             const params = new URLSearchParams(window.location.search);
             const roleParam = params.get('role');
@@ -838,9 +841,205 @@
                 setupTeacherUI();
             }
 
-            // Set default URL in Share Modal
             const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
-            document.getElementById('shareRoomUrl').value = shareUrl;
+            const shareUrlInput = document.getElementById('shareRoomUrl');
+            if (shareUrlInput) shareUrlInput.value = shareUrl;
+        }
+
+        function getCleanRoomId() {
+            return 'pombo-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        }
+
+        function initCloudSignaling() {
+            const teacherPeerId = `${getCleanRoomId()}-host`;
+
+            if (currentRole === 'teacher') {
+                try {
+                    if (typeof Peer !== 'undefined') {
+                        peerInstance = new Peer(teacherPeerId, { debug: 0 });
+                        
+                        peerInstance.on('open', (id) => {
+                            console.log('Servidor en Nube del Profesor Conectado:', id);
+                        });
+
+                        peerInstance.on('connection', (conn) => {
+                            conn.on('data', (data) => {
+                                if (data && data.type) {
+                                    handleSignalMessage({ data }, conn);
+                                }
+                            });
+                            conn.on('open', () => {
+                                activePeerConnections[conn.peer] = conn;
+                            });
+                        });
+
+                        peerInstance.on('error', (err) => {
+                            console.warn('Network signaling fallback active:', err.message || err.type || err);
+                        });
+                    }
+                } catch(e) {
+                    console.warn('Cloud Signaling initializing fallback:', e);
+                }
+            } else if (currentRole === 'student') {
+                try {
+                    if (typeof Peer !== 'undefined') {
+                        peerInstance = new Peer({ debug: 0 });
+                        peerInstance.on('error', (err) => {
+                            console.warn('Student signal notice:', err.message || err.type || err);
+                        });
+                    }
+                } catch(e) {}
+            }
+        }
+
+        function getRoomState() {
+            try {
+                const raw = localStorage.getItem(`pombo_room_data_${roomCode}`);
+                return raw ? JSON.parse(raw) : { waiting: [], admitted: [] };
+            } catch (e) {
+                return { waiting: [], admitted: [] };
+            }
+        }
+
+        function saveRoomState(state) {
+            try {
+                localStorage.setItem(`pombo_room_data_${roomCode}`, JSON.stringify(state));
+            } catch (e) {}
+        }
+
+        function startStatePolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(() => {
+                const state = getRoomState();
+
+                if (currentRole === 'teacher') {
+                    let stateChanged = false;
+                    state.waiting.forEach(st => {
+                        if (!realWaitingStudents.some(w => w.id === st.id) && !realAdmittedStudents.some(a => a.id === st.id)) {
+                            realWaitingStudents.push(st);
+                            stateChanged = true;
+                            playChimeSound();
+                            showGlobalRequestBanner(st);
+                        }
+                    });
+
+                    if (stateChanged) {
+                        renderWaitingRoomPanel();
+                        renderModalWaitingList();
+                        updateAttendanceStats();
+                    }
+                } else if (currentRole === 'student' && currentStudentId) {
+                    const isAdmitted = state.admitted.some(a => a.id === currentStudentId);
+                    if (isAdmitted && document.getElementById('studentClassroomBox').classList.contains('hidden')) {
+                        onStudentAdmittedByTeacher();
+                    }
+                }
+            }, 400);
+        }
+
+        function sendStudentCloudRequest(reqObj) {
+            const teacherPeerId = `${getCleanRoomId()}-host`;
+
+            const sendData = () => {
+                try {
+                    const conn = peerInstance.connect(teacherPeerId);
+                    conn.on('open', () => {
+                        conn.send({
+                            type: 'STUDENT_JOIN_REQUEST',
+                            payload: reqObj
+                        });
+                        activePeerConnections['teacher'] = conn;
+                    });
+                    conn.on('data', (data) => {
+                        if (data && data.type) {
+                            handleSignalMessage({ data });
+                        }
+                    });
+                } catch(err) {
+                    console.warn('Cloud request fallback:', err);
+                }
+            };
+
+            if (peerInstance && peerInstance.id) {
+                sendData();
+            } else if (peerInstance) {
+                peerInstance.on('open', () => sendData());
+            }
+
+            sendSignal('STUDENT_JOIN_REQUEST', reqObj);
+        }
+
+        function openWaitingRoomModal() {
+            renderModalWaitingList();
+            document.getElementById('waitingRoomModal').classList.remove('hidden');
+        }
+
+        function closeWaitingRoomModal() {
+            document.getElementById('waitingRoomModal').classList.add('hidden');
+        }
+
+        function filterWaitingStudents() {
+            renderModalWaitingList();
+        }
+
+        function renderModalWaitingList() {
+            const list = document.getElementById('modalWaitingList');
+            const searchInput = document.getElementById('searchWaitingInput');
+            const filterText = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            const countBadge = document.getElementById('modalWaitingCount');
+            const totalText = document.getElementById('modalTotalCountText');
+
+            if (countBadge) countBadge.textContent = realWaitingStudents.length;
+            if (totalText) totalText.textContent = `${realWaitingStudents.length} estudiantes`;
+
+            if (!list) return;
+
+            const filtered = realWaitingStudents.filter(s => s.name.toLowerCase().includes(filterText));
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-10 text-slate-400">
+                        <i class="fas fa-users-slash text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs">No hay solicitudes que coincidan</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = filtered.map(s => `
+                <div class="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-between transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">
+                            ${s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <h4 class="font-outfit font-bold text-slate-800 text-sm">${s.name}</h4>
+                            <p class="text-[11px] text-slate-400 font-mono">Solicitó a las ${s.requestedAt}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1">
+                            <i class="fas fa-check"></i> Admitir
+                        </button>
+                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-2.5 py-2 rounded-xl transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function mirrorCanvasDraw(stroke) {
+            // Mirroring handler
+        }
+
+        function mirrorCanvasClear() {
+            const stdCanvas = document.getElementById('studentCanvasMirror');
+            if (stdCanvas) {
+                const stdCtx = stdCanvas.getContext('2d');
+                if (stdCtx) stdCtx.clearRect(0, 0, stdCanvas.width, stdCanvas.height);
+            }
         }
 
         function setupTeacherUI() {
@@ -863,10 +1062,8 @@
         function initRealtimeChannel() {
             try {
                 broadcastChannel = new BroadcastChannel(`pombo_channel_${roomCode}`);
-                broadcastChannel.onmessage = handleSignalMessage;
-            } catch (e) {
-                console.log('BroadcastChannel fallback enabled');
-            }
+                broadcastChannel.onmessage = (e) => handleSignalMessage(e);
+            } catch (e) {}
 
             window.addEventListener('storage', (e) => {
                 if (e.key === `pombo_signal_${roomCode}` && e.newValue) {
@@ -884,68 +1081,15 @@
             localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
         }
 
-        // ====================================================
-        // REAL-TIME STATE SYNC & CROSS-TAB POLLING
-        // ====================================================
-        function getRoomState() {
-            try {
-                const raw = localStorage.getItem(`pombo_room_data_${roomCode}`);
-                return raw ? JSON.parse(raw) : { waiting: [], admitted: [] };
-            } catch (e) {
-                return { waiting: [], admitted: [] };
-            }
-        }
-
-        function saveRoomState(state) {
-            localStorage.setItem(`pombo_room_data_${roomCode}`, JSON.stringify(state));
-        }
-
-        function startStatePolling() {
-            if (pollingInterval) clearInterval(pollingInterval);
-
-            pollingInterval = setInterval(() => {
-                const state = getRoomState();
-
-                if (currentRole === 'teacher') {
-                    let stateChanged = false;
-
-                    // Sync waiting list from persistent storage
-                    state.waiting.forEach(st => {
-                        if (!realWaitingStudents.some(w => w.id === st.id) && !realAdmittedStudents.some(a => a.id === st.id)) {
-                            realWaitingStudents.push(st);
-                            stateChanged = true;
-                            playChimeSound();
-                            showGlobalRequestBanner(st);
-                        }
-                    });
-
-                    // Remove any that were rejected/removed elsewhere
-                    const filteredWaiting = realWaitingStudents.filter(w => state.waiting.some(sw => sw.id === w.id));
-                    if (filteredWaiting.length !== realWaitingStudents.length) {
-                        realWaitingStudents = filteredWaiting;
-                        stateChanged = true;
-                    }
-
-                    if (stateChanged) {
-                        renderWaitingRoomPanel();
-                        updateAttendanceStats();
-                    }
-                } else if (currentRole === 'student' && currentStudentId) {
-                    // Check if current student has been admitted
-                    const isAdmitted = state.admitted.some(a => a.id === currentStudentId);
-                    if (isAdmitted && document.getElementById('studentClassroomBox').classList.contains('hidden')) {
-                        onStudentAdmittedByTeacher();
-                    }
-                }
-            }, 300); // Poll every 300ms for fast responsive entry
-        }
-
-        function handleSignalMessage(event) {
+        function handleSignalMessage(event, connection = null) {
             const { type, payload } = event.data;
 
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') {
-                    handleIncomingStudentRequest(payload.studentId, payload.studentName);
+                    if (connection && connection.peer) {
+                        activePeerConnections[payload.studentId || connection.peer] = connection;
+                    }
+                    handleIncomingStudentRequest(payload.studentId || payload.id, payload.studentName || payload.name);
                 } else if (type === 'STUDENT_RAISE_HAND') {
                     addHandRaised(payload.studentId, payload.studentName);
                 } else if (type === 'STUDENT_CHAT') {
@@ -967,9 +1111,6 @@
             }
         }
 
-        // ====================================================
-        // STUDENT REQUEST & ADMISSION SYSTEM
-        // ====================================================
         function requestEntryAsStudent() {
             const nameInput = document.getElementById('studentInputName');
             const name = nameInput.value.trim();
@@ -982,164 +1123,39 @@
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
 
             const reqObj = {
+                studentId: currentStudentId,
+                studentName: name,
                 id: currentStudentId,
                 name: name,
                 requestedAt: new Date().toLocaleTimeString()
             };
 
-            // Write request to shared state
             const state = getRoomState();
             state.waiting.push(reqObj);
             saveRoomState(state);
 
-            sendSignal('STUDENT_JOIN_REQUEST', {
-                studentId: currentStudentId,
-                studentName: name
-            });
+            sendStudentCloudRequest(reqObj);
 
             showToast('Solicitud enviada en vivo al Prof. Fannor Andrade', 'info');
         }
 
         function handleIncomingStudentRequest(id, name) {
+            if (!id || !name) return;
             if (realWaitingStudents.some(s => s.id === id) || realAdmittedStudents.some(s => s.id === id)) return;
 
             const reqObj = { id, name, requestedAt: new Date().toLocaleTimeString() };
             realWaitingStudents.push(reqObj);
 
+            const state = getRoomState();
+            if (!state.waiting.some(w => w.id === id)) {
+                state.waiting.push(reqObj);
+                saveRoomState(state);
+            }
+
             playChimeSound();
             showGlobalRequestBanner(reqObj);
             renderWaitingRoomPanel();
             updateAttendanceStats();
-        }
-
-        function showGlobalRequestBanner(student) {
-            const banner = document.getElementById('teacherGlobalRequestBanner');
-            const nameSpan = document.getElementById('bannerStudentName');
-            const admitBtn = document.getElementById('bannerAdmitBtn');
-            const rejectBtn = document.getElementById('bannerRejectBtn');
-
-            nameSpan.textContent = `"${student.name}" solicita ingresar`;
-            banner.classList.remove('hidden');
-
-            admitBtn.onclick = () => {
-                admitStudent(student.id);
-                banner.classList.add('hidden');
-            };
-
-            rejectBtn.onclick = () => {
-                rejectStudent(student.id);
-                banner.classList.add('hidden');
-            };
-        }
-
-        function renderWaitingRoomPanel() {
-            const container = document.getElementById('waitingListContainer');
-            const countDisplay = document.getElementById('waitingCountDisplay');
-            const statusBadge = document.getElementById('waitingBadgeStatus');
-            const navBadge = document.getElementById('navWaitingCountBadge');
-            const modalWaitingCount = document.getElementById('modalWaitingCount');
-            const modalTotalCountText = document.getElementById('modalTotalCountText');
-
-            const total = realWaitingStudents.length;
-            countDisplay.textContent = total;
-            navBadge.textContent = total;
-            modalWaitingCount.textContent = total;
-            modalTotalCountText.textContent = `${total} estudiante(s)`;
-
-            if (total > 0) {
-                navBadge.classList.add('animate-pulse');
-                statusBadge.textContent = `${total} Solicitud(es) Pendiente(s)`;
-                statusBadge.className = "bg-amber-300 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full animate-pulse";
-            } else {
-                navBadge.classList.remove('animate-pulse');
-                statusBadge.textContent = "Sin Pendientes";
-                statusBadge.className = "bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
-            }
-
-            if (total === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full py-6 text-center text-xs text-slate-500 bg-white/60 rounded-xl border border-dashed border-amber-300">
-                        <i class="fas fa-user-check text-slate-400 text-2xl mb-1 block"></i>
-                        No hay solicitudes pendientes en este momento. Cuando un estudiante abra el enlace, aparecerá aquí.
-                    </div>
-                `;
-            } else {
-                container.innerHTML = realWaitingStudents.map(s => `
-                    <div class="bg-white p-3 rounded-xl border border-amber-300 flex items-center justify-between shadow-sm hover:shadow transition">
-                        <div class="flex items-center gap-2.5 overflow-hidden">
-                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow">
-                                ${s.name.charAt(0).toUpperCase()}
-                            </div>
-                            <div class="overflow-hidden">
-                                <h4 class="text-xs font-bold text-slate-900 truncate">${s.name}</h4>
-                                <span class="text-[10px] text-slate-500 font-mono"><i class="far fa-clock"></i> ${s.requestedAt}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
-                                <i class="fas fa-check"></i> Admitir
-                            </button>
-                            <button onclick="rejectStudent('${s.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2 py-1.5 rounded-lg transition" title="Rechazar">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            renderWaitingRoomModalList();
-        }
-
-        function openWaitingRoomModal() {
-            renderWaitingRoomModalList();
-            document.getElementById('waitingRoomModal').classList.remove('hidden');
-        }
-
-        function closeWaitingRoomModal() {
-            document.getElementById('waitingRoomModal').classList.add('hidden');
-        }
-
-        function renderWaitingRoomModalList() {
-            const list = document.getElementById('modalWaitingList');
-            const searchVal = document.getElementById('searchWaitingInput')?.value.toLowerCase() || '';
-
-            const filtered = realWaitingStudents.filter(s => s.name.toLowerCase().includes(searchVal));
-
-            if (filtered.length === 0) {
-                list.innerHTML = `
-                    <div class="py-12 text-center text-slate-400 text-xs">
-                        <i class="fas fa-users-slash text-3xl mb-2 text-slate-300"></i>
-                        <p class="font-semibold text-slate-600">No hay solicitudes que coincidan</p>
-                    </div>
-                `;
-                return;
-            }
-
-            list.innerHTML = filtered.map(s => `
-                <div class="p-3 bg-slate-50 hover:bg-amber-50 rounded-2xl border border-slate-200 flex items-center justify-between transition">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">
-                            ${s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                            <h4 class="font-outfit font-bold text-slate-800 text-sm">${s.name}</h4>
-                            <span class="text-[11px] text-slate-500 font-mono">Solicitó a las ${s.requestedAt}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fas fa-check-circle"></i> Aceptar Ingreso
-                        </button>
-                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-2 rounded-xl transition">
-                            Rechazar
-                        </button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function filterWaitingStudents() {
-            renderWaitingRoomModalList();
         }
 
         function admitStudent(studentId) {
@@ -1151,19 +1167,27 @@
             const admittedObj = { ...student, status: 'present', joinedAt };
             realAdmittedStudents.push(admittedObj);
 
-            // Sync shared state in LocalStorage
             const state = getRoomState();
             state.waiting = state.waiting.filter(w => w.id !== studentId);
             state.admitted.push(admittedObj);
             saveRoomState(state);
+
+            Object.keys(activePeerConnections).forEach(key => {
+                try {
+                    activePeerConnections[key].send({
+                        type: 'TEACHER_ADMITTED',
+                        payload: { studentId: student.id }
+                    });
+                } catch(e) {}
+            });
+
+            sendSignal('TEACHER_ADMITTED', { studentId: student.id });
 
             renderWaitingRoomPanel();
             renderRealAttendanceTable();
             renderParticipantMiniatures();
             updateAdmittedCount();
 
-            // Notify student window via Broadcast signal
-            sendSignal('TEACHER_ADMITTED', { studentId: student.id });
             showToast(`Acceso permitido a ${student.name}`, 'success');
         }
 
@@ -1222,7 +1246,7 @@
         }
 
         function updateAdmittedCount() {
-            const totalInRoom = realAdmittedStudents.length + 1; // +1 teacher
+            const totalInRoom = realAdmittedStudents.length + 1;
             document.getElementById('liveAdmittedCount').textContent = `${totalInRoom} (${totalInRoom === 1 ? 'Docente' : 'Docente + ' + realAdmittedStudents.length + ' Alumnos'})`;
         }
 
@@ -1243,9 +1267,6 @@
             `).join('');
         }
 
-        // ====================================================
-        // VIDEO CALL & WEBRTC ENGINE
-        // ====================================================
         async function toggleCameraStream() {
             const videoElem = document.getElementById('webcamVideo');
             const placeholder = document.getElementById('videoOffPlaceholder');
@@ -1391,9 +1412,6 @@
             document.getElementById('callDuration').textContent = '00:00:00';
         }
 
-        // ====================================================
-        // ANNOTATION & RAYADO DIGITAL CANVAS ENGINE
-        // ====================================================
         function initCanvas() {
             canvas = document.getElementById('annotationCanvas');
             if (!canvas) return;
@@ -1402,13 +1420,11 @@
 
             window.addEventListener('resize', resizeCanvas);
 
-            // Mouse Events
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
 
-            // Touch Events
             canvas.addEventListener('touchstart', handleTouchStart);
             canvas.addEventListener('touchmove', handleTouchMove);
             canvas.addEventListener('touchend', stopDrawing);
@@ -1547,9 +1563,6 @@
             }
         }
 
-        // ====================================================
-        // REAL ATTENDANCE ROSTER & REPORT EXPORT
-        // ====================================================
         function renderRealAttendanceTable() {
             const tbody = document.getElementById('attendanceTableBody');
             if (!tbody) return;
@@ -1621,10 +1634,92 @@
         function clearAttendanceRoster() {
             showConfirm('¿Vaciar Lista de Asistencia?', 'Se quitarán los registros actuales de asistencia.', () => {
                 realAdmittedStudents = [];
+                const state = getRoomState();
+                state.admitted = [];
+                saveRoomState(state);
                 renderRealAttendanceTable();
                 renderParticipantMiniatures();
                 showToast('Lista de asistencia vaciada', 'info');
             });
+        }
+
+        function showGlobalRequestBanner(reqObj) {
+            const banner = document.getElementById('teacherGlobalRequestBanner');
+            const bannerName = document.getElementById('bannerStudentName');
+            const admitBtn = document.getElementById('bannerAdmitBtn');
+            const rejectBtn = document.getElementById('bannerRejectBtn');
+
+            if (bannerName) bannerName.textContent = `"${reqObj.name}" solicita ingresar`;
+            if (banner) banner.classList.remove('hidden');
+
+            updateNavWaitingBadge();
+
+            if (admitBtn) {
+                admitBtn.onclick = () => {
+                    admitStudent(reqObj.id);
+                    if (banner) banner.classList.add('hidden');
+                };
+            }
+
+            if (rejectBtn) {
+                rejectBtn.onclick = () => {
+                    rejectStudent(reqObj.id);
+                    if (banner) banner.classList.add('hidden');
+                };
+            }
+        }
+
+        function updateNavWaitingBadge() {
+            const badge = document.getElementById('navWaitingCountBadge');
+            const countDisplay = document.getElementById('waitingCountDisplay');
+            const statusBadge = document.getElementById('waitingBadgeStatus');
+
+            if (badge) badge.textContent = realWaitingStudents.length;
+            if (countDisplay) countDisplay.textContent = realWaitingStudents.length;
+            if (statusBadge) {
+                if (realWaitingStudents.length > 0) {
+                    statusBadge.textContent = `${realWaitingStudents.length} Pendiente(s)`;
+                    statusBadge.className = 'bg-amber-500 text-slate-950 font-black text-[10px] px-2 py-0.5 rounded-full animate-pulse';
+                } else {
+                    statusBadge.textContent = 'Sin Pendientes';
+                    statusBadge.className = 'bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full';
+                }
+            }
+        }
+
+        function renderWaitingRoomPanel() {
+            const container = document.getElementById('waitingListContainer');
+            
+            updateNavWaitingBadge();
+
+            if (!container) return;
+
+            if (realWaitingStudents.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2 col-span-full">No hay estudiantes en espera en este momento.</p>`;
+                return;
+            }
+
+            container.innerHTML = realWaitingStudents.map(s => `
+                <div class="bg-white p-3 rounded-xl border border-amber-300 flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow">
+                            ${s.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="overflow-hidden">
+                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.name}</h4>
+                            <span class="text-[10px] text-slate-400 font-mono">${s.requestedAt}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                            <i class="fas fa-check"></i> Admitir
+                        </button>
+                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-2 py-1.5 rounded-lg transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
         }
 
         function updateAttendanceStats() {
@@ -1633,12 +1728,17 @@
             const absent = realAdmittedStudents.filter(s => s.status === 'absent').length;
             const waiting = realWaitingStudents.length;
 
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statPresent').textContent = present;
-            document.getElementById('statAbsent').textContent = absent;
-            document.getElementById('statWaiting').textContent = waiting;
+            const statTotal = document.getElementById('statTotal');
+            const statPresent = document.getElementById('statPresent');
+            const statAbsent = document.getElementById('statAbsent');
+            const statWaiting = document.getElementById('statWaiting');
+            const tabBadgeCount = document.getElementById('tabBadgeCount');
 
-            document.getElementById('tabBadgeCount').textContent = `${present}/${total}`;
+            if (statTotal) statTotal.textContent = total;
+            if (statPresent) statPresent.textContent = present;
+            if (statAbsent) statAbsent.textContent = absent;
+            if (statWaiting) statWaiting.textContent = waiting;
+            if (tabBadgeCount) tabBadgeCount.textContent = `${present}/${total}`;
         }
 
         function exportAttendanceReport() {
@@ -1669,12 +1769,12 @@
             showToast('Reporte de asistencia descargado', 'success');
         }
 
-        // ====================================================
-        // SCHEDULER & LINK GENERATION
-        // ====================================================
         function renderSchedules() {
             const container = document.getElementById('scheduleList');
-            document.getElementById('schedCount').textContent = `${schedules.length} Clases`;
+            const schedCount = document.getElementById('schedCount');
+            if (schedCount) schedCount.textContent = `${schedules.length} Clases`;
+
+            if (!container) return;
 
             if (schedules.length === 0) {
                 container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No hay clases programadas.</p>`;
@@ -1717,9 +1817,6 @@
             showToast('Clase programada guardada correctamente', 'success');
         }
 
-        // ====================================================
-        // SHARING MODAL & WHATSAPP
-        // ====================================================
         function openShareModal() {
             const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
             document.getElementById('shareRoomUrl').value = shareUrl;
@@ -1743,9 +1840,6 @@
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
 
-        // ====================================================
-        // EDUCATIONAL MEDIA PLAYER
-        // ====================================================
         function loadYouTubeVideo() {
             const input = document.getElementById('ytUrlInput').value.trim();
             if (!input) return;
@@ -1767,9 +1861,6 @@
             showToast('Video proyectado', 'success');
         }
 
-        // ====================================================
-        // CHAT & HAND RAISED QUEUE
-        // ====================================================
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
@@ -1835,7 +1926,6 @@
             showToast('Has salido de la clase', 'info');
         }
 
-        // UI HELPERS (TABS, TOASTS, CONFIRM, SOUND)
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1857,6 +1947,8 @@
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
+            if (!container) return;
+
             const toast = document.createElement('div');
             toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${
                 type === 'success' ? 'bg-emerald-600' :
