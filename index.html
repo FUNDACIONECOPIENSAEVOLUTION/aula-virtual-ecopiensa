@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
-    
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- FontAwesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
     <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- PeerJS CDN for WebRTC Communication -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- PeerJS CDN -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-    <!-- PDF.js CDN for Rendering PowerPoint/PDF Slides in Browser -->
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <script>
@@ -29,19 +29,8 @@
             theme: {
                 extend: {
                     colors: {
-                        pombo: {
-                            50: '#f0f7ff',
-                            100: '#e0effe',
-                            500: '#2563eb',
-                            600: '#1d4ed8',
-                            700: '#1e40af',
-                            800: '#1e3a8a',
-                            900: '#0f172a'
-                        },
-                        eco: {
-                            500: '#10b981',
-                            600: '#059669'
-                        }
+                        pombo: { 50: '#f0f7ff', 100: '#e0effe', 500: '#2563eb', 600: '#1d4ed8', 700: '#1e40af', 800: '#1e3a8a', 900: '#0f172a' },
+                        eco: { 500: '#10b981', 600: '#059669' }
                     },
                     fontFamily: {
                         sans: ['Plus Jakarta Sans', 'sans-serif'],
@@ -51,36 +40,16 @@
             }
         }
     </script>
+
     <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 8px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        .canvas-active {
-            cursor: crosshair !important;
-            pointer-events: auto !important;
-        }
-        .canvas-disabled {
-            pointer-events: none !important;
-        }
-        .animate-fade-in {
-            animation: fadeIn 0.25s ease-in-out;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .canvas-active { cursor: crosshair !important; pointer-events: auto !important; }
+        .canvas-disabled { pointer-events: none !important; }
+        .animate-fade-in { animation: fadeIn 0.25s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         :fullscreen, :-webkit-full-screen, :-moz-full-screen {
             width: 100vw !important;
             height: 100vh !important;
@@ -96,7 +65,6 @@
     <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <!-- Institution & Teacher Info -->
                 <div class="flex items-center space-x-4">
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-pombo-600 to-eco-500 flex items-center justify-center shadow-lg transform hover:scale-105 transition">
                         <i class="fas fa-graduation-cap text-2xl text-white"></i>
@@ -114,7 +82,6 @@
                     </div>
                 </div>
 
-                <!-- Call Status Badge & Quick Actions -->
                 <div class="flex items-center space-x-3">
                     <button id="teacherNavWaitingBtn" onclick="openWaitingRoomModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 transition hover:scale-105">
                         <i class="fas fa-user-clock text-base"></i>
@@ -134,7 +101,6 @@
                 </div>
             </div>
 
-            <!-- Navigation Tabs (Teacher Mode) -->
             <nav id="teacherNavTabs" class="flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1">
                 <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
                     <i class="fas fa-video"></i> Videollamada y Tablero
@@ -158,19 +124,14 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- ==================================================== -->
-        <!-- STUDENT VIEW SCREEN (Only active when role=student) -->
-        <!-- ==================================================== -->
+        <!-- STUDENT VIEW -->
         <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-3xl mx-auto">
-            
-            <!-- Student Entry Request Form -->
             <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
                 <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
                     <i class="fas fa-user-graduate"></i>
                 </div>
                 <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Escuela Rafael Pombo - Tuluá</h2>
                 <p class="text-xs text-slate-500 mb-6">Aula Virtual del <strong>Prof. Fannor Alejandro Andrade Soto</strong></p>
-                
                 <div class="space-y-4 text-left max-w-md mx-auto">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tu Nombre Completo para Asistencia</label>
@@ -180,55 +141,37 @@
                         <i class="fas fa-paper-plane"></i> Solicitar Ingreso al Profesor
                     </button>
                 </div>
-
                 <div id="studentWaitingAlert" class="hidden mt-6 p-4 bg-amber-50 text-amber-800 rounded-2xl border border-amber-200 text-xs font-medium animate-pulse flex items-center justify-center gap-3">
                     <i class="fas fa-spinner fa-spin text-lg"></i>
                     <span>Solicitud enviada en tiempo real. Esperando que el <strong>Prof. Fannor Andrade</strong> te admita a la clase...</span>
                 </div>
             </div>
 
-            <!-- Student Active Classroom View (Unlocked upon admission) -->
             <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative flex flex-col">
                 <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800 z-30">
                     <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
                         <i class="fas fa-circle text-[8px] animate-pulse"></i> TRANSMISIÓN EN VIVO DEL DOCENTE
                     </span>
-                    
                     <div class="flex items-center gap-3">
                         <span id="studentWelcomeBadge" class="text-slate-300 font-medium hidden sm:inline"></span>
-                        
-                        <!-- Zoom & Fullscreen Button for Student View -->
                         <button onclick="toggleStudentFullscreen()" id="studentFullscreenBtn" class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition">
                             <i class="fas fa-expand text-xs"></i> <span>Zoom / Pantalla Completa</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Live Stream Display for Student with Real-time Mirrored Drawing Canvas -->
                 <div id="studentStreamWrapper" class="relative aspect-video min-h-[360px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    <!-- Real WebRTC Received Video Stream from Teacher -->
                     <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    
-                    <!-- PowerPoint / Slide Image Display for Student -->
                     <img id="studentSlideImage" class="w-full h-full object-contain hidden z-0" src="" alt="Diapositiva del Profesor">
-
-                    <!-- Synchronized Drawing Overlay Canvas (Transparent canvas layer mirrored directly from Teacher) -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
-
-                    <!-- Student Self Webcam Small Overlay -->
                     <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
-
-                    <!-- Placeholder when Teacher Has Not Turned On Camera / Screen / PowerPoint -->
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0 text-slate-400">
                         <i class="fas fa-video-slash text-5xl text-amber-400 mb-3 animate-pulse"></i>
                         <h3 class="text-white font-bold text-lg">Conectado a la Clase Virtual</h3>
-                        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video, presentaciones PowerPoint, pantalla compartida y el rayado en tablero se sincronizarán en tiempo real.
-                        </p>
+                        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">¡Estás dentro del aula del Prof. Fannor Andrade! El video, presentaciones PowerPoint, pantalla compartida y el rayado en tablero se sincronizarán en tiempo real.</p>
                     </div>
                 </div>
 
-                <!-- Student Controls Toolbar -->
                 <div class="p-3 bg-slate-950 border-t border-slate-800 flex flex-wrap justify-between items-center gap-2 z-30">
                     <div class="flex items-center gap-2">
                         <button id="studentCamBtn" onclick="studentToggleCam()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
@@ -238,7 +181,6 @@
                             <i class="fas fa-microphone text-emerald-400"></i> Mi Micro
                         </button>
                     </div>
-
                     <div class="flex items-center gap-2">
                         <button id="studentHandBtn" onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md">
                             <i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>
@@ -246,22 +188,15 @@
                         <button onclick="toggleStudentFullscreen()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1 transition sm:hidden">
                             <i class="fas fa-expand"></i> Fullscreen
                         </button>
-                        <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
-                            Salir
-                        </button>
+                        <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">Salir</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- ==================================================== -->
-        <!-- TEACHER MAIN DASHBOARD (Default view) -->
-        <!-- ==================================================== -->
-        
-        <!-- TAB 1: VIDEO CALL, POWERPOINT & RAYADO TABLERO -->
+        <!-- TEACHER DASHBOARD -->
         <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
 
-            <!-- REAL-TIME WAITING ROOM PANEL -->
             <div id="teacherWaitingRoomPanel" class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-4 shadow-lg transition">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
@@ -278,23 +213,16 @@
                             <p class="text-xs text-slate-600">Estudiantes reales ingresando desde WhatsApp o enlace de clase para ser aceptados.</p>
                         </div>
                     </div>
-                    
                     <div class="flex flex-wrap items-center gap-2 shrink-0">
                         <button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
                             <i class="fas fa-check-double"></i> Admitir a Todos
                         </button>
                     </div>
                 </div>
-
-                <div id="waitingListContainer" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    <!-- Populated dynamically via JS when real students join -->
-                </div>
+                <div id="waitingListContainer" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5"></div>
             </div>
 
-            <!-- UNIFIED VIDEO & PRESENTATION STAGE -->
             <div id="teacherVideoStage" class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
-                
-                <!-- Overlay Header Bar -->
                 <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-slate-950/90 to-transparent p-4 flex justify-between items-center text-white">
                     <div class="flex items-center gap-3">
                         <span class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow">
@@ -311,18 +239,13 @@
                     </div>
                 </div>
 
-                <!-- Unified Video / Slide Viewport Frame -->
                 <div id="teacherViewportFrame" class="relative w-full aspect-video min-h-[420px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    
-                    <!-- Off Video Placeholder -->
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
                             <i class="fas fa-chalkboard-teacher text-4xl"></i>
                         </div>
                         <h3 class="text-xl font-outfit font-bold text-white mb-2">Transmisión de Videollamada y Presentaciones</h3>
-                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                            Haz clic en <strong>"Iniciar Cámara"</strong>, <strong>"PowerPoint / PDF"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir en vivo a los alumnos.
-                        </p>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Haz clic en <strong>"Iniciar Cámara"</strong>, <strong>"PowerPoint / PDF"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir en vivo a los alumnos.</p>
                         <div class="flex flex-wrap items-center justify-center gap-3">
                             <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2">
                                 <i class="fas fa-video"></i> Iniciar Cámara
@@ -333,17 +256,11 @@
                         </div>
                     </div>
 
-                    <!-- Single Video & Image Elements -->
                     <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    
-                    <!-- PowerPoint / Slide Image Viewer Element -->
                     <img id="teacherSlideViewer" class="w-full h-full object-contain hidden z-0" src="" alt="Diapositiva PowerPoint">
-
-                    <!-- Interactive Transparent Annotation Canvas Overlay (Draw over webcam, screen, slides or whiteboard) -->
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden canvas-disabled"></canvas>
 
-                    <!-- PowerPoint Slide Navigation Floating Controls -->
                     <div id="pptSlideControls" class="hidden absolute top-16 left-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-xl">
                         <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition">
                             <i class="fas fa-chevron-left"></i>
@@ -362,35 +279,29 @@
                         </button>
                     </div>
 
-                    <!-- Real Joined Students Miniatures Overlay -->
-                    <div id="realStudentMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto">
-                        <!-- Populated with real admitted student chips -->
-                    </div>
+                    <div id="realStudentMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
                 </div>
 
-                <!-- Drawing Toolbar -->
                 <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
-                        <!-- Tools Selection -->
                         <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                            <button onclick="setTool('pen')" id="tool-pen" title="Lápiz Fino" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1">
+                            <button onclick="setTool('pen')" id="tool-pen" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1">
                                 <i class="fas fa-pencil-alt"></i> <span class="hidden sm:inline">Lápiz</span>
                             </button>
-                            <button onclick="setTool('brush')" id="tool-brush" title="Pincel Suave" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('brush')" id="tool-brush" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-paint-brush"></i> <span class="hidden sm:inline">Pincel</span>
                             </button>
-                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador Transparente" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('highlighter')" id="tool-highlighter" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-highlighter"></i> <span class="hidden sm:inline">Resaltador</span>
                             </button>
-                            <button onclick="setTool('arrow')" id="tool-arrow" title="Flecha Indicadora" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('arrow')" id="tool-arrow" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-long-arrow-alt-right"></i> <span class="hidden sm:inline">Flecha</span>
                             </button>
-                            <button onclick="setTool('eraser')" id="tool-eraser" title="Borrador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('eraser')" id="tool-eraser" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-eraser"></i> <span class="hidden sm:inline">Borrador</span>
                             </button>
                         </div>
 
-                        <!-- Color Palette & Size Slider -->
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
                                 <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-white/20"></button>
@@ -400,7 +311,6 @@
                                 <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 transition ring-2 ring-white/20"></button>
                                 <input type="color" id="drawColor" value="#ef4444" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 ml-1">
                             </div>
-
                             <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
                                 <i class="fas fa-circle text-[10px] text-slate-400"></i>
                                 <input type="range" id="lineWidth" min="2" max="35" value="5" onchange="setLineWidth(this.value)" class="w-20 accent-pombo-500 cursor-pointer">
@@ -408,7 +318,6 @@
                             </div>
                         </div>
 
-                        <!-- Canvas Controls -->
                         <div class="flex items-center gap-2">
                             <button onclick="clearCanvas()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/40 flex items-center gap-1 transition">
                                 <i class="fas fa-trash-alt"></i> Limpiar Rayado
@@ -439,7 +348,6 @@
                             <span id="boardBtnText">Activar Rayado / Tablero</span>
                         </button>
                     </div>
-
                     <div class="flex items-center gap-3">
                         <button onclick="openShareModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow transition">
                             <i class="fas fa-link"></i> Copiar Link Clase
@@ -451,277 +359,144 @@
                 </div>
             </div>
 
-            <!-- School Info Footer Chips -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fas fa-school"></i>
-                    </div>
-                    <div>
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Institución</span>
-                        <h4 class="font-outfit font-bold text-slate-800">Escuela Rafael Pombo</h4>
-                        <p class="text-xs text-slate-500">Sede Tuluá, Valle del Cauca</p>
-                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0"><i class="fas fa-school"></i></div>
+                    <div><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Institución</span><h4 class="font-outfit font-bold text-slate-800">Escuela Rafael Pombo</h4><p class="text-xs text-slate-500">Sede Tuluá, Valle del Cauca</p></div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fas fa-user-tie"></i>
-                    </div>
-                    <div>
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Docente Titular</span>
-                        <h4 class="font-outfit font-bold text-slate-800">Prof. Fannor Alejandro Andrade Soto</h4>
-                        <p class="text-xs text-slate-500">Plataforma Educativa Viva</p>
-                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0"><i class="fas fa-user-tie"></i></div>
+                    <div><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Docente Titular</span><h4 class="font-outfit font-bold text-slate-800">Prof. Fannor Alejandro Andrade Soto</h4><p class="text-xs text-slate-500">Plataforma Educativa Viva</p></div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fas fa-leaf"></i>
-                    </div>
-                    <div>
-                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Desarrollado Por</span>
-                        <h4 class="font-outfit font-bold text-slate-800">Fundación Ecopienza Evolution</h4>
-                        <p class="text-xs text-slate-500">Tecnología Educativa 2026</p>
-                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0"><i class="fas fa-leaf"></i></div>
+                    <div><span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Desarrollado Por</span><h4 class="font-outfit font-bold text-slate-800">Fundación Ecopienza Evolution</h4><p class="text-xs text-slate-500">Tecnología Educativa 2026</p></div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: CLASS SCHEDULER & LINK GENERATOR -->
+        <!-- TAB 2: SCHEDULE -->
         <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Schedule Form -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
                     <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
-                        <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center font-bold">
-                            <i class="fas fa-calendar-plus text-lg"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-outfit font-bold text-lg text-slate-800">Programar Clase Virtual</h3>
-                            <p class="text-xs text-slate-500">Crea agenda y enlace oficial</p>
-                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center font-bold"><i class="fas fa-calendar-plus text-lg"></i></div>
+                        <div><h3 class="font-outfit font-bold text-lg text-slate-800">Programar Clase Virtual</h3><p class="text-xs text-slate-500">Crea agenda y enlace oficial</p></div>
                     </div>
-
                     <form id="scheduleForm" onsubmit="handleCreateSchedule(event)" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Asignatura / Tema</label>
-                            <input type="text" id="schedTitle" required placeholder="Ej: Ciencias Naturales - El Ecosistema" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado / Grupo</label>
+                        <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Asignatura / Tema</label><input type="text" id="schedTitle" required placeholder="Ej: Ciencias Naturales - El Ecosistema" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado / Grupo</label>
                             <select id="schedGrade" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
                                 <option value="Grado 4°A - Escuela Rafael Pombo">Grado 4°A - Primaria</option>
                                 <option value="Grado 5°B - Escuela Rafael Pombo">Grado 5°B - Primaria</option>
                                 <option value="Grado 6°1 - Secundaria">Grado 6°1 - Secundaria</option>
                             </select>
                         </div>
-
                         <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
-                                <input type="date" id="schedDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hora</label>
-                                <input type="time" id="schedTime" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
-                            </div>
+                            <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label><input type="date" id="schedDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hora</label><input type="time" id="schedTime" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></div>
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Instrucciones</label>
-                            <textarea id="schedNotes" rows="2" placeholder="Tener listo cuaderno y lápiz..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></textarea>
-                        </div>
-
-                        <button type="submit" class="w-full bg-pombo-600 hover:bg-pombo-700 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                            <i class="fas fa-calendar-check"></i> Programar y Guardar Clase
-                        </button>
+                        <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Instrucciones</label><textarea id="schedNotes" rows="2" placeholder="Tener listo cuaderno y lápiz..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></textarea></div>
+                        <button type="submit" class="w-full bg-pombo-600 hover:bg-pombo-700 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2"><i class="fas fa-calendar-check"></i> Programar y Guardar Clase</button>
                     </form>
                 </div>
-
-                <!-- Scheduled List -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
                     <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                                <i class="fas fa-list-ul text-lg"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-outfit font-bold text-lg text-slate-800">Agenda Docente de Clases</h3>
-                                <p class="text-xs text-slate-500">Prof. Fannor Alejandro Andrade Soto</p>
-                            </div>
-                        </div>
+                        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold"><i class="fas fa-list-ul text-lg"></i></div><div><h3 class="font-outfit font-bold text-lg text-slate-800">Agenda Docente de Clases</h3><p class="text-xs text-slate-500">Prof. Fannor Alejandro Andrade Soto</p></div></div>
                         <span class="bg-slate-100 text-slate-600 text-xs px-3 py-1 rounded-full font-bold" id="schedCount">0 Clases</span>
                     </div>
-
-                    <div id="scheduleList" class="space-y-4 overflow-y-auto max-h-[500px] pr-2">
-                        <!-- Rendered by JS -->
-                    </div>
+                    <div id="scheduleList" class="space-y-4 overflow-y-auto max-h-[500px] pr-2"></div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 3: REAL ATTENDANCE ROSTER -->
+        <!-- TAB 3: ATTENDANCE -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
-                <!-- Controls Header -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
-                    <div>
-                        <h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia Real</h3>
-                        <p class="text-xs text-slate-500">Se actualiza automáticamente al aceptar estudiantes en la videollamada</p>
-                    </div>
-
+                    <div><h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia Real</h3><p class="text-xs text-slate-500">Se actualiza automáticamente al aceptar estudiantes en la videollamada</p></div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <button onclick="exportAttendanceReport()" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fas fa-file-download"></i> Exportar Asistencia (.txt)
-                        </button>
-                        <button onclick="clearAttendanceRoster()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5">
-                            <i class="fas fa-trash"></i> Vaciar Lista
-                        </button>
+                        <button onclick="exportAttendanceReport()" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5"><i class="fas fa-file-download"></i> Exportar Asistencia (.txt)</button>
+                        <button onclick="clearAttendanceRoster()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5"><i class="fas fa-trash"></i> Vaciar Lista</button>
                     </div>
                 </div>
-
-                <!-- Stats Summary -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Ingresados</span>
-                        <p class="text-2xl font-outfit font-extrabold text-slate-800" id="statTotal">0</p>
-                    </div>
-                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center">
-                        <span class="text-xs font-bold text-emerald-600 uppercase">Presentes</span>
-                        <p class="text-2xl font-outfit font-extrabold text-emerald-600" id="statPresent">0</p>
-                    </div>
-                    <div class="bg-red-50 p-4 rounded-xl border border-red-200 text-center">
-                        <span class="text-xs font-bold text-red-600 uppercase">Ausentes</span>
-                        <p class="text-2xl font-outfit font-extrabold text-red-600" id="statAbsent">0</p>
-                    </div>
-                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
-                        <span class="text-xs font-bold text-amber-600 uppercase">En Sala de Espera</span>
-                        <p class="text-2xl font-outfit font-extrabold text-amber-600" id="statWaiting">0</p>
-                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center"><span class="text-xs font-bold text-slate-400 uppercase">Ingresados</span><p class="text-2xl font-outfit font-extrabold text-slate-800" id="statTotal">0</p></div>
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center"><span class="text-xs font-bold text-emerald-600 uppercase">Presentes</span><p class="text-2xl font-outfit font-extrabold text-emerald-600" id="statPresent">0</p></div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200 text-center"><span class="text-xs font-bold text-red-600 uppercase">Ausentes</span><p class="text-2xl font-outfit font-extrabold text-red-600" id="statAbsent">0</p></div>
+                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center"><span class="text-xs font-bold text-amber-600 uppercase">En Sala de Espera</span><p class="text-2xl font-outfit font-extrabold text-amber-600" id="statWaiting">0</p></div>
                 </div>
-
-                <!-- Add Manual Student Bar -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex flex-col sm:flex-row gap-3">
                     <input type="text" id="manualStudentInput" placeholder="Añadir manualmente un estudiante a la lista de hoy..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
-                    <button onclick="addManualStudent()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 shrink-0">
-                        <i class="fas fa-user-plus"></i> Registrar en Lista
-                    </button>
+                    <button onclick="addManualStudent()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 shrink-0"><i class="fas fa-user-plus"></i> Registrar en Lista</button>
                 </div>
-
-                <!-- Attendance Table -->
                 <div class="overflow-x-auto rounded-xl border border-slate-200">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-100 text-slate-600 uppercase text-xs font-bold">
-                            <tr>
-                                <th class="py-3 px-4">Estudiante</th>
-                                <th class="py-3 px-4">Hora Ingreso</th>
-                                <th class="py-3 px-4">Estado Asistencia</th>
-                                <th class="py-3 px-4 text-center">Acción Docente</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendanceTableBody" class="divide-y divide-slate-200 bg-white">
-                            <!-- Populated with REAL joined students -->
-                        </tbody>
+                        <thead class="bg-slate-100 text-slate-600 uppercase text-xs font-bold"><tr><th class="py-3 px-4">Estudiante</th><th class="py-3 px-4">Hora Ingreso</th><th class="py-3 px-4">Estado Asistencia</th><th class="py-3 px-4 text-center">Acción Docente</th></tr></thead>
+                        <tbody id="attendanceTableBody" class="divide-y divide-slate-200 bg-white"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 4: EDUCATIONAL MEDIA & VIDEOS -->
+        <!-- TAB 4: MEDIA -->
         <div id="tab-media" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
                     <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center justify-between">
-                        <span class="flex items-center gap-2">
-                            <i class="fab fa-youtube text-red-600 text-xl"></i> Transmitir Video de Apoyo a los Alumnos
-                        </span>
-                        <button onclick="toggleMediaCanvasOverlay()" id="btnMediaDrawToggle" class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow">
-                            <i class="fas fa-pencil-alt"></i> Rayar sobre Video
-                        </button>
+                        <span class="flex items-center gap-2"><i class="fab fa-youtube text-red-600 text-xl"></i> Transmitir Video de Apoyo a los Alumnos</span>
+                        <button onclick="toggleMediaCanvasOverlay()" id="btnMediaDrawToggle" class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 shadow"><i class="fas fa-pencil-alt"></i> Rayar sobre Video</button>
                     </h3>
-
                     <div class="w-full aspect-video bg-slate-900 rounded-xl overflow-hidden mb-4 shadow-inner flex items-center justify-center relative">
                         <iframe id="youtubePlayer" class="w-full h-full hidden" src="" title="Video Educativo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                         <canvas id="mediaAnnotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden canvas-disabled"></canvas>
-                        
-                        <div id="noVideoState" class="text-center p-6 text-slate-400">
-                            <i class="fas fa-play-circle text-5xl mb-3 text-slate-600"></i>
-                            <p class="text-sm font-medium">Pega el link de un video de YouTube para proyectarlo a la clase</p>
-                        </div>
+                        <div id="noVideoState" class="text-center p-6 text-slate-400"><i class="fas fa-play-circle text-5xl mb-3 text-slate-600"></i><p class="text-sm font-medium">Pega el link de un video de YouTube para proyectarlo a la clase</p></div>
                     </div>
-
                     <div class="flex gap-2">
                         <input type="text" id="ytUrlInput" placeholder="Pega el enlace de YouTube (ej: https://www.youtube.com/watch?v=...)" class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
-                        <button onclick="loadYouTubeVideo()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center gap-2 shrink-0">
-                            <i class="fas fa-play"></i> Cargar Video
-                        </button>
+                        <button onclick="loadYouTubeVideo()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center gap-2 shrink-0"><i class="fas fa-play"></i> Cargar Video</button>
                     </div>
                 </div>
-
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
                     <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100">Videos Educativos Recomendados</h3>
                     <div class="space-y-3">
                         <div onclick="playPresetVideo('https://www.youtube.com/embed/a3FC31R016g')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
-                                <i class="fas fa-play"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800">Las Fracciones Explicadas</h4>
-                                <p class="text-[11px] text-slate-500">Matemáticas Primaria</p>
-                            </div>
+                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0"><i class="fas fa-play"></i></div>
+                            <div><h4 class="font-semibold text-xs sm:text-sm text-slate-800">Las Fracciones Explicadas</h4><p class="text-[11px] text-slate-500">Matemáticas Primaria</p></div>
                         </div>
                         <div onclick="playPresetVideo('https://www.youtube.com/embed/Pj1_3yE3c-0')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
-                                <i class="fas fa-play"></i>
-                            </div>
-                            <div>
-                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800">El Sistema Solar</h4>
-                                <p class="text-[11px] text-slate-500">Ciencias Naturales</p>
-                            </div>
+                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0"><i class="fas fa-play"></i></div>
+                            <div><h4 class="font-semibold text-xs sm:text-sm text-slate-800">El Sistema Solar</h4><p class="text-[11px] text-slate-500">Ciencias Naturales</p></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 5: CLASSROOM CHAT & HAND RAISED QUEUE -->
+        <!-- TAB 5: CHAT -->
         <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Chat Window -->
                 <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[520px]">
                     <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
-                        <h3 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fas fa-comments text-pombo-600"></i> Chat de la Clase Virtual
-                        </h3>
+                        <h3 class="font-outfit font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-comments text-pombo-600"></i> Chat de la Clase Virtual</h3>
                         <span class="text-xs text-slate-500">Sincronizado en Vivo</span>
                     </div>
-
                     <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50">
                         <div class="bg-pombo-50 text-pombo-800 p-3 rounded-xl text-xs border border-pombo-200 flex items-start gap-2">
                             <i class="fas fa-info-circle text-pombo-600 mt-0.5"></i>
-                            <div>
-                                <strong>Prof. Fannor Alejandro Andrade Soto:</strong> ¡Bienvenidos a la clase virtual de la Escuela Rafael Pombo!
-                            </div>
+                            <div><strong>Prof. Fannor Alejandro Andrade Soto:</strong> ¡Bienvenidos a la clase virtual de la Escuela Rafael Pombo!</div>
                         </div>
                     </div>
-
                     <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl flex gap-2">
                         <input type="text" id="chatInput" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="Escribe un mensaje para los estudiantes..." class="flex-grow px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
-                        <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-1">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+                        <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-1"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
-
-                <!-- Hands Raised Queue -->
                 <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                        <h4 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
-                            <i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas
-                        </h4>
+                        <h4 class="font-outfit font-bold text-slate-800 flex items-center gap-2"><i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas</h4>
                         <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold" id="handCount">0</span>
                     </div>
-
                     <ul id="handQueueList" class="space-y-2 max-h-80 overflow-y-auto">
                         <li id="emptyHandsMsg" class="text-xs text-slate-400 text-center py-4">No hay manos levantadas</li>
                     </ul>
@@ -731,136 +506,64 @@
 
     </main>
 
-    <!-- DEDICATED WAITING ROOM MODAL (SALA DE ESPERA MASIVA) -->
+    <!-- MODALS -->
     <div id="waitingRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in flex flex-col max-h-[85vh]">
-            <!-- Header -->
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black">
-                        <i class="fas fa-users-viewfinder"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-outfit font-bold text-xl text-slate-900">Solicitudes de Ingreso a Clase</h3>
-                        <p class="text-xs text-slate-500">Acepta la entrada de tus estudiantes a la videollamada</p>
-                    </div>
-                </div>
-                <button onclick="closeWaitingRoomModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
+                <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black"><i class="fas fa-users-viewfinder"></i></div><div><h3 class="font-outfit font-bold text-xl text-slate-900">Solicitudes de Ingreso a Clase</h3><p class="text-xs text-slate-500">Acepta la entrada de tus estudiantes a la videollamada</p></div></div>
+                <button onclick="closeWaitingRoomModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition"><i class="fas fa-times text-xl"></i></button>
             </div>
-
-            <!-- Toolbar & Bulk Actions -->
             <div class="py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl my-3">
-                <div class="relative w-full sm:w-64">
-                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
-                    <input type="text" id="searchWaitingInput" onkeyup="filterWaitingStudents()" placeholder="Buscar estudiante por nombre..." class="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
-                </div>
+                <div class="relative w-full sm:w-64"><i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i><input type="text" id="searchWaitingInput" onkeyup="filterWaitingStudents()" placeholder="Buscar estudiante por nombre..." class="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500"></div>
                 <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <button onclick="admitAllWaitingStudents()" class="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition flex items-center justify-center gap-1.5">
-                        <i class="fas fa-check-double"></i> Admitir a Todos (<span id="modalWaitingCount">0</span>)
-                    </button>
-                    <button onclick="rejectAllWaitingStudents()" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-2 rounded-xl transition">
-                        Rechazar Todos
-                    </button>
+                    <button onclick="admitAllWaitingStudents()" class="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition flex items-center justify-center gap-1.5"><i class="fas fa-check-double"></i> Admitir a Todos (<span id="modalWaitingCount">0</span>)</button>
+                    <button onclick="rejectAllWaitingStudents()" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-2 rounded-xl transition">Rechazar Todos</button>
                 </div>
             </div>
-
-            <!-- Scrollable Student List -->
-            <div id="modalWaitingList" class="flex-grow overflow-y-auto space-y-2 py-2 pr-1 min-h-[200px]">
-                <!-- Populated dynamically via JS -->
-            </div>
-
-            <!-- Modal Footer -->
+            <div id="modalWaitingList" class="flex-grow overflow-y-auto space-y-2 py-2 pr-1 min-h-[200px]"></div>
             <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                 <span>Total en espera: <strong id="modalTotalCountText" class="text-slate-800">0 estudiantes</strong></span>
-                <button onclick="closeWaitingRoomModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-5 py-2.5 rounded-xl transition">
-                    Cerrar Ventana
-                </button>
+                <button onclick="closeWaitingRoomModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-5 py-2.5 rounded-xl transition">Cerrar Ventana</button>
             </div>
         </div>
     </div>
 
-    <!-- FLOATING GLOBAL ADMISSION REQUEST BANNER FOR TEACHER -->
     <div id="teacherGlobalRequestBanner" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xl rounded-2xl p-4 border-2 border-amber-200 max-w-lg w-full transition-all animate-fade-in">
         <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-white text-amber-600 flex items-center justify-center font-bold text-xl shrink-0 shadow">
-                    <i class="fas fa-user-clock animate-bounce"></i>
-                </div>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-800/60 px-2 py-0.5 rounded text-amber-100">¡Nueva Solicitud de Ingreso!</span>
-                    <h4 class="font-outfit font-bold text-sm sm:text-base text-white" id="bannerStudentName">Estudiante solicita ingresar</h4>
-                    <p class="text-[11px] text-amber-100">Prof. Fannor Andrade, autorice el acceso a la clase virtual.</p>
-                </div>
-            </div>
+            <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-white text-amber-600 flex items-center justify-center font-bold text-xl shrink-0 shadow"><i class="fas fa-user-clock animate-bounce"></i></div><div><span class="text-[10px] font-bold uppercase tracking-wider bg-amber-800/60 px-2 py-0.5 rounded text-amber-100">¡Nueva Solicitud de Ingreso!</span><h4 class="font-outfit font-bold text-sm sm:text-base text-white" id="bannerStudentName">Estudiante solicita ingresar</h4><p class="text-[11px] text-amber-100">Prof. Fannor Andrade, autorice el acceso a la clase virtual.</p></div></div>
             <div class="flex items-center gap-2 shrink-0">
-                <button id="bannerAdmitBtn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5">
-                    <i class="fas fa-check-circle"></i> Admitir
-                </button>
-                <button id="bannerRejectBtn" class="bg-red-700/80 hover:bg-red-800 text-white font-bold text-xs px-2.5 py-2 rounded-xl transition">
-                    <i class="fas fa-times"></i>
-                </button>
+                <button id="bannerAdmitBtn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Admitir</button>
+                <button id="bannerRejectBtn" class="bg-red-700/80 hover:bg-red-800 text-white font-bold text-xs px-2.5 py-2 rounded-xl transition"><i class="fas fa-times"></i></button>
             </div>
         </div>
     </div>
 
-    <!-- SHARE CLASSROOM LINK MODAL -->
     <div id="shareModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in">
-            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center text-lg font-bold">
-                        <i class="fas fa-share-alt"></i>
-                    </div>
-                    <h3 class="font-outfit font-bold text-lg text-slate-800">Generar Link de Clase</h3>
-                </div>
-                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
-            </div>
-
-            <p class="text-xs text-slate-600 mb-4">
-                Envía este enlace a los estudiantes de la <strong>Escuela Rafael Pombo</strong> para solicitar ingreso a tu clase virtual:
-            </p>
-
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center text-lg font-bold"><i class="fas fa-share-alt"></i></div><h3 class="font-outfit font-bold text-lg text-slate-800">Generar Link de Clase</h3></div><button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1"><i class="fas fa-times text-lg"></i></button></div>
+            <p class="text-xs text-slate-600 mb-4">Envía este enlace a los estudiantes de la <strong>Escuela Rafael Pombo</strong> para solicitar ingreso a tu clase virtual:</p>
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 flex items-center justify-between gap-2">
                 <input type="text" id="shareRoomUrl" readonly value="" class="bg-transparent text-xs text-slate-700 font-mono w-full focus:outline-none">
-                <button onclick="copyShareUrl()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition">
-                    Copiar
-                </button>
+                <button onclick="copyShareUrl()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition">Copiar</button>
             </div>
-
-            <button onclick="shareViaWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm mb-3">
-                <i class="fab fa-whatsapp text-lg"></i> Compartir por WhatsApp a Alumnos / Padres
-            </button>
-
-            <button onclick="closeShareModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
-                Cerrar Ventana
-            </button>
+            <button onclick="shareViaWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm mb-3"><i class="fab fa-whatsapp text-lg"></i> Compartir por WhatsApp a Alumnos / Padres</button>
+            <button onclick="closeShareModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">Cerrar Ventana</button>
         </div>
     </div>
 
-    <!-- CUSTOM CONFIRMATION MODAL -->
     <div id="confirmModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center animate-fade-in">
-            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-xl mb-3">
-                <i class="fas fa-exclamation-triangle"></i>
-            </div>
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-xl mb-3"><i class="fas fa-exclamation-triangle"></i></div>
             <h4 class="font-outfit font-bold text-lg text-slate-800 mb-1" id="confirmModalTitle">¿Está Seguro?</h4>
             <p class="text-xs text-slate-500 mb-5" id="confirmModalMsg">Esta acción no se puede deshacer.</p>
-            <div class="flex gap-3">
-                <button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs hover:bg-slate-200">Cancelar</button>
-                <button id="confirmOkBtn" class="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-xl text-xs hover:bg-red-700">Confirmar</button>
-            </div>
+            <div class="flex gap-3"><button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs hover:bg-slate-200">Cancelar</button><button id="confirmOkBtn" class="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-xl text-xs hover:bg-red-700">Confirmar</button></div>
         </div>
     </div>
 
-    <!-- TOAST CONTAINER -->
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
-        let currentRole = 'teacher'; // 'teacher' or 'student'
+        let currentRole = 'teacher';
         let roomCode = 'RAFAEL-POMBO-CLASS';
         let broadcastChannel = null;
         let peerInstance = null;
@@ -868,7 +571,6 @@
         let activeMediaCalls = {};
         let teacherDataConnection = null;
 
-        // Media Stream & Video Call Controls
         let localMediaStream = null;
         let screenShareStream = null;
         let activeTeacherStream = null;
@@ -881,7 +583,6 @@
         let isStudentMicActive = false;
         let isHandRaised = false;
 
-        // PowerPoint & PDF Slide Presentation State
         let isPowerPointMode = false;
         let pptSlides = [
             "https://placehold.co/1280x720/0f172a/38bdf8?text=Diapositiva+1%3A+Ecosistemas+de+Tulu%C3%A1+-+Escuela+Rafael+Pombo",
@@ -890,7 +591,6 @@
         ];
         let currentPptIndex = 0;
 
-        // Timer & Real Time Queue State
         let callSeconds = 0;
         let callTimerInterval = null;
         let realWaitingStudents = [];
@@ -898,14 +598,13 @@
         let currentStudentId = null;
         let pollingInterval = null;
 
-        // Canvas Drawing State & Live Vector Stroke Sync
         let canvas, ctx;
         let isDrawing = false;
         let currentTool = 'pen';
         let currentColor = '#ef4444';
         let currentLineWidth = 5;
         let isWhiteBackground = false;
-        let drawingStrokes = []; // Live vector strokes array recorded for real-time student synchronization
+        let drawingStrokes = [];
         let activeStroke = null;
         let schedules = [];
 
@@ -923,9 +622,7 @@
             const params = new URLSearchParams(window.location.search);
             const roleParam = params.get('role');
             const roomParam = params.get('room');
-
             if (roomParam) roomCode = roomParam;
-
             if (roleParam === 'student') {
                 currentRole = 'student';
                 setupStudentUI();
@@ -933,78 +630,54 @@
                 currentRole = 'teacher';
                 setupTeacherUI();
             }
-
             const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
             const shareUrlInput = document.getElementById('shareRoomUrl');
             if (shareUrlInput) shareUrlInput.value = shareUrl;
         }
 
-        function getCleanRoomId() {
-            return 'pombo-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-        }
+        function getCleanRoomId() { return 'pombo-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
         function initCloudSignaling() {
             const cleanRoom = getCleanRoomId();
             const teacherPeerId = `${cleanRoom}-host`;
-
             if (currentRole === 'teacher') {
                 try {
                     if (typeof Peer !== 'undefined') {
                         peerInstance = new Peer(teacherPeerId, { debug: 0 });
-                        
-                        peerInstance.on('open', (id) => {
-                            console.log('Servidor en Nube del Profesor Conectado:', id);
-                        });
-
+                        peerInstance.on('open', (id) => console.log('Profesor Conectado:', id));
                         peerInstance.on('connection', (conn) => {
                             conn.on('open', () => {
                                 activePeerConnections[conn.peer] = conn;
                                 syncFullStateToStudent(conn);
                             });
-                            conn.on('data', (data) => {
-                                if (data && data.type) {
-                                    handleSignalMessage({ data }, conn);
-                                }
-                            });
+                            conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }, conn); });
                         });
-
                         peerInstance.on('call', (mediaCall) => {
                             mediaCall.answer();
                             mediaCall.on('stream', (remoteStudentStream) => {
                                 handleIncomingStudentVideoStream(mediaCall.peer, remoteStudentStream);
                             });
                         });
-
-                        peerInstance.on('error', (err) => {
-                            console.warn('Network signaling notice:', err.message || err.type || err);
-                        });
+                        peerInstance.on('error', (err) => console.warn('Peer error:', err.message || err));
                     }
-                } catch(e) {
-                    console.warn('Cloud Signaling fallback:', e);
-                }
+                } catch(e) { console.warn('Cloud fallback:', e); }
             } else if (currentRole === 'student') {
                 try {
                     if (typeof Peer !== 'undefined') {
                         currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
                         const studentPeerId = `${cleanRoom}-${currentStudentId}`;
-
                         peerInstance = new Peer(studentPeerId, { debug: 0 });
-
                         peerInstance.on('open', (id) => {
-                            console.log('Conexión Estudiante Conectada:', id);
+                            console.log('Estudiante Conectado:', id);
                             connectStudentDataChannelToTeacher();
                         });
-
                         peerInstance.on('call', (call) => {
                             call.answer(studentLocalStream || null);
                             call.on('stream', (remoteTeacherStream) => {
                                 handleIncomingTeacherVideoStream(remoteTeacherStream);
                             });
                         });
-
-                        peerInstance.on('error', (err) => {
-                            console.warn('Student signal notice:', err.message || err.type || err);
-                        });
+                        peerInstance.on('error', (err) => console.warn('Student error:', err.message || err));
                     }
                 } catch(e) {}
             }
@@ -1014,30 +687,17 @@
             if (!peerInstance || currentRole !== 'student') return;
             const cleanRoom = getCleanRoomId();
             const teacherPeerId = `${cleanRoom}-host`;
-
             try {
                 const conn = peerInstance.connect(teacherPeerId);
-                conn.on('open', () => {
-                    teacherDataConnection = conn;
-                });
-                conn.on('data', (data) => {
-                    if (data && data.type) {
-                        handleSignalMessage({ data });
-                    }
-                });
+                conn.on('open', () => { teacherDataConnection = conn; });
+                conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
             } catch(e) {}
         }
 
         function broadcastToAllStudents(type, payload) {
             Object.keys(activePeerConnections).forEach(peerId => {
-                try {
-                    const conn = activePeerConnections[peerId];
-                    if (conn && conn.open) {
-                        conn.send({ type, payload });
-                    }
-                } catch(e) {}
+                try { const conn = activePeerConnections[peerId]; if (conn && conn.open) conn.send({ type, payload }); } catch(e) {}
             });
-
             sendSignal(type, payload);
         }
 
@@ -1058,16 +718,11 @@
         function handleIncomingTeacherVideoStream(remoteTeacherStream) {
             const stdVideo = document.getElementById('studentReceivedVideo');
             const placeholder = document.getElementById('studentStreamPlaceholder');
-            
             if (stdVideo && remoteTeacherStream) {
                 stdVideo.srcObject = remoteTeacherStream;
                 stdVideo.classList.remove('hidden');
                 if (placeholder) placeholder.classList.add('hidden');
-
-                stdVideo.play().catch(err => {
-                    console.log('Autoplay handled by user interaction:', err);
-                });
-
+                stdVideo.play().catch(err => {});
                 showToast('¡Transmisión en vivo recibida del profesor!', 'success');
             }
         }
@@ -1076,72 +731,43 @@
             const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
             const student = realAdmittedStudents.find(s => s.id === studentId);
             const studentName = student ? student.name : 'Estudiante';
-
             const container = document.getElementById('realStudentMiniatures');
             if (!container) return;
-
             let existing = document.getElementById(`std-video-${studentId}`);
             if (!existing) {
                 const wrapper = document.createElement('div');
                 wrapper.id = `std-wrapper-${studentId}`;
                 wrapper.className = "w-40 h-24 bg-slate-900 rounded-xl border-2 border-emerald-500 relative overflow-hidden shadow-lg animate-fade-in";
-                wrapper.innerHTML = `
-                    <video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video>
-                    <div class="absolute bottom-1 left-1 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-white font-bold truncate max-w-[90%]">
-                        <i class="fas fa-video text-emerald-400"></i> ${studentName}
-                    </div>
-                `;
+                wrapper.innerHTML = `<video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video><div class="absolute bottom-1 left-1 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-white font-bold truncate max-w-[90%]"><i class="fas fa-video text-emerald-400"></i> ${studentName}</div>`;
                 container.appendChild(wrapper);
                 existing = document.getElementById(`std-video-${studentId}`);
             }
-
-            if (existing) {
-                existing.srcObject = remoteStudentStream;
-            }
+            if (existing) { existing.srcObject = remoteStudentStream; }
         }
 
         function broadcastTeacherStreamToStudents() {
             if (currentRole !== 'teacher' || !peerInstance) return;
-
             const streamToTransmit = activeTeacherStream || localMediaStream || screenShareStream;
             if (!streamToTransmit) return;
-
             const cleanRoom = getCleanRoomId();
-
             realAdmittedStudents.forEach(student => {
                 const studentPeerId = `${cleanRoom}-${student.id}`;
                 try {
                     const mediaCall = peerInstance.call(studentPeerId, streamToTransmit);
-                    if (mediaCall) {
-                        activeMediaCalls[student.id] = mediaCall;
-                    }
-                } catch(err) {
-                    console.warn(`Call attempt queued for ${student.name}:`, err);
-                }
+                    if (mediaCall) activeMediaCalls[student.id] = mediaCall;
+                } catch(err) { console.warn(`Call queued for ${student.name}:`, err); }
             });
         }
 
         function getRoomState() {
-            try {
-                const raw = localStorage.getItem(`pombo_room_data_${roomCode}`);
-                return raw ? JSON.parse(raw) : { waiting: [], admitted: [] };
-            } catch (e) {
-                return { waiting: [], admitted: [] };
-            }
+            try { const raw = localStorage.getItem(`pombo_room_data_${roomCode}`); return raw ? JSON.parse(raw) : { waiting: [], admitted: [] }; } catch (e) { return { waiting: [], admitted: [] }; }
         }
-
-        function saveRoomState(state) {
-            try {
-                localStorage.setItem(`pombo_room_data_${roomCode}`, JSON.stringify(state));
-            } catch (e) {}
-        }
+        function saveRoomState(state) { try { localStorage.setItem(`pombo_room_data_${roomCode}`, JSON.stringify(state)); } catch(e) {} }
 
         function startStatePolling() {
             if (pollingInterval) clearInterval(pollingInterval);
-
             pollingInterval = setInterval(() => {
                 const state = getRoomState();
-
                 if (currentRole === 'teacher') {
                     let stateChanged = false;
                     state.waiting.forEach(st => {
@@ -1152,12 +778,7 @@
                             showGlobalRequestBanner(st);
                         }
                     });
-
-                    if (stateChanged) {
-                        renderWaitingRoomPanel();
-                        renderModalWaitingList();
-                        updateAttendanceStats();
-                    }
+                    if (stateChanged) { renderWaitingRoomPanel(); renderModalWaitingList(); updateAttendanceStats(); }
                 } else if (currentRole === 'student' && currentStudentId) {
                     const isAdmitted = state.admitted.some(a => a.id === currentStudentId);
                     if (isAdmitted && document.getElementById('studentClassroomBox').classList.contains('hidden')) {
@@ -1170,48 +791,24 @@
         function sendStudentCloudRequest(reqObj) {
             const cleanRoom = getCleanRoomId();
             const teacherPeerId = `${cleanRoom}-host`;
-
             const sendData = () => {
                 try {
                     const conn = peerInstance.connect(teacherPeerId);
                     conn.on('open', () => {
-                        conn.send({
-                            type: 'STUDENT_JOIN_REQUEST',
-                            payload: reqObj
-                        });
+                        conn.send({ type: 'STUDENT_JOIN_REQUEST', payload: reqObj });
                         activePeerConnections['teacher'] = conn;
                     });
-                    conn.on('data', (data) => {
-                        if (data && data.type) {
-                            handleSignalMessage({ data });
-                        }
-                    });
-                } catch(err) {
-                    console.warn('Cloud request fallback:', err);
-                }
+                    conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
+                } catch(err) { console.warn('Cloud request fallback:', err); }
             };
-
-            if (peerInstance && peerInstance.id) {
-                sendData();
-            } else if (peerInstance) {
-                peerInstance.on('open', () => sendData());
-            }
-
+            if (peerInstance && peerInstance.id) sendData();
+            else if (peerInstance) peerInstance.on('open', () => sendData());
             sendSignal('STUDENT_JOIN_REQUEST', reqObj);
         }
 
-        function openWaitingRoomModal() {
-            renderModalWaitingList();
-            document.getElementById('waitingRoomModal').classList.remove('hidden');
-        }
-
-        function closeWaitingRoomModal() {
-            document.getElementById('waitingRoomModal').classList.add('hidden');
-        }
-
-        function filterWaitingStudents() {
-            renderModalWaitingList();
-        }
+        function openWaitingRoomModal() { renderModalWaitingList(); document.getElementById('waitingRoomModal').classList.remove('hidden'); }
+        function closeWaitingRoomModal() { document.getElementById('waitingRoomModal').classList.add('hidden'); }
+        function filterWaitingStudents() { renderModalWaitingList(); }
 
         function renderModalWaitingList() {
             const list = document.getElementById('modalWaitingList');
@@ -1219,59 +816,47 @@
             const filterText = searchInput ? searchInput.value.toLowerCase().trim() : '';
             const countBadge = document.getElementById('modalWaitingCount');
             const totalText = document.getElementById('modalTotalCountText');
-
             if (countBadge) countBadge.textContent = realWaitingStudents.length;
             if (totalText) totalText.textContent = `${realWaitingStudents.length} estudiantes`;
-
             if (!list) return;
-
             const filtered = realWaitingStudents.filter(s => s.name.toLowerCase().includes(filterText));
-
             if (filtered.length === 0) {
-                list.innerHTML = `
-                    <div class="text-center py-10 text-slate-400">
-                        <i class="fas fa-users-slash text-3xl mb-2 text-slate-300"></i>
-                        <p class="text-xs">No hay solicitudes que coincidan</p>
-                    </div>
-                `;
+                list.innerHTML = `<div class="text-center py-10 text-slate-400"><i class="fas fa-users-slash text-3xl mb-2 text-slate-300"></i><p class="text-xs">No hay solicitudes que coincidan</p></div>`;
                 return;
             }
-
             list.innerHTML = filtered.map(s => `
                 <div class="p-3 bg-slate-50 hover:bg-slate-100 rounded-2xl border border-slate-200 flex items-center justify-between transition">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">
-                            ${s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                            <h4 class="font-outfit font-bold text-slate-800 text-sm">${s.name}</h4>
-                            <p class="text-[11px] text-slate-400 font-mono">Solicitó a las ${s.requestedAt}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1">
-                            <i class="fas fa-check"></i> Admitir
-                        </button>
-                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-2.5 py-2 rounded-xl transition">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+                    <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">${s.name.charAt(0).toUpperCase()}</div><div><h4 class="font-outfit font-bold text-slate-800 text-sm">${s.name}</h4><p class="text-[11px] text-slate-400 font-mono">Solicitó a las ${s.requestedAt}</p></div></div>
+                    <div class="flex items-center gap-2"><button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1"><i class="fas fa-check"></i> Admitir</button><button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-2.5 py-2 rounded-xl transition"><i class="fas fa-times"></i></button></div>
                 </div>
             `).join('');
+        }
+
+        // ---------- STUDENT CANVAS SIZE FIX ----------
+        function ensureStudentCanvasSize() {
+            const stdCanvas = document.getElementById('studentCanvasMirror');
+            if (!stdCanvas) return;
+            const rect = stdCanvas.parentElement.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                stdCanvas.width = rect.width;
+                stdCanvas.height = rect.height;
+            }
+        }
+
+        function resizeStudentCanvas() {
+            const stdCanvas = document.getElementById('studentCanvasMirror');
+            if (!stdCanvas) return;
+            ensureStudentCanvasSize();
+            // Redraw all strokes after resize
+            redrawAllStrokesOnCanvas(stdCanvas, drawingStrokes);
         }
 
         function mirrorCanvasDraw(stroke) {
             const stdCanvas = document.getElementById('studentCanvasMirror');
             if (!stdCanvas) return;
+            ensureStudentCanvasSize(); // ensure size before drawing
             const stdCtx = stdCanvas.getContext('2d');
             if (!stdCtx) return;
-
-            // Ensure canvas has proper size
-            const rect = stdCanvas.parentElement.getBoundingClientRect();
-            if (stdCanvas.width !== rect.width || stdCanvas.height !== rect.height) {
-                stdCanvas.width = rect.width;
-                stdCanvas.height = rect.height;
-            }
 
             if (stroke.type === 'start') {
                 stdCtx.beginPath();
@@ -1281,7 +866,6 @@
                 stdCtx.lineCap = 'round';
                 stdCtx.lineJoin = 'round';
                 stdCtx.strokeStyle = stroke.color || '#ef4444';
-
                 if (stroke.tool === 'eraser') {
                     stdCtx.globalCompositeOperation = 'destination-out';
                     stdCtx.lineWidth = (stroke.width || 5) * 3;
@@ -1292,7 +876,6 @@
                     stdCtx.globalCompositeOperation = 'source-over';
                     stdCtx.globalAlpha = 1.0;
                 }
-
                 stdCtx.lineTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
                 stdCtx.stroke();
                 stdCtx.globalAlpha = 1.0;
@@ -1302,17 +885,16 @@
 
         function redrawAllStrokesOnCanvas(targetCanvas, strokeArray) {
             if (!targetCanvas || !strokeArray) return;
-            const targetCtx = targetCanvas.getContext('2d');
-            if (!targetCtx) return;
-
             const rect = targetCanvas.parentElement.getBoundingClientRect();
-            if (targetCanvas.width !== rect.width || targetCanvas.height !== rect.height) {
+            if (rect.width > 0 && rect.height > 0) {
                 targetCanvas.width = rect.width;
                 targetCanvas.height = rect.height;
+            } else {
+                return; // not ready
             }
-
+            const targetCtx = targetCanvas.getContext('2d');
+            if (!targetCtx) return;
             targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-
             strokeArray.forEach(stroke => {
                 if (stroke.points && stroke.points.length > 0) {
                     targetCtx.beginPath();
@@ -1320,7 +902,6 @@
                     targetCtx.lineCap = 'round';
                     targetCtx.lineJoin = 'round';
                     targetCtx.strokeStyle = stroke.color || '#ef4444';
-
                     if (stroke.tool === 'eraser') {
                         targetCtx.globalCompositeOperation = 'destination-out';
                         targetCtx.lineWidth = (stroke.width || 5) * 3;
@@ -1331,7 +912,6 @@
                         targetCtx.globalCompositeOperation = 'source-over';
                         targetCtx.globalAlpha = 1.0;
                     }
-
                     targetCtx.moveTo(stroke.points[0].x * targetCanvas.width, stroke.points[0].y * targetCanvas.height);
                     for (let i = 1; i < stroke.points.length; i++) {
                         targetCtx.lineTo(stroke.points[i].x * targetCanvas.width, stroke.points[i].y * targetCanvas.height);
@@ -1358,7 +938,6 @@
             const slideImg = document.getElementById('studentSlideImage');
             const canvas = document.getElementById('studentCanvasMirror');
             if (!wrapper) return;
-
             if (isWhite) {
                 wrapper.classList.remove('bg-slate-950');
                 wrapper.classList.add('bg-white');
@@ -1377,32 +956,26 @@
                     canvas.style.backgroundColor = 'transparent';
                 }
             }
+            // Ensure canvas size and redraw strokes after changing background
+            ensureStudentCanvasSize();
+            redrawAllStrokesOnCanvas(canvas, drawingStrokes);
         }
+        // ------------------------------------------------
 
         function toggleStudentFullscreen() {
             const container = document.getElementById('studentClassroomBox');
             if (!container) return;
-
             const btnIcon = document.querySelector('#studentFullscreenBtn i');
-
             if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen();
-                } else if (container.webkitRequestFullscreen) {
-                    container.webkitRequestFullscreen();
-                } else if (container.msRequestFullscreen) {
-                    container.msRequestFullscreen();
-                }
+                if (container.requestFullscreen) container.requestFullscreen();
+                else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+                else if (container.msRequestFullscreen) container.msRequestFullscreen();
                 if (btnIcon) btnIcon.className = "fas fa-compress text-xs";
                 showToast('Modo Pantalla Completa activado', 'info');
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                else if (document.msExitFullscreen) document.msExitFullscreen();
                 if (btnIcon) btnIcon.className = "fas fa-expand text-xs";
             }
         }
@@ -1422,23 +995,19 @@
             document.getElementById('teacherNavWaitingBtn').classList.add('hidden');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('studentContainerView').classList.remove('hidden');
-
-            // Add resize listener for student canvas
             window.addEventListener('resize', resizeStudentCanvas);
+            // Also ensure canvas is sized when visible later
+            setTimeout(resizeStudentCanvas, 500);
         }
 
         function initRealtimeChannel() {
             try {
                 broadcastChannel = new BroadcastChannel(`pombo_channel_${roomCode}`);
                 broadcastChannel.onmessage = (e) => handleSignalMessage(e);
-            } catch (e) {}
-
+            } catch(e) {}
             window.addEventListener('storage', (e) => {
                 if (e.key === `pombo_signal_${roomCode}` && e.newValue) {
-                    try {
-                        const data = JSON.parse(e.newValue);
-                        handleSignalMessage({ data });
-                    } catch(err) {}
+                    try { const data = JSON.parse(e.newValue); handleSignalMessage({ data }); } catch(err) {}
                 }
             });
         }
@@ -1451,20 +1020,14 @@
 
         function sendSignalToTeacher(type, payload) {
             if (teacherDataConnection && teacherDataConnection.open) {
-                try {
-                    teacherDataConnection.send({ type, payload });
-                } catch(e) {}
+                try { teacherDataConnection.send({ type, payload }); } catch(e) {}
             }
-
             const cleanRoom = getCleanRoomId();
             const teacherPeerId = `${cleanRoom}-host`;
-
             if (peerInstance) {
                 try {
                     const conn = peerInstance.connect(teacherPeerId);
-                    conn.on('open', () => {
-                        conn.send({ type, payload });
-                    });
+                    conn.on('open', () => { conn.send({ type, payload }); });
                 } catch(e) {}
             }
             sendSignal(type, payload);
@@ -1472,12 +1035,9 @@
 
         function handleSignalMessage(event, connection = null) {
             const { type, payload } = event.data;
-
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') {
-                    if (connection && connection.peer) {
-                        activePeerConnections[payload.studentId || connection.peer] = connection;
-                    }
+                    if (connection && connection.peer) activePeerConnections[payload.studentId || connection.peer] = connection;
                     handleIncomingStudentRequest(payload.studentId || payload.id, payload.studentName || payload.name);
                 } else if (type === 'STUDENT_RAISE_HAND') {
                     handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
@@ -1500,12 +1060,11 @@
                     mirrorCanvasBgToggle(payload.isWhite);
                 } else if (type === 'FULL_CANVAS_SYNC') {
                     mirrorCanvasBgToggle(payload.isWhiteboard);
-                    if (payload.isPowerPoint && payload.pptSlideUrl) {
-                        showStudentPptSlide(payload.pptSlideUrl);
-                    }
+                    if (payload.isPowerPoint && payload.pptSlideUrl) showStudentPptSlide(payload.pptSlideUrl);
                     if (payload.strokes) {
                         drawingStrokes = payload.strokes;
                         const stdCanvas = document.getElementById('studentCanvasMirror');
+                        ensureStudentCanvasSize();
                         redrawAllStrokesOnCanvas(stdCanvas, drawingStrokes);
                     }
                 } else if (type === 'POWERPOINT_SLIDE_CHANGE') {
@@ -1520,7 +1079,6 @@
             addHandRaised(studentId, studentName);
             playChimeSound();
             showToast(`✋ ¡${studentName} ha levantado la mano!`, 'warning');
-
             const handBadge = document.getElementById('handTabBadge');
             if (handBadge) handBadge.classList.remove('hidden');
         }
@@ -1529,58 +1087,32 @@
             const list = document.getElementById('handQueueList');
             if (!list) return;
             const items = list.querySelectorAll('li');
-            items.forEach(item => {
-                if (item.getAttribute('data-student-id') === studentId) {
-                    item.remove();
-                }
-            });
+            items.forEach(item => { if (item.getAttribute('data-student-id') === studentId) item.remove(); });
             const countElem = document.getElementById('handCount');
-            if (countElem) {
-                countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
-            }
+            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
         }
 
         function requestEntryAsStudent() {
             const nameInput = document.getElementById('studentInputName');
             const name = nameInput.value.trim();
-            if (!name) {
-                showToast('Por favor escribe tu nombre completo', 'warning');
-                return;
-            }
-
+            if (!name) { showToast('Por favor escribe tu nombre completo', 'warning'); return; }
             currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
-
-            const reqObj = {
-                studentId: currentStudentId,
-                studentName: name,
-                id: currentStudentId,
-                name: name,
-                requestedAt: new Date().toLocaleTimeString()
-            };
-
+            const reqObj = { studentId: currentStudentId, studentName: name, id: currentStudentId, name: name, requestedAt: new Date().toLocaleTimeString() };
             const state = getRoomState();
             state.waiting.push(reqObj);
             saveRoomState(state);
-
             sendStudentCloudRequest(reqObj);
-
             showToast('Solicitud enviada en vivo al Prof. Fannor Andrade', 'info');
         }
 
         function handleIncomingStudentRequest(id, name) {
             if (!id || !name) return;
             if (realWaitingStudents.some(s => s.id === id) || realAdmittedStudents.some(s => s.id === id)) return;
-
             const reqObj = { id, name, requestedAt: new Date().toLocaleTimeString() };
             realWaitingStudents.push(reqObj);
-
             const state = getRoomState();
-            if (!state.waiting.some(w => w.id === id)) {
-                state.waiting.push(reqObj);
-                saveRoomState(state);
-            }
-
+            if (!state.waiting.some(w => w.id === id)) { state.waiting.push(reqObj); saveRoomState(state); }
             playChimeSound();
             showGlobalRequestBanner(reqObj);
             renderWaitingRoomPanel();
@@ -1590,36 +1122,25 @@
         function admitStudent(studentId) {
             const student = realWaitingStudents.find(s => s.id === studentId);
             if (!student) return;
-
             realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
             const joinedAt = new Date().toLocaleTimeString();
             const admittedObj = { ...student, status: 'present', joinedAt };
             realAdmittedStudents.push(admittedObj);
-
             const state = getRoomState();
             state.waiting = state.waiting.filter(w => w.id !== studentId);
             state.admitted.push(admittedObj);
             saveRoomState(state);
-
             broadcastToAllStudents('TEACHER_ADMITTED', { studentId: student.id });
-
             renderWaitingRoomPanel();
             renderRealAttendanceTable();
             renderParticipantMiniatures();
             updateAdmittedCount();
-
-            setTimeout(() => {
-                broadcastTeacherStreamToStudents();
-            }, 500);
-
+            setTimeout(() => broadcastTeacherStreamToStudents(), 500);
             showToast(`Acceso permitido a ${student.name}`, 'success');
         }
 
         function admitAllWaitingStudents() {
-            if (realWaitingStudents.length === 0) {
-                showToast('No hay estudiantes en espera para admitir', 'info');
-                return;
-            }
+            if (realWaitingStudents.length === 0) { showToast('No hay estudiantes en espera para admitir', 'info'); return; }
             const copy = [...realWaitingStudents];
             copy.forEach(s => admitStudent(s.id));
             closeWaitingRoomModal();
@@ -1635,11 +1156,9 @@
 
         function rejectStudent(studentId) {
             realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
-
             const state = getRoomState();
             state.waiting = state.waiting.filter(w => w.id !== studentId);
             saveRoomState(state);
-
             renderWaitingRoomPanel();
             updateAttendanceStats();
             broadcastToAllStudents('TEACHER_REJECTED', { studentId });
@@ -1651,22 +1170,13 @@
             document.getElementById('studentClassroomBox').classList.remove('hidden');
             const name = document.getElementById('studentInputName').value || 'Estudiante';
             document.getElementById('studentWelcomeBadge').textContent = `Bienvenido: ${name}`;
-
-            // Resize student canvas now that it's visible
-            setTimeout(resizeStudentCanvas, 100);
-
+            // Force canvas size and redraw all strokes
+            setTimeout(() => {
+                resizeStudentCanvas();
+                const stdCanvas = document.getElementById('studentCanvasMirror');
+                redrawAllStrokesOnCanvas(stdCanvas, drawingStrokes);
+            }, 100);
             showToast('¡Has sido admitido por el Prof. Fannor Andrade!', 'success');
-        }
-
-        function resizeStudentCanvas() {
-            const canvas = document.getElementById('studentCanvasMirror');
-            if (!canvas) return;
-            const rect = canvas.parentElement.getBoundingClientRect();
-            if (rect.width === 0 || rect.height === 0) return;
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-            // Redraw all existing strokes
-            redrawAllStrokesOnCanvas(canvas, drawingStrokes);
         }
 
         function updateAdmittedCount() {
@@ -1677,16 +1187,10 @@
         function renderParticipantMiniatures() {
             const container = document.getElementById('realStudentMiniatures');
             if (!container) return;
-
             container.innerHTML = realAdmittedStudents.map(s => `
                 <div id="std-wrapper-${s.id}" class="w-36 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2 animate-fade-in">
-                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow">
-                        ${s.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="overflow-hidden">
-                        <span class="text-xs text-slate-200 font-semibold truncate block">${s.name}</span>
-                        <span class="text-[9px] text-emerald-400 font-medium"><i class="fas fa-circle text-[6px]"></i> En clase</span>
-                    </div>
+                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow">${s.name.charAt(0).toUpperCase()}</div>
+                    <div class="overflow-hidden"><span class="text-xs text-slate-200 font-semibold truncate block">${s.name}</span><span class="text-[9px] text-emerald-400 font-medium"><i class="fas fa-circle text-[6px]"></i> En clase</span></div>
                 </div>
             `).join('');
         }
@@ -1698,81 +1202,54 @@
             const screenVideo = document.getElementById('screenShareVideo');
             const pptControls = document.getElementById('pptSlideControls');
             const titleElem = document.getElementById('teacherStageTitle');
-
             isPowerPointMode = !isPowerPointMode;
-
             if (isPowerPointMode) {
                 webcamVideo.classList.add('hidden');
                 screenVideo.classList.add('hidden');
                 placeholder.classList.add('hidden');
-
                 pptViewer.src = pptSlides[currentPptIndex];
                 pptViewer.classList.remove('hidden');
                 pptControls.classList.remove('hidden');
-
                 if (titleElem) titleElem.textContent = "Presentación PowerPoint - Escuela Rafael Pombo";
-
                 if (!isAnnotationActive) toggleAnnotationBoard();
-
                 broadcastToAllStudents('POWERPOINT_SLIDE_CHANGE', { slideUrl: pptSlides[currentPptIndex] });
                 showToast('Proyectando Diapositiva PowerPoint a todos los estudiantes', 'success');
             } else {
                 pptViewer.classList.add('hidden');
                 pptControls.classList.add('hidden');
                 if (titleElem) titleElem.textContent = "Videollamada y Tablero Docente";
-
                 if (isCameraActive) webcamVideo.classList.remove('hidden');
                 else if (isScreenSharing) screenVideo.classList.remove('hidden');
                 else placeholder.classList.remove('hidden');
-
                 broadcastToAllStudents('POWERPOINT_SLIDE_CHANGE', { slideUrl: null });
                 showToast('Modo PowerPoint cerrado', 'info');
             }
         }
 
-        function prevPptSlide() {
-            if (currentPptIndex > 0) {
-                currentPptIndex--;
-                updatePptSlideDisplay();
-            }
-        }
-
-        function nextPptSlide() {
-            if (currentPptIndex < pptSlides.length - 1) {
-                currentPptIndex++;
-                updatePptSlideDisplay();
-            }
-        }
-
+        function prevPptSlide() { if (currentPptIndex > 0) { currentPptIndex--; updatePptSlideDisplay(); } }
+        function nextPptSlide() { if (currentPptIndex < pptSlides.length - 1) { currentPptIndex++; updatePptSlideDisplay(); } }
         function updatePptSlideDisplay() {
             const pptViewer = document.getElementById('teacherSlideViewer');
             const counter = document.getElementById('pptSlideCounter');
             if (pptViewer) pptViewer.src = pptSlides[currentPptIndex];
             if (counter) counter.textContent = `Diapositiva ${currentPptIndex + 1} / ${pptSlides.length}`;
-
             broadcastToAllStudents('POWERPOINT_SLIDE_CHANGE', { slideUrl: pptSlides[currentPptIndex] });
         }
 
         async function handlePptUpload(event) {
             const files = Array.from(event.target.files);
             if (!files || files.length === 0) return;
-
             showToast('Procesando archivo de presentación...', 'info');
-
             let newSlides = [];
-
             for (const file of files) {
-                // Check for unsupported PPTX/PPT formats
                 if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) {
-                    showToast('El formato PowerPoint (.pptx/.ppt) no es compatible directamente. Por favor, convierta su presentación a PDF o imágenes.', 'warning');
+                    showToast('El formato PowerPoint (.pptx/.ppt) no es compatible directamente. Convierta a PDF o imágenes.', 'warning');
                     continue;
                 }
-
                 if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
                     try {
                         const fileArrayBuffer = await file.arrayBuffer();
                         const pdfDoc = await pdfjsLib.getDocument({ data: fileArrayBuffer }).promise;
-                        
                         for (let i = 1; i <= pdfDoc.numPages; i++) {
                             const page = await pdfDoc.getPage(i);
                             const viewport = page.getViewport({ scale: 1.5 });
@@ -1780,34 +1257,23 @@
                             const tempCtx = tempCanvas.getContext('2d');
                             tempCanvas.width = viewport.width;
                             tempCanvas.height = viewport.height;
-
                             await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
                             const imgDataUrl = tempCanvas.toDataURL('image/jpeg', 0.85);
                             newSlides.push(imgDataUrl);
                         }
-                    } catch(err) {
-                        console.error('PDF parsing error:', err);
-                        showToast('Error al procesar el archivo PDF. Intenta guardarlo como imágenes.', 'error');
-                    }
+                    } catch(err) { showToast('Error al procesar el PDF.', 'error'); }
                 } else if (file.type.startsWith('image/')) {
-                    const dataUrl = await new Promise((resolve) => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => resolve(e.target.result);
-                        reader.readAsDataURL(file);
-                    });
+                    const dataUrl = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(file); });
                     newSlides.push(dataUrl);
                 } else {
-                    showToast(`Formato de "${file.name}" no soportado directamente. Convierte tu PowerPoint a PDF o Imágenes.`, 'warning');
+                    showToast(`Formato de "${file.name}" no soportado. Convierte a PDF o Imágenes.`, 'warning');
                 }
             }
-
             if (newSlides.length > 0) {
                 pptSlides = newSlides;
                 currentPptIndex = 0;
                 updatePptSlideDisplay();
-
                 if (!isPowerPointMode) togglePowerPointMode();
-
                 showToast(`Presentación cargada con ${newSlides.length} diapositiva(s)`, 'success');
             }
         }
@@ -1816,9 +1282,7 @@
             const img = document.getElementById('studentSlideImage');
             const placeholder = document.getElementById('studentStreamPlaceholder');
             const video = document.getElementById('studentReceivedVideo');
-
             if (!img) return;
-
             if (slideUrl) {
                 img.src = slideUrl;
                 img.classList.remove('hidden');
@@ -1826,11 +1290,8 @@
                 if (video) video.classList.add('hidden');
             } else {
                 img.classList.add('hidden');
-                if (video && video.srcObject) {
-                    video.classList.remove('hidden');
-                } else if (placeholder) {
-                    placeholder.classList.remove('hidden');
-                }
+                if (video && video.srcObject) video.classList.remove('hidden');
+                else if (placeholder) placeholder.classList.remove('hidden');
             }
         }
 
@@ -1838,38 +1299,28 @@
             const videoElem = document.getElementById('webcamVideo');
             const placeholder = document.getElementById('videoOffPlaceholder');
             const btnCam = document.getElementById('btnToggleCam');
-
             if (!isCameraActive) {
                 try {
                     localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isMicActive });
                     activeTeacherStream = localMediaStream;
-
                     videoElem.srcObject = localMediaStream;
                     videoElem.classList.remove('hidden');
                     placeholder.classList.add('hidden');
-
                     btnCam.classList.remove('bg-slate-800');
                     btnCam.classList.add('bg-emerald-600');
                     btnCam.innerHTML = `<i class="fas fa-video text-white"></i>`;
-
                     isCameraActive = true;
                     startCallTimer();
                     broadcastTeacherStreamToStudents();
-
                     showToast('Transmisión de cámara iniciada en vivo para todos los alumnos', 'success');
-                } catch (err) {
-                    console.error('Error cámara:', err);
-                    showToast('No se pudo acceder a la cámara. Revisa los permisos.', 'error');
-                }
+                } catch(err) { showToast('No se pudo acceder a la cámara. Revisa los permisos.', 'error'); }
             } else {
                 if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
                 videoElem.classList.add('hidden');
                 if (!isScreenSharing && !isPowerPointMode) placeholder.classList.remove('hidden');
-
                 btnCam.classList.remove('bg-emerald-600');
                 btnCam.classList.add('bg-slate-800');
                 btnCam.innerHTML = `<i class="fas fa-video-slash text-red-400"></i>`;
-
                 isCameraActive = false;
                 activeTeacherStream = isScreenSharing ? screenShareStream : null;
                 showToast('Transmisión de cámara finalizada', 'info');
@@ -1879,73 +1330,40 @@
         function toggleMic() {
             const btnMic = document.getElementById('btnToggleMic');
             isMicActive = !isMicActive;
-
-            if (localMediaStream) {
-                localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
-            }
-
-            if (isMicActive) {
-                btnMic.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i>`;
-                showToast('Micrófono activado', 'success');
-            } else {
-                btnMic.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i>`;
-                showToast('Micrófono silenciado', 'warning');
-            }
+            if (localMediaStream) localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
+            if (isMicActive) { btnMic.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i>`; showToast('Micrófono activado', 'success'); }
+            else { btnMic.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i>`; showToast('Micrófono silenciado', 'warning'); }
         }
 
         async function toggleScreenShare() {
             const screenVideo = document.getElementById('screenShareVideo');
             const placeholder = document.getElementById('videoOffPlaceholder');
             const webcamVideo = document.getElementById('webcamVideo');
-
             if (!isScreenSharing) {
                 try {
                     screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                     activeTeacherStream = screenShareStream;
-
                     screenVideo.srcObject = screenShareStream;
                     screenVideo.classList.remove('hidden');
                     webcamVideo.classList.add('hidden');
                     placeholder.classList.add('hidden');
-
                     isScreenSharing = true;
-
                     if (!isAnnotationActive) toggleAnnotationBoard();
-
                     broadcastTeacherStreamToStudents();
-
                     showToast('Compartiendo pantalla con el lienzo transparente activo', 'success');
-
-                    screenShareStream.getVideoTracks()[0].onended = () => {
-                        stopScreenShare();
-                    };
-                } catch (err) {
-                    showToast('Se canceló el compartido de pantalla', 'info');
-                }
-            } else {
-                stopScreenShare();
-            }
+                    screenShareStream.getVideoTracks()[0].onended = () => stopScreenShare();
+                } catch(err) { showToast('Se canceló el compartido de pantalla', 'info'); }
+            } else { stopScreenShare(); }
         }
 
         function stopScreenShare() {
             const screenVideo = document.getElementById('screenShareVideo');
             const placeholder = document.getElementById('videoOffPlaceholder');
             const webcamVideo = document.getElementById('webcamVideo');
-
-            if (screenShareStream) {
-                screenShareStream.getTracks().forEach(t => t.stop());
-                screenShareStream = null;
-            }
-
+            if (screenShareStream) { screenShareStream.getTracks().forEach(t => t.stop()); screenShareStream = null; }
             screenVideo.classList.add('hidden');
-            if (isCameraActive) {
-                webcamVideo.classList.remove('hidden');
-                activeTeacherStream = localMediaStream;
-            } else {
-                placeholder.classList.remove('hidden');
-                activeTeacherStream = null;
-            }
-
+            if (isCameraActive) { webcamVideo.classList.remove('hidden'); activeTeacherStream = localMediaStream; }
+            else { placeholder.classList.remove('hidden'); activeTeacherStream = null; }
             isScreenSharing = false;
             showToast('Pantalla compartida finalizada', 'info');
         }
@@ -1953,37 +1371,28 @@
         async function studentToggleCam() {
             const selfVideo = document.getElementById('studentSelfVideo');
             const btn = document.getElementById('studentCamBtn');
-
             if (!isStudentCamActive) {
                 try {
                     studentLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isStudentMicActive });
                     selfVideo.srcObject = studentLocalStream;
                     selfVideo.classList.remove('hidden');
-
                     btn.classList.remove('bg-slate-800');
                     btn.classList.add('bg-emerald-600');
                     btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
-
                     isStudentCamActive = true;
-
                     if (peerInstance) {
                         const cleanRoom = getCleanRoomId();
                         const teacherPeerId = `${cleanRoom}-host`;
                         peerInstance.call(teacherPeerId, studentLocalStream);
                     }
-
                     showToast('Cámara de estudiante activada', 'success');
-                } catch(e) {
-                    showToast('No se pudo activar la cámara', 'error');
-                }
+                } catch(e) { showToast('No se pudo activar la cámara', 'error'); }
             } else {
                 if (studentLocalStream) studentLocalStream.getVideoTracks().forEach(t => t.stop());
                 selfVideo.classList.add('hidden');
-
                 btn.classList.remove('bg-emerald-600');
                 btn.classList.add('bg-slate-800');
                 btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
-
                 isStudentCamActive = false;
                 showToast('Cámara desactivada', 'info');
             }
@@ -1992,37 +1401,25 @@
         function studentToggleMic() {
             const btn = document.getElementById('studentMicBtn');
             isStudentMicActive = !isStudentMicActive;
-
-            if (studentLocalStream) {
-                studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
-            }
-
-            if (isStudentMicActive) {
-                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`;
-                showToast('Micrófono activado', 'success');
-            } else {
-                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`;
-                showToast('Micrófono silenciado', 'warning');
-            }
+            if (studentLocalStream) studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
+            if (isStudentMicActive) { btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; showToast('Micrófono activado', 'success'); }
+            else { btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; showToast('Micrófono silenciado', 'warning'); }
         }
 
         function stopAllStreams() {
             showConfirm('¿Finalizar Clase Virtual?', 'Se cerrará la videollamada para todos los estudiantes.', () => {
                 if (localMediaStream) localMediaStream.getTracks().forEach(t => t.stop());
                 if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
-
                 document.getElementById('webcamVideo').classList.add('hidden');
                 document.getElementById('screenShareVideo').classList.add('hidden');
                 document.getElementById('teacherSlideViewer').classList.add('hidden');
                 document.getElementById('pptSlideControls').classList.add('hidden');
                 document.getElementById('videoOffPlaceholder').classList.remove('hidden');
-
                 isCameraActive = false;
                 isScreenSharing = false;
                 isPowerPointMode = false;
                 activeTeacherStream = null;
                 stopCallTimer();
-
                 showToast('La clase ha finalizado', 'info');
             });
         }
@@ -2034,7 +1431,6 @@
                 const hrs = String(Math.floor(callSeconds / 3600)).padStart(2, '0');
                 const mins = String(Math.floor((callSeconds % 3600) / 60)).padStart(2, '0');
                 const secs = String(callSeconds % 60).padStart(2, '0');
-
                 const formatted = `${hrs}:${mins}:${secs}`;
                 document.getElementById('callDuration').textContent = formatted;
                 document.getElementById('topCallTimer').textContent = formatted;
@@ -2042,10 +1438,7 @@
         }
 
         function stopCallTimer() {
-            if (callTimerInterval) {
-                clearInterval(callTimerInterval);
-                callTimerInterval = null;
-            }
+            if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
             callSeconds = 0;
             document.getElementById('callDuration').textContent = '00:00:00';
         }
@@ -2055,14 +1448,11 @@
             if (!canvas) return;
             ctx = canvas.getContext('2d');
             resizeCanvas();
-
             window.addEventListener('resize', resizeCanvas);
-
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
-
             canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
             canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', stopDrawing);
@@ -2080,15 +1470,12 @@
         function toggleAnnotationBoard() {
             const drawingToolbar = document.getElementById('drawingToolbar');
             const boardBtnText = document.getElementById('boardBtnText');
-
             isAnnotationActive = !isAnnotationActive;
-
             if (isAnnotationActive) {
                 canvas.classList.remove('hidden', 'canvas-disabled');
                 canvas.classList.add('canvas-active');
                 drawingToolbar.classList.remove('hidden');
                 boardBtnText.textContent = 'Ocultar Tablero';
-                // Ensure canvas is properly sized now that it's visible
                 setTimeout(resizeCanvas, 50);
                 showToast('Rayado transparente activado sobre la videollamada', 'success');
             } else {
@@ -2105,53 +1492,30 @@
                 btn.classList.remove('bg-pombo-600', 'text-white', 'active-tool');
                 btn.classList.add('text-slate-300');
             });
-
             const activeBtn = document.getElementById(`tool-${tool}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool');
-                activeBtn.classList.remove('text-slate-300');
-            }
+            if (activeBtn) { activeBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool'); activeBtn.classList.remove('text-slate-300'); }
         }
 
-        function setColor(hex) {
-            currentColor = hex;
-            document.getElementById('drawColor').value = hex;
-        }
-
-        function setLineWidth(val) {
-            currentLineWidth = val;
-        }
+        function setColor(hex) { currentColor = hex; document.getElementById('drawColor').value = hex; }
+        function setLineWidth(val) { currentLineWidth = val; }
 
         function clearCanvas() {
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                drawingStrokes = [];
-                broadcastToAllStudents('CANVAS_CLEAR', {});
-                showToast('Lienzo limpiado', 'info');
-            }
+            if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawingStrokes = []; broadcastToAllStudents('CANVAS_CLEAR', {}); showToast('Lienzo limpiado', 'info'); }
         }
 
         function toggleCanvasGrid() {
             isWhiteBackground = !isWhiteBackground;
             const viewport = document.getElementById('teacherViewportFrame');
             const btn = document.getElementById('btnWhiteboardGrid');
-
             if (isWhiteBackground) {
                 canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-                if (viewport) {
-                    viewport.classList.remove('bg-slate-950');
-                    viewport.classList.add('bg-white');
-                }
+                if (viewport) { viewport.classList.remove('bg-slate-950'); viewport.classList.add('bg-white'); }
                 if (btn) btn.classList.add('bg-emerald-600');
             } else {
                 canvas.style.backgroundColor = 'transparent';
-                if (viewport) {
-                    viewport.classList.remove('bg-white');
-                    viewport.classList.add('bg-slate-950');
-                }
+                if (viewport) { viewport.classList.remove('bg-white'); viewport.classList.add('bg-slate-950'); }
                 if (btn) btn.classList.remove('bg-emerald-600');
             }
-
             broadcastToAllStudents('CANVAS_BG_TOGGLE', { isWhite: isWhiteBackground });
         }
 
@@ -2159,20 +1523,16 @@
             const mediaCanvas = document.getElementById('mediaAnnotationCanvas');
             const btn = document.getElementById('btnMediaDrawToggle');
             if (!mediaCanvas) return;
-
             if (mediaCanvas.classList.contains('hidden')) {
                 mediaCanvas.classList.remove('hidden', 'canvas-disabled');
                 mediaCanvas.classList.add('canvas-active');
                 if (btn) btn.classList.add('bg-emerald-600');
-
                 const rect = mediaCanvas.parentElement.getBoundingClientRect();
                 mediaCanvas.width = rect.width;
                 mediaCanvas.height = rect.height;
-
                 mediaCanvas.addEventListener('mousedown', startDrawing);
                 mediaCanvas.addEventListener('mousemove', draw);
                 mediaCanvas.addEventListener('mouseup', stopDrawing);
-
                 showToast('Rayado sobre video de YouTube activado', 'success');
             } else {
                 mediaCanvas.classList.add('hidden', 'canvas-disabled');
@@ -2192,37 +1552,18 @@
             const coords = getCanvasCoords(e);
             ctx.beginPath();
             ctx.moveTo(coords.x, coords.y);
-
             const normX = coords.x / canvas.width;
             const normY = coords.y / canvas.height;
-
-            activeStroke = {
-                tool: currentTool,
-                color: currentColor,
-                width: currentLineWidth,
-                points: [{ x: normX, y: normY }]
-            };
-
-            broadcastToAllStudents('CANVAS_DRAW', { 
-                stroke: { 
-                    type: 'start', 
-                    x: normX, 
-                    y: normY, 
-                    tool: currentTool, 
-                    color: currentColor, 
-                    width: currentLineWidth 
-                } 
-            });
+            activeStroke = { tool: currentTool, color: currentColor, width: currentLineWidth, points: [{ x: normX, y: normY }] };
+            broadcastToAllStudents('CANVAS_DRAW', { stroke: { type: 'start', x: normX, y: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
         }
 
         function draw(e) {
             if (!isDrawing || !isAnnotationActive) return;
             const coords = getCanvasCoords(e);
-
             ctx.lineWidth = currentLineWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-
             if (currentTool === 'eraser') {
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -2237,115 +1578,52 @@
                 ctx.strokeStyle = currentColor;
                 ctx.globalAlpha = 1.0;
             }
-
             ctx.lineTo(coords.x, coords.y);
             ctx.stroke();
-
             const normX = coords.x / canvas.width;
             const normY = coords.y / canvas.height;
-
-            if (activeStroke) {
-                activeStroke.points.push({ x: normX, y: normY });
-            }
-
-            broadcastToAllStudents('CANVAS_DRAW', { 
-                stroke: { 
-                    type: 'draw', 
-                    x: normX, 
-                    y: normY, 
-                    tool: currentTool, 
-                    color: currentColor, 
-                    width: currentLineWidth 
-                } 
-            });
-
+            if (activeStroke) activeStroke.points.push({ x: normX, y: normY });
+            broadcastToAllStudents('CANVAS_DRAW', { stroke: { type: 'draw', x: normX, y: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
         }
 
         function stopDrawing() {
-            if (isDrawing && activeStroke) {
-                drawingStrokes.push(activeStroke);
-                activeStroke = null;
-            }
+            if (isDrawing && activeStroke) { drawingStrokes.push(activeStroke); activeStroke = null; }
             isDrawing = false;
         }
 
-        function handleTouchStart(e) {
-            if (e.touches.length === 1) {
-                startDrawing(e.touches[0]);
-                e.preventDefault();
-            }
-        }
-
-        function handleTouchMove(e) {
-            if (e.touches.length === 1) {
-                draw(e.touches[0]);
-                e.preventDefault();
-            }
-        }
+        function handleTouchStart(e) { if (e.touches.length === 1) { startDrawing(e.touches[0]); e.preventDefault(); } }
+        function handleTouchMove(e) { if (e.touches.length === 1) { draw(e.touches[0]); e.preventDefault(); } }
 
         function renderRealAttendanceTable() {
             const tbody = document.getElementById('attendanceTableBody');
             if (!tbody) return;
-
             if (realAdmittedStudents.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="text-center py-8 text-slate-400 text-xs">
-                            <i class="fas fa-clipboard-user text-3xl mb-2 text-slate-300 block"></i>
-                            No hay estudiantes ingresados en tiempo real aún. Los estudiantes aparecerán aquí tan pronto aceptes su ingreso.
-                        </td>
-                    </tr>
-                `;
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center py-8 text-slate-400 text-xs"><i class="fas fa-clipboard-user text-3xl mb-2 text-slate-300 block"></i>No hay estudiantes ingresados en tiempo real aún. Los estudiantes aparecerán aquí tan pronto aceptes su ingreso.</td></tr>`;
             } else {
                 tbody.innerHTML = realAdmittedStudents.map(s => `
                     <tr class="hover:bg-slate-50 transition">
-                        <td class="py-3.5 px-4 font-semibold text-slate-800 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-pombo-100 text-pombo-700 font-bold flex items-center justify-center text-xs">
-                                ${s.name.charAt(0).toUpperCase()}
-                            </div>
-                            <span>${s.name}</span>
-                        </td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-800 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-pombo-100 text-pombo-700 font-bold flex items-center justify-center text-xs">${s.name.charAt(0).toUpperCase()}</div><span>${s.name}</span></td>
                         <td class="py-3.5 px-4 text-xs font-mono text-slate-500">${s.joinedAt}</td>
-                        <td class="py-3.5 px-4">
-                            ${s.status === 'present' ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">PRESENTE</span>' : '<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">AUSENTE</span>'}
-                        </td>
-                        <td class="py-3.5 px-4 text-center">
-                            <button onclick="toggleStudentAttendanceStatus('${s.id}')" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition">
-                                Cambiar Estado
-                            </button>
-                        </td>
+                        <td class="py-3.5 px-4">${s.status === 'present' ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">PRESENTE</span>' : '<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">AUSENTE</span>'}</td>
+                        <td class="py-3.5 px-4 text-center"><button onclick="toggleStudentAttendanceStatus('${s.id}')" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition">Cambiar Estado</button></td>
                     </tr>
                 `).join('');
             }
-
             updateAttendanceStats();
         }
 
         function toggleStudentAttendanceStatus(studentId) {
             const s = realAdmittedStudents.find(item => item.id === studentId);
-            if (s) {
-                s.status = s.status === 'present' ? 'absent' : 'present';
-                renderRealAttendanceTable();
-            }
+            if (s) { s.status = s.status === 'present' ? 'absent' : 'present'; renderRealAttendanceTable(); }
         }
 
         function addManualStudent() {
             const input = document.getElementById('manualStudentInput');
             const name = input.value.trim();
-            if (!name) {
-                showToast('Escribe el nombre del estudiante', 'warning');
-                return;
-            }
-
-            const newStudent = {
-                id: 'man_' + Date.now(),
-                name,
-                status: 'present',
-                joinedAt: new Date().toLocaleTimeString()
-            };
-
+            if (!name) { showToast('Escribe el nombre del estudiante', 'warning'); return; }
+            const newStudent = { id: 'man_' + Date.now(), name, status: 'present', joinedAt: new Date().toLocaleTimeString() };
             realAdmittedStudents.push(newStudent);
             input.value = '';
             renderRealAttendanceTable();
@@ -2370,32 +1648,17 @@
             const bannerName = document.getElementById('bannerStudentName');
             const admitBtn = document.getElementById('bannerAdmitBtn');
             const rejectBtn = document.getElementById('bannerRejectBtn');
-
             if (bannerName) bannerName.textContent = `"${reqObj.name}" solicita ingresar`;
             if (banner) banner.classList.remove('hidden');
-
             updateNavWaitingBadge();
-
-            if (admitBtn) {
-                admitBtn.onclick = () => {
-                    admitStudent(reqObj.id);
-                    if (banner) banner.classList.add('hidden');
-                };
-            }
-
-            if (rejectBtn) {
-                rejectBtn.onclick = () => {
-                    rejectStudent(reqObj.id);
-                    if (banner) banner.classList.add('hidden');
-                };
-            }
+            if (admitBtn) { admitBtn.onclick = () => { admitStudent(reqObj.id); if (banner) banner.classList.add('hidden'); }; }
+            if (rejectBtn) { rejectBtn.onclick = () => { rejectStudent(reqObj.id); if (banner) banner.classList.add('hidden'); }; }
         }
 
         function updateNavWaitingBadge() {
             const badge = document.getElementById('navWaitingCountBadge');
             const countDisplay = document.getElementById('waitingCountDisplay');
             const statusBadge = document.getElementById('waitingBadgeStatus');
-
             if (badge) badge.textContent = realWaitingStudents.length;
             if (countDisplay) countDisplay.textContent = realWaitingStudents.length;
             if (statusBadge) {
@@ -2411,35 +1674,13 @@
 
         function renderWaitingRoomPanel() {
             const container = document.getElementById('waitingListContainer');
-            
             updateNavWaitingBadge();
-
             if (!container) return;
-
-            if (realWaitingStudents.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2 col-span-full">No hay estudiantes en espera en este momento.</p>`;
-                return;
-            }
-
+            if (realWaitingStudents.length === 0) { container.innerHTML = `<p class="text-xs text-slate-500 text-center py-2 col-span-full">No hay estudiantes en espera en este momento.</p>`; return; }
             container.innerHTML = realWaitingStudents.map(s => `
                 <div class="bg-white p-3 rounded-xl border border-amber-300 flex items-center justify-between shadow-sm">
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow">
-                            ${s.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div class="overflow-hidden">
-                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.name}</h4>
-                            <span class="text-[10px] text-slate-400 font-mono">${s.requestedAt}</span>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-                            <i class="fas fa-check"></i> Admitir
-                        </button>
-                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-2 py-1.5 rounded-lg transition">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+                    <div class="flex items-center gap-2 overflow-hidden"><div class="w-8 h-8 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow">${s.name.charAt(0).toUpperCase()}</div><div class="overflow-hidden"><h4 class="text-xs font-bold text-slate-800 truncate">${s.name}</h4><span class="text-[10px] text-slate-400 font-mono">${s.requestedAt}</span></div></div>
+                    <div class="flex items-center gap-1 shrink-0"><button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i class="fas fa-check"></i> Admitir</button><button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold px-2 py-1.5 rounded-lg transition"><i class="fas fa-times"></i></button></div>
                 </div>
             `).join('');
         }
@@ -2449,13 +1690,11 @@
             const present = realAdmittedStudents.filter(s => s.status === 'present').length;
             const absent = realAdmittedStudents.filter(s => s.status === 'absent').length;
             const waiting = realWaitingStudents.length;
-
             const statTotal = document.getElementById('statTotal');
             const statPresent = document.getElementById('statPresent');
             const statAbsent = document.getElementById('statAbsent');
             const statWaiting = document.getElementById('statWaiting');
             const tabBadgeCount = document.getElementById('tabBadgeCount');
-
             if (statTotal) statTotal.textContent = total;
             if (statPresent) statPresent.textContent = present;
             if (statAbsent) statAbsent.textContent = absent;
@@ -2464,22 +1703,9 @@
         }
 
         function exportAttendanceReport() {
-            if (realAdmittedStudents.length === 0) {
-                showToast('No hay registros de estudiantes para exportar', 'warning');
-                return;
-            }
-
-            let text = `====================================================\n`;
-            text += `REPORTE DE ASISTENCIA EN VIVO - ESCUELA RAFAEL POMBO (TULUÁ)\n`;
-            text += `Docente: Prof. Fannor Alejandro Andrade Soto\n`;
-            text += `Fecha: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
-            text += `Desarrollado por: Fundación Ecopienza Evolution\n`;
-            text += `====================================================\n\n`;
-
-            realAdmittedStudents.forEach((s, idx) => {
-                text += `${idx + 1}. ${s.name} | Ingreso: ${s.joinedAt} | Estado: ${s.status.toUpperCase()}\n`;
-            });
-
+            if (realAdmittedStudents.length === 0) { showToast('No hay registros de estudiantes para exportar', 'warning'); return; }
+            let text = `====================================================\nREPORTE DE ASISTENCIA EN VIVO - ESCUELA RAFAEL POMBO (TULUÁ)\nDocente: Prof. Fannor Alejandro Andrade Soto\nFecha: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\nDesarrollado por: Fundación Ecopienza Evolution\n====================================================\n\n`;
+            realAdmittedStudents.forEach((s, idx) => { text += `${idx + 1}. ${s.name} | Ingreso: ${s.joinedAt} | Estado: ${s.status.toUpperCase()}\n`; });
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -2487,7 +1713,6 @@
             a.download = `Asistencia_Escuela_RafaelPombo_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
             URL.revokeObjectURL(url);
-
             showToast('Reporte de asistencia descargado', 'success');
         }
 
@@ -2495,30 +1720,12 @@
             const container = document.getElementById('scheduleList');
             const schedCount = document.getElementById('schedCount');
             if (schedCount) schedCount.textContent = `${schedules.length} Clases`;
-
             if (!container) return;
-
-            if (schedules.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No hay clases programadas.</p>`;
-                return;
-            }
-
+            if (schedules.length === 0) { container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No hay clases programadas.</p>`; return; }
             container.innerHTML = schedules.map(s => `
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="bg-pombo-100 text-pombo-700 font-bold text-[11px] px-2.5 py-0.5 rounded-full">${s.grade}</span>
-                            <span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span>
-                        </div>
-                        <h4 class="font-outfit font-bold text-slate-800 text-base">${s.title}</h4>
-                        <p class="text-xs text-slate-500 mt-1">${s.notes || 'Sin instrucciones'}</p>
-                    </div>
-
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button onclick="openShareModal('${s.code}')" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
-                            <i class="fas fa-share-alt"></i> Enviar Link
-                        </button>
-                    </div>
+                    <div><div class="flex items-center gap-2 mb-1"><span class="bg-pombo-100 text-pombo-700 font-bold text-[11px] px-2.5 py-0.5 rounded-full">${s.grade}</span><span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span></div><h4 class="font-outfit font-bold text-slate-800 text-base">${s.title}</h4><p class="text-xs text-slate-500 mt-1">${s.notes || 'Sin instrucciones'}</p></div>
+                    <div class="flex items-center gap-2 shrink-0"><button onclick="openShareModal('${s.code}')" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5"><i class="fas fa-share-alt"></i> Enviar Link</button></div>
                 </div>
             `).join('');
         }
@@ -2530,10 +1737,8 @@
             const date = document.getElementById('schedDate').value;
             const time = document.getElementById('schedTime').value;
             const notes = document.getElementById('schedNotes').value.trim();
-
             const code = `POMBO-${Math.floor(1000 + Math.random() * 9000)}`;
             schedules.unshift({ id: Date.now(), title, grade, date, time, notes, code });
-
             renderSchedules();
             document.getElementById('scheduleForm').reset();
             showToast('Clase programada guardada correctamente', 'success');
@@ -2544,18 +1749,8 @@
             document.getElementById('shareRoomUrl').value = shareUrl;
             document.getElementById('shareModal').classList.remove('hidden');
         }
-
-        function closeShareModal() {
-            document.getElementById('shareModal').classList.add('hidden');
-        }
-
-        function copyShareUrl() {
-            const input = document.getElementById('shareRoomUrl');
-            input.select();
-            document.execCommand('copy');
-            showToast('Link de clase copiado al portapapeles', 'success');
-        }
-
+        function closeShareModal() { document.getElementById('shareModal').classList.add('hidden'); }
+        function copyShareUrl() { const input = document.getElementById('shareRoomUrl'); input.select(); document.execCommand('copy'); showToast('Link de clase copiado al portapapeles', 'success'); }
         function shareViaWhatsApp() {
             const url = document.getElementById('shareRoomUrl').value;
             const text = `*Escuela Rafael Pombo (Tuluá)*\n*Docente:* Prof. Fannor Alejandro Andrade Soto\n\nEstimados estudiantes, ingresen al enlace para unirse a la clase virtual:\n${url}`;
@@ -2565,11 +1760,9 @@
         function loadYouTubeVideo() {
             const input = document.getElementById('ytUrlInput').value.trim();
             if (!input) return;
-
             let videoId = '';
             if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
             else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
-
             if (videoId) playPresetVideo(`https://www.youtube.com/embed/${videoId}`);
             else showToast('URL de YouTube inválida', 'error');
         }
@@ -2587,7 +1780,6 @@
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if (!msg) return;
-
             appendChatMessage('Prof. Fannor Andrade', 'Docente', msg);
             broadcastToAllStudents('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
             input.value = '';
@@ -2596,18 +1788,9 @@
         function appendChatMessage(name, role, text) {
             const chatBox = document.getElementById('chatMessages');
             if (!chatBox) return;
-
             const div = document.createElement('div');
             div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
-            div.innerHTML = `
-                <div class="w-6 h-6 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">
-                    ${name.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                    <strong class="text-slate-800">${name} (${role}):</strong> <span class="text-slate-600">${text}</span>
-                </div>
-            `;
-
+            div.innerHTML = `<div class="w-6 h-6 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">${name.charAt(0).toUpperCase()}</div><div><strong class="text-slate-800">${name} (${role}):</strong> <span class="text-slate-600">${text}</span></div>`;
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -2616,19 +1799,12 @@
             isHandRaised = !isHandRaised;
             const btn = document.getElementById('studentHandBtn');
             const name = document.getElementById('studentInputName').value || 'Estudiante';
-
             if (isHandRaised) {
-                if (btn) {
-                    btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md";
-                    btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Mano Levantada (Bajar)</span>`;
-                }
+                if (btn) { btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Mano Levantada (Bajar)</span>`; }
                 sendSignalToTeacher('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
                 showToast('Has levantado la mano. El profesor ha sido notificado.', 'info');
             } else {
-                if (btn) {
-                    btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md";
-                    btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>`;
-                }
+                if (btn) { btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>`; }
                 sendSignalToTeacher('STUDENT_LOWER_HAND', { studentId: currentStudentId, studentName: name });
                 showToast('Has bajado la mano', 'info');
             }
@@ -2638,25 +1814,16 @@
             const list = document.getElementById('handQueueList');
             const emptyMsg = document.getElementById('emptyHandsMsg');
             if (emptyMsg) emptyMsg.remove();
-
             const countElem = document.getElementById('handCount');
             if (countElem) countElem.textContent = parseInt(countElem.textContent || 0) + 1;
-
             const li = document.createElement('li');
             li.setAttribute('data-student-id', id);
             li.className = 'p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs animate-fade-in';
-            li.innerHTML = `
-                <span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${name}</span>
-                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Dar Palabra</button>
-            `;
+            li.innerHTML = `<span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${name}</span><button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Dar Palabra</button>`;
             list.appendChild(li);
         }
 
-        function lowerHand(btn) {
-            btn.closest('li').remove();
-            const countElem = document.getElementById('handCount');
-            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
-        }
+        function lowerHand(btn) { btn.closest('li').remove(); const countElem = document.getElementById('handCount'); if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1); }
 
         function studentLeaveClass() {
             document.getElementById('studentClassroomBox').classList.add('hidden');
@@ -2671,71 +1838,37 @@
                 btn.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
                 btn.classList.add('text-slate-400');
             });
-
             const target = document.getElementById(`tab-${tabId}`);
             if (target) target.classList.remove('hidden');
-
             const activeBtn = document.getElementById(`tab-btn-${tabId}`);
             if (activeBtn) {
                 activeBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
                 activeBtn.classList.remove('text-slate-400');
             }
-
-            if (tabId === 'chat') {
-                const handBadge = document.getElementById('handTabBadge');
-                if (handBadge) handBadge.classList.add('hidden');
-            }
-
-            if (tabId === 'live') {
-                setTimeout(() => {
-                    resizeCanvas();
-                    // Also resize student canvas if in student mode
-                    if (currentRole === 'student') resizeStudentCanvas();
-                }, 100);
-            }
+            if (tabId === 'chat') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.add('hidden'); }
+            if (tabId === 'live') { setTimeout(() => { resizeCanvas(); if (currentRole === 'student') resizeStudentCanvas(); }, 100); }
         }
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toastContainer');
             if (!container) return;
-
             const toast = document.createElement('div');
-            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${
-                type === 'success' ? 'bg-emerald-600' :
-                type === 'error' ? 'bg-red-600' :
-                type === 'warning' ? 'bg-amber-600' : 'bg-pombo-600'
-            }`;
-
-            const icon = type === 'success' ? 'fa-check-circle' :
-                         type === 'error' ? 'fa-exclamation-circle' :
-                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : type === 'warning' ? 'bg-amber-600' : 'bg-pombo-600'}`;
+            const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
             toast.innerHTML = `<i class="fas ${icon} text-sm"></i> <span>${message}</span>`;
             container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
         function showConfirm(title, message, onConfirm) {
             const modal = document.getElementById('confirmModal');
             document.getElementById('confirmModalTitle').textContent = title;
             document.getElementById('confirmModalMsg').textContent = message;
-
             const okBtn = document.getElementById('confirmOkBtn');
             const cancelBtn = document.getElementById('confirmCancelBtn');
-
-            const cleanUp = () => {
-                modal.classList.add('hidden');
-                okBtn.onclick = null;
-                cancelBtn.onclick = null;
-            };
-
+            const cleanUp = () => { modal.classList.add('hidden'); okBtn.onclick = null; cancelBtn.onclick = null; };
             okBtn.onclick = () => { cleanUp(); onConfirm(); };
             cancelBtn.onclick = cleanUp;
-
             modal.classList.remove('hidden');
         }
 
@@ -2752,7 +1885,7 @@
                 gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.3);
-            } catch (e) {}
+            } catch(e) {}
         }
     </script>
 </body>
