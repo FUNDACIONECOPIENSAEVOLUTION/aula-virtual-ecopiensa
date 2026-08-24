@@ -283,9 +283,6 @@
                         <button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
                             <i class="fas fa-check-double"></i> Admitir a Todos
                         </button>
-                        <button onclick="simulateMultipleStudents(5)" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5" title="Genera 5 estudiantes ficticios para probar el botón de ingreso">
-                            <i class="fas fa-magic text-amber-400"></i> Simular +5 Alumnos
-                        </button>
                     </div>
                 </div>
 
@@ -360,6 +357,9 @@
                             <i class="fas fa-file-upload"></i> Subir PowerPoint (PDF/Imágenes)
                             <input type="file" id="pptFileInput" accept="image/*,.pdf,.pptx,.ppt" multiple onchange="handlePptUpload(event)" class="hidden">
                         </label>
+                        <button onclick="togglePowerPointMode()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition flex items-center gap-1">
+                            <i class="fas fa-times"></i> Cerrar Presentación
+                        </button>
                     </div>
 
                     <!-- Real Joined Students Miniatures Overlay -->
@@ -1266,7 +1266,8 @@
             const stdCtx = stdCanvas.getContext('2d');
             if (!stdCtx) return;
 
-            const rect = stdCanvas.getBoundingClientRect();
+            // Ensure canvas has proper size
+            const rect = stdCanvas.parentElement.getBoundingClientRect();
             if (stdCanvas.width !== rect.width || stdCanvas.height !== rect.height) {
                 stdCanvas.width = rect.width;
                 stdCanvas.height = rect.height;
@@ -1304,7 +1305,7 @@
             const targetCtx = targetCanvas.getContext('2d');
             if (!targetCtx) return;
 
-            const rect = targetCanvas.getBoundingClientRect();
+            const rect = targetCanvas.parentElement.getBoundingClientRect();
             if (targetCanvas.width !== rect.width || targetCanvas.height !== rect.height) {
                 targetCanvas.width = rect.width;
                 targetCanvas.height = rect.height;
@@ -1353,13 +1354,27 @@
 
         function mirrorCanvasBgToggle(isWhite) {
             const wrapper = document.getElementById('studentStreamWrapper');
-            if (wrapper) {
-                if (isWhite) {
-                    wrapper.classList.remove('bg-slate-950');
-                    wrapper.classList.add('bg-white');
-                } else {
-                    wrapper.classList.remove('bg-white');
-                    wrapper.classList.add('bg-slate-950');
+            const video = document.getElementById('studentReceivedVideo');
+            const slideImg = document.getElementById('studentSlideImage');
+            const canvas = document.getElementById('studentCanvasMirror');
+            if (!wrapper) return;
+
+            if (isWhite) {
+                wrapper.classList.remove('bg-slate-950');
+                wrapper.classList.add('bg-white');
+                if (video) video.style.display = 'none';
+                if (slideImg) slideImg.style.display = 'none';
+                if (canvas) {
+                    canvas.style.backgroundColor = 'white';
+                    canvas.style.display = 'block';
+                }
+            } else {
+                wrapper.classList.remove('bg-white');
+                wrapper.classList.add('bg-slate-950');
+                if (video) video.style.display = '';
+                if (slideImg) slideImg.style.display = '';
+                if (canvas) {
+                    canvas.style.backgroundColor = 'transparent';
                 }
             }
         }
@@ -1407,6 +1422,9 @@
             document.getElementById('teacherNavWaitingBtn').classList.add('hidden');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('studentContainerView').classList.remove('hidden');
+
+            // Add resize listener for student canvas
+            window.addEventListener('resize', resizeStudentCanvas);
         }
 
         function initRealtimeChannel() {
@@ -1628,27 +1646,27 @@
             showToast('Solicitud rechazada', 'info');
         }
 
-        function simulateMultipleStudents(count = 5) {
-            const sampleNames = [
-                'Mariana Restrepo', 'Santiago Giraldo', 'Valentina Caicedo', 
-                'Juan Esteban López', 'Sofía Ospina', 'Mateo Ramírez', 
-                'Camila Bermúdez', 'Kevin Alejandro Cardona', 'Isabella Morales'
-            ];
-
-            for (let i = 0; i < count; i++) {
-                const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)] + ` (${Math.floor(Math.random()*90 + 10)})`;
-                const id = 'sim_' + Math.random().toString(36).substr(2, 9);
-                handleIncomingStudentRequest(id, randomName);
-            }
-            showToast(`Se agregaron ${count} estudiantes de prueba a la sala de espera`, 'success');
-        }
-
         function onStudentAdmittedByTeacher() {
             document.getElementById('studentFormBox').classList.add('hidden');
             document.getElementById('studentClassroomBox').classList.remove('hidden');
             const name = document.getElementById('studentInputName').value || 'Estudiante';
             document.getElementById('studentWelcomeBadge').textContent = `Bienvenido: ${name}`;
+
+            // Resize student canvas now that it's visible
+            setTimeout(resizeStudentCanvas, 100);
+
             showToast('¡Has sido admitido por el Prof. Fannor Andrade!', 'success');
+        }
+
+        function resizeStudentCanvas() {
+            const canvas = document.getElementById('studentCanvasMirror');
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            // Redraw all existing strokes
+            redrawAllStrokesOnCanvas(canvas, drawingStrokes);
         }
 
         function updateAdmittedCount() {
@@ -1744,6 +1762,12 @@
             let newSlides = [];
 
             for (const file of files) {
+                // Check for unsupported PPTX/PPT formats
+                if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) {
+                    showToast('El formato PowerPoint (.pptx/.ppt) no es compatible directamente. Por favor, convierta su presentación a PDF o imágenes.', 'warning');
+                    continue;
+                }
+
                 if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
                     try {
                         const fileArrayBuffer = await file.arrayBuffer();
@@ -2047,6 +2071,7 @@
         function resizeCanvas() {
             if (!canvas) return;
             const rect = canvas.parentElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
             canvas.width = rect.width;
             canvas.height = rect.height;
             redrawAllStrokesOnCanvas(canvas, drawingStrokes);
@@ -2063,6 +2088,8 @@
                 canvas.classList.add('canvas-active');
                 drawingToolbar.classList.remove('hidden');
                 boardBtnText.textContent = 'Ocultar Tablero';
+                // Ensure canvas is properly sized now that it's visible
+                setTimeout(resizeCanvas, 50);
                 showToast('Rayado transparente activado sobre la videollamada', 'success');
             } else {
                 canvas.classList.add('hidden', 'canvas-disabled');
@@ -2659,7 +2686,13 @@
                 if (handBadge) handBadge.classList.add('hidden');
             }
 
-            if (tabId === 'live') setTimeout(resizeCanvas, 100);
+            if (tabId === 'live') {
+                setTimeout(() => {
+                    resizeCanvas();
+                    // Also resize student canvas if in student mode
+                    if (currentRole === 'student') resizeStudentCanvas();
+                }, 100);
+            }
         }
 
         function showToast(message, type = 'info') {
