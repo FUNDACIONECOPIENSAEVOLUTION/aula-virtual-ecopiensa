@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aula Virtual Docente - Escuela Rafael Pombo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pombo: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#2563eb',
+                            600: '#1d4ed8',
+                            700: '#1e40af',
+                            800: '#1e3a8a',
+                            900: '#0f172a'
+                        },
+                        eco: {
+                            500: '#10b981',
+                            600: '#059669'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbars & smooth transitions */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .canvas-active {
+            cursor: crosshair !important;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
+
+    <!-- Top Bar Navigation -->
+    <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Branding -->
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-pombo-600 to-eco-500 flex items-center justify-center shadow-lg transform hover:scale-105 transition">
+                        <i class="fas fa-graduation-cap text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h1 class="font-outfit text-xl font-bold tracking-tight text-white">Escuela Rafael Pombo</h1>
+                            <span class="bg-pombo-600/60 text-xs px-2.5 py-0.5 rounded-full border border-pombo-500 font-medium text-pombo-100">Tuluá</span>
+                        </div>
+                        <p class="text-xs text-slate-300 flex items-center gap-2">
+                            <span>Docente: <strong class="text-white font-semibold">Prof. Fannor Alejandro Andrade Soto</strong></span>
+                            <span class="text-slate-500">•</span>
+                            <span class="text-eco-500 font-medium"><i class="fas fa-leaf text-xs"></i> Ecopienza Evolution</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Call Status & Quick Actions -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <div id="topCallBadge" class="hidden items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-semibold">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span id="topCallTimer">00:00:00</span>
+                    </div>
+
+                    <button onclick="openShareModal()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition">
+                        <i class="fas fa-share-alt"></i>
+                        <span>Enviar Link a Estudiantes</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1 scrollbar-none">
+                <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
+                    <i class="fas fa-video text-pombo-500"></i> Videollamada y Tablero
+                </button>
+                <button onclick="switchTab('schedule')" id="tab-btn-schedule" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-calendar-alt"></i> Programación de Clases
+                </button>
+                <button onclick="switchTab('attendance')" id="tab-btn-attendance" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-clipboard-check"></i> Asistencia (<span id="tabBadgeCount">0</span>)
+                </button>
+                <button onclick="switchTab('media')" id="tab-btn-media" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-photo-video"></i> Recursos y Videos
+                </button>
+                <button onclick="switchTab('chat')" id="tab-btn-chat" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-comments"></i> Participación e Interacción
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- TAB 1: VIDEO CALL & INTERACTIVE ANNOTATION CANVAS -->
+        <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
+            
+            <!-- Video Stage Container -->
+            <div class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
+                
+                <!-- Top Overlay Info Bar -->
+                <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-slate-950/80 to-transparent p-4 flex justify-between items-center text-white">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow">
+                            <i class="fas fa-broadcast-tower animate-pulse"></i> EN VIVO
+                        </span>
+                        <h2 class="font-outfit font-semibold text-sm sm:text-base text-slate-200" id="currentCallTitle">Aula Virtual - Escuela Rafael Pombo</h2>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+                        <i class="fas fa-clock text-pombo-500"></i>
+                        <span id="callDuration">00:00:00</span>
+                        <span class="text-slate-500">|</span>
+                        <i class="fas fa-shield-alt text-emerald-400"></i>
+                        <span>Conexión ilimitada</span>
+                    </div>
+                </div>
+
+                <!-- Video Viewport Frame -->
+                <div class="relative w-full aspect-video min-h-[420px] max-h-[640px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                    
+                    <!-- Placeholder when Video is Off -->
+                    <div id="videoPlaceholder" class="text-center p-8 z-0">
+                        <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
+                            <i class="fas fa-chalkboard-teacher text-4xl"></i>
+                        </div>
+                        <h3 class="text-xl font-outfit font-bold text-white mb-2">Videollamada en Espera</h3>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
+                            Haz clic en <strong>"Iniciar Clase Virtual"</strong> para transmitir tu cámara o compartir tu pantalla con herramientas de rayado digital.
+                        </p>
+                        <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-pombo-500/20 transition flex items-center gap-2 mx-auto">
+                            <i class="fas fa-play"></i> Iniciar Clase Virtual
+                        </button>
+                    </div>
+
+                    <!-- Video Elements -->
+                    <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
+                    <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
+
+                    <!-- Interactive Annotation Canvas Overlay (Rayar la Pantalla) -->
+                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+
+                    <!-- Floating Student Video Miniatures -->
+                    <div id="participantMiniatures" class="absolute bottom-16 right-4 z-20 hidden md:flex flex-col gap-2 max-h-60 overflow-y-auto">
+                        <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex items-center justify-center">
+                            <span class="text-xs text-slate-300 font-medium">Camila G.</span>
+                            <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-emerald-400"><i class="fas fa-microphone"></i></div>
+                        </div>
+                        <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex items-center justify-center">
+                            <span class="text-xs text-slate-300 font-medium">Mateo H.</span>
+                            <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-red-400"><i class="fas fa-microphone-slash"></i></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Annotation & Drawing Toolbar (Barra de Rayado / Tablero) -->
+                <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
+                    <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
+                        <!-- Tools Selection -->
+                        <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
+                            <button onclick="setTool('pen')" id="tool-pen" title="Lápiz Fino" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 hover:bg-pombo-500 text-xs flex items-center gap-1">
+                                <i class="fas fa-pencil-alt"></i> <span class="hidden sm:inline">Lápiz</span>
+                            </button>
+                            <button onclick="setTool('brush')" id="tool-brush" title="Pincel Suave" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                                <i class="fas fa-paint-brush"></i> <span class="hidden sm:inline">Pincel</span>
+                            </button>
+                            <button onclick="setTool('crayon')" id="tool-crayon" title="Crayola / Marcador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                                <i class="fas fa-marker"></i> <span class="hidden sm:inline">Crayola</span>
+                            </button>
+                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador Transparente" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                                <i class="fas fa-highlighter"></i> <span class="hidden sm:inline">Resaltador</span>
+                            </button>
+                            <button onclick="setTool('eraser')" id="tool-eraser" title="Borrador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                                <i class="fas fa-eraser"></i> <span class="hidden sm:inline">Borrador</span>
+                            </button>
+                        </div>
+
+                        <!-- Color Palette & Stroke Size -->
+                        <div class="flex items-center gap-3">
+                            <!-- Quick Color Chips -->
+                            <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
+                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white border border-white/20 hover:scale-110 transition"></button>
+                                <input type="color" id="drawColor" value="#ef4444" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 ml-1">
+                            </div>
+
+                            <!-- Thickness Slider -->
+                            <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
+                                <i class="fas fa-circle text-[10px] text-slate-400"></i>
+                                <input type="range" id="lineWidth" min="2" max="30" value="4" onchange="setLineWidth(this.value)" class="w-20 accent-pombo-500 cursor-pointer">
+                                <i class="fas fa-circle text-base text-slate-300"></i>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Actions -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="clearCanvas()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/40 flex items-center gap-1 transition">
+                                <i class="fas fa-trash-alt"></i> Limpiar Rayado
+                            </button>
+                            <button onclick="toggleCanvasGrid()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                                <i class="fas fa-border-all"></i> Fondo Blanco
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Video Control Bar -->
+                <div class="bg-slate-950 p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                    <!-- Audio / Video Toggles -->
+                    <div class="flex items-center gap-3">
+                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow">
+                            <i class="fas fa-video-slash text-red-400"></i>
+                        </button>
+                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow">
+                            <i class="fas fa-microphone text-emerald-400"></i>
+                        </button>
+                        <button id="btnShareScreen" onclick="toggleScreenShare()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Compartir Pantalla">
+                            <i class="fas fa-desktop text-pombo-400"></i>
+                        </button>
+                        <button id="btnToggleBoard" onclick="toggleAnnotationBoard()" class="px-4 h-12 rounded-2xl bg-pombo-600 hover:bg-pombo-500 text-white font-semibold flex items-center gap-2 text-sm transition shadow">
+                            <i class="fas fa-paint-brush"></i>
+                            <span id="boardBtnText">Activar Rayado / Tablero</span>
+                        </button>
+                    </div>
+
+                    <!-- Room Actions -->
+                    <div class="flex items-center gap-3">
+                        <button onclick="openShareModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow transition">
+                            <i class="fas fa-link"></i> Copiar Link Clase
+                        </button>
+                        <button onclick="stopAllStreams()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow transition">
+                            <i class="fas fa-phone-slash"></i> Finalizar Clase
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Class Information Box -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-school"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Institución</span>
+                        <h4 class="font-outfit font-bold text-slate-800">Escuela Rafael Pombo</h4>
+                        <p class="text-xs text-slate-500">Sede Principal - Tuluá</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Docente Titular</span>
+                        <h4 class="font-outfit font-bold text-slate-800">Fannor Alejandro Andrade S.</h4>
+                        <p class="text-xs text-slate-500">Plataforma Docente Avanzada</p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0">
+                        <i class="fas fa-hands-helping"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Desarrollado Por</span>
+                        <h4 class="font-outfit font-bold text-slate-800">Fundación Ecopienza Evolution</h4>
+                        <p class="text-xs text-slate-500">Tecnología Educativa 2026</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: CLASS SCHEDULER & LINK GENERATOR -->
+        <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Schedule Form -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
+                    <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
+                        <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center font-bold">
+                            <i class="fas fa-plus-circle text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-outfit font-bold text-lg text-slate-800">Programar Nueva Clase</h3>
+                            <p class="text-xs text-slate-500">Genera enlace para los estudiantes</p>
+                        </div>
+                    </div>
+
+                    <form id="scheduleForm" onsubmit="handleCreateSchedule(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre del Tema / Asignatura</label>
+                            <input type="text" id="schedTitle" required placeholder="Ej: Matemáticas - Fraccionarios" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 focus:border-pombo-500 text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Grado / Grupo</label>
+                            <select id="schedGrade" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
+                                <option value="Grado 4°A - Rafael Pombo">Grado 4°A - Primaria</option>
+                                <option value="Grado 5°B - Rafael Pombo">Grado 5°B - Primaria</option>
+                                <option value="Grado 6°1 - Bachillerato">Grado 6°1 - Secundaria</option>
+                                <option value="Grado 7°2 - Bachillerato">Grado 7°2 - Secundaria</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Fecha</label>
+                                <input type="date" id="schedDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hora Inicio</label>
+                                <input type="time" id="schedTime" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instrucciones para los Estudiantes</label>
+                            <textarea id="schedNotes" rows="2" placeholder="Tener el cuaderno listo y lapicero..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-pombo-600 hover:bg-pombo-700 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fas fa-calendar-check"></i> Programar y Crear Enlace
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Scheduled Classes List -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
+                    <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                                <i class="fas fa-list-alt text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-outfit font-bold text-lg text-slate-800">Agenda de Clases Virtuales</h3>
+                                <p class="text-xs text-slate-500">Programación docente activa</p>
+                            </div>
+                        </div>
+                        <span class="bg-slate-100 text-slate-600 text-xs px-3 py-1 rounded-full font-bold" id="schedCount">0 Clases</span>
+                    </div>
+
+                    <div id="scheduleList" class="space-y-4 overflow-y-auto max-h-[500px] pr-2">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: ATTENDANCE & STUDENT ROSTER -->
+        <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
+                
+                <!-- Roster Controls Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+                    <div>
+                        <h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia de Estudiantes</h3>
+                        <p class="text-xs text-slate-500">Escuela Rafael Pombo • Prof. Fannor Alejandro Andrade Soto</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="startInteractiveRollCall()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-clipboard-list"></i> Llamar Lista Interactivo
+                        </button>
+                        <button onclick="exportAttendanceReport()" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-file-download"></i> Exportar Reporte (.txt)
+                        </button>
+                        <button onclick="confirmResetAttendance()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fas fa-undo"></i> Reiniciar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Stats Widgets -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Total Estudiantes</span>
+                        <p class="text-2xl font-outfit font-extrabold text-slate-800" id="statTotal">0</p>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center">
+                        <span class="text-xs font-bold text-emerald-600 uppercase">Presentes</span>
+                        <p class="text-2xl font-outfit font-extrabold text-emerald-600" id="statPresent">0</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-xl border border-red-200 text-center">
+                        <span class="text-xs font-bold text-red-600 uppercase">Ausentes</span>
+                        <p class="text-2xl font-outfit font-extrabold text-red-600" id="statAbsent">0</p>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
+                        <span class="text-xs font-bold text-amber-600 uppercase">Pendientes</span>
+                        <p class="text-2xl font-outfit font-extrabold text-amber-600" id="statPending">0</p>
+                    </div>
+                </div>
+
+                <!-- Add Student Bar -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="newStudentName" placeholder="Escribe el nombre completo del estudiante..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                    <button onclick="addStudentFromInput()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-user-plus"></i> Añadir Estudiante
+                    </button>
+                </div>
+
+                <!-- Student Roster Table -->
+                <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100 text-slate-600 uppercase text-xs font-bold">
+                            <tr>
+                                <th class="py-3 px-4">Estudiante</th>
+                                <th class="py-3 px-4">Estado Asistencia</th>
+                                <th class="py-3 px-4 text-center">Marcación Rápida</th>
+                                <th class="py-3 px-4 text-right">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: MEDIA & VIDEO RESOURCES -->
+        <div id="tab-media" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Video Player Hub -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
+                                <i class="fab fa-youtube text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-outfit font-bold text-lg text-slate-800">Reproductor de Video Explicativo</h3>
+                                <p class="text-xs text-slate-500">Comparte videos de apoyo para la clase</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Embedded Video Screen -->
+                    <div id="mediaPlayerContainer" class="w-full aspect-video bg-slate-900 rounded-xl overflow-hidden mb-4 shadow-inner flex items-center justify-center relative">
+                        <iframe id="youtubeIframe" class="w-full h-full hidden" src="" title="Video de la Clase" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div id="noVideoMsg" class="text-center p-6 text-slate-400">
+                            <i class="fas fa-film text-4xl mb-3 text-slate-600"></i>
+                            <p class="text-sm font-medium">Selecciona o ingresa un enlace de YouTube para transmitir a los estudiantes</p>
+                        </div>
+                    </div>
+
+                    <!-- Input YouTube Link -->
+                    <div class="flex gap-2">
+                        <input type="text" id="ytUrlInput" placeholder="Pega el link de un video de YouTube (ej: https://www.youtube.com/watch?v=...)" class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                        <button onclick="loadYouTubeVideo()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center gap-2 shrink-0">
+                            <i class="fas fa-play"></i> Cargar Video
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Educational Material List -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
+                    <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fas fa-folder-open text-pombo-500"></i> Videos Recomendados
+                    </h3>
+                    <div class="space-y-3">
+                        <div onclick="playPresetVideo('https://www.youtube.com/embed/a3FC31R016g')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center text-lg shrink-0 group-hover:bg-red-600 group-hover:text-white transition">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800 truncate">Las Fracciones y sus Partes</h4>
+                                <p class="text-[11px] text-slate-500">Explicación para Primaria</p>
+                            </div>
+                        </div>
+                        <div onclick="playPresetVideo('https://www.youtube.com/embed/Pj1_3yE3c-0')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3 group">
+                            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center text-lg shrink-0 group-hover:bg-red-600 group-hover:text-white transition">
+                                <i class="fas fa-play"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800 truncate">El Sistema Solar y Planetas</h4>
+                                <p class="text-[11px] text-slate-500">Ciencias Naturales</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: STUDENT PARTICIPATION & CHAT -->
+        <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Chat Window -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[520px]">
+                    <!-- Chat Header -->
+                    <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
+                            <h3 class="font-outfit font-bold text-slate-800">Chat en Vivo de la Clase</h3>
+                        </div>
+                        <span class="text-xs text-slate-500">Modo Moderado por el Docente</span>
+                    </div>
+
+                    <!-- Chat Messages Area -->
+                    <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50">
+                        <!-- Default Welcome -->
+                        <div class="bg-pombo-50 text-pombo-800 p-3 rounded-xl text-xs border border-pombo-200 flex items-start gap-2">
+                            <i class="fas fa-info-circle text-pombo-600 mt-0.5"></i>
+                            <div>
+                                <strong>Prof. Fannor Alejandro Andrade Soto:</strong> ¡Bienvenidos a la clase virtual! Por favor mantengan sus micrófonos en silencio hasta que se abra la ronda de preguntas.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl flex gap-2">
+                        <input type="text" id="chatInput" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="Escribe un mensaje en el chat general..." class="flex-grow px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                        <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-1">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hands Raised & Classroom Tools -->
+                <div class="space-y-6 lg:col-span-1">
+                    
+                    <!-- Hands Raised Queue -->
+                    <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                            <h4 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
+                                <i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas
+                            </h4>
+                            <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold" id="handCount">2</span>
+                        </div>
+
+                        <ul id="handQueue" class="space-y-2 max-h-40 overflow-y-auto">
+                            <li class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+                                <span class="font-medium text-slate-800">1. Mateo Hernández</span>
+                                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2 py-1 rounded shadow-sm text-[11px] font-bold">Dar Palabra</button>
+                            </li>
+                            <li class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
+                                <span class="font-medium text-slate-800">2. Sofía Castro</span>
+                                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2 py-1 rounded shadow-sm text-[11px] font-bold">Dar Palabra</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Quick Interactive Poll (Votación Rápida) -->
+                    <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
+                        <h4 class="font-outfit font-bold text-slate-800 mb-2 flex items-center gap-2">
+                            <i class="fas fa-poll text-pombo-600"></i> Pregunta Rápida a la Clase
+                        </h4>
+                        <p class="text-xs text-slate-500 mb-3">Envía una encuesta express a los alumnos</p>
+
+                        <button onclick="triggerQuickPoll()" class="w-full bg-pombo-50 hover:bg-pombo-100 text-pombo-700 font-semibold py-2.5 rounded-xl border border-pombo-200 text-xs transition flex items-center justify-center gap-2">
+                            <i class="fas fa-question-circle"></i> Enviar "Entendieron el Tema? (Sí/No)"
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 py-6 mt-12 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
+            <p class="text-slate-300 font-medium">
+                Plataforma Educativa Docente • <strong class="text-white">Escuela Rafael Pombo</strong> (Tuluá)
+            </p>
+            <p>
+                Diseñado para el docente <span class="text-pombo-400 font-semibold">Prof. Fannor Alejandro Andrade Soto</span>
+            </p>
+            <p class="text-slate-500">
+                Desarrollado integralmente por <strong class="text-emerald-400 font-semibold">Fundación Ecopienza Evolution</strong> • Versión 2.5 Pro 2026
+            </p>
+        </div>
+    </footer>
+
+    <!-- SHARE LINK MODAL -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center text-lg font-bold">
+                        <i class="fas fa-share-alt"></i>
+                    </div>
+                    <h3 class="font-outfit font-bold text-lg text-slate-800">Compartir Clase Virtual</h3>
+                </div>
+                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-600 mb-4">
+                Envía este enlace a los estudiantes de la <strong>Escuela Rafael Pombo</strong> para ingresar a la videollamada:
+            </p>
+
+            <!-- Generated Link Box -->
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 flex items-center justify-between gap-2">
+                <input type="text" id="shareRoomUrl" readonly value="https://rafaelpombo-tulua.edu.co/clase-virtual/prof-fannor-andrade" class="bg-transparent text-xs text-slate-700 font-mono w-full focus:outline-none">
+                <button onclick="copyShareUrl()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition">
+                    Copiar
+                </button>
+            </div>
+
+            <!-- WhatsApp Share Action -->
+            <button onclick="shareViaWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm mb-3">
+                <i class="fab fa-whatsapp text-lg"></i> Compartir por WhatsApp a Padres/Alumnos
+            </button>
+
+            <button onclick="closeShareModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
+                Cerrar Ventana
+            </button>
+        </div>
+    </div>
+
+    <!-- CUSTOM CONFIRMATION MODAL -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl text-center animate-fade-in">
+            <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 mx-auto flex items-center justify-center text-xl mb-3">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h4 class="font-outfit font-bold text-lg text-slate-800 mb-1" id="confirmModalTitle">¿Está Seguro?</h4>
+            <p class="text-xs text-slate-500 mb-5" id="confirmModalMsg">Esta acción no se puede deshacer.</p>
+            <div class="flex gap-3">
+                <button id="confirmCancelBtn" class="flex-1 py-2.5 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs hover:bg-slate-200">Cancelar</button>
+                <button id="confirmOkBtn" class="flex-1 py-2.5 bg-red-600 text-white font-semibold rounded-xl text-xs hover:bg-red-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION STACK -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // ==========================================
+        // APP STATE MANAGEMENT & DATA
+        // ==========================================
+        let currentTab = 'live';
+        let mediaStream = null;
+        let screenStream = null;
+        let isCameraActive = false;
+        let isMicActive = true;
+        let isScreenSharing = false;
+        let isAnnotationActive = false;
+
+        // Timer State
+        let callSeconds = 0;
+        let callTimerInterval = null;
+
+        // Student Data
+        let students = [
+            { id: 1, name: "María Alejandra González", status: "present" },
+            { id: 2, name: "Carlos Eduardo Pérez", status: "present" },
+            { id: 3, name: "Ana Lucía Rodríguez", status: "pending" },
+            { id: 4, name: "Luis Fernando Gómez", status: "absent" },
+            { id: 5, name: "Sofía Valentina Castro", status: "present" },
+            { id: 6, name: "Mateo Hernández Soto", status: "pending" }
+        ];
+
+        // Scheduled Classes Data
+        let schedules = [
+            {
+                id: 1,
+                title: "Matemáticas - Suma de Fracciones",
+                grade: "Grado 5°B - Rafael Pombo",
+                date: "2026-08-25",
+                time: "08:00",
+                notes: "Tener a mano el libro guía de matemáticas pág 45.",
+                code: "POMBO-MATH-5B"
+            },
+            {
+                id: 2,
+                title: "Ciencias Naturales - Ecosistemas de Colombia",
+                grade: "Grado 4°A - Rafael Pombo",
+                date: "2026-08-26",
+                time: "10:30",
+                notes: "Revisión de la maqueta previa.",
+                code: "POMBO-NAT-4A"
+            }
+        ];
+
+        // Canvas Drawing State
+        let canvas, ctx;
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = '#ef4444';
+        let currentLineWidth = 4;
+        let isWhiteBackground = false;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCanvas();
+            renderStudentTable();
+            renderSchedules();
+            updateAttendanceStats();
+        });
+
+        // Navigation Tabs
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeContent = document.getElementById(`tab-${tabId}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            if (tabId === 'live') {
+                setTimeout(resizeCanvas, 100);
+            }
+        }
+
+        // Custom Toast Dialog
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${
+                type === 'success' ? 'bg-emerald-600' :
+                type === 'error' ? 'bg-red-600' :
+                type === 'warning' ? 'bg-amber-600' : 'bg-pombo-600'
+            }`;
+
+            const icon = type === 'success' ? 'fa-check-circle' :
+                         type === 'error' ? 'fa-exclamation-circle' :
+                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+            toast.innerHTML = `<i class="fas ${icon} text-sm"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Custom Modal Confirmation Replacement
+        function showConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMsg').textContent = message;
+
+            const okBtn = document.getElementById('confirmOkBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+
+            const cleanUp = () => {
+                modal.classList.add('hidden');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => {
+                cleanUp();
+                onConfirm();
+            };
+            cancelBtn.onclick = cleanUp;
+
+            modal.classList.remove('hidden');
+        }
+
+        // ==========================================
+        // VIDEO CALL & WEBRTC CONTROLS
+        // ==========================================
+        async function toggleCameraStream() {
+            const videoElement = document.getElementById('webcamVideo');
+            const placeholder = document.getElementById('videoPlaceholder');
+            const btnCam = document.getElementById('btnToggleCam');
+
+            if (!isCameraActive) {
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isMicActive });
+                    videoElement.srcObject = mediaStream;
+                    videoElement.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    
+                    btnCam.classList.remove('bg-slate-800');
+                    btnCam.classList.add('bg-emerald-600');
+                    btnCam.innerHTML = `<i class="fas fa-video text-white"></i>`;
+                    
+                    isCameraActive = true;
+                    startCallTimer();
+                    showToast('Cámara iniciada correctamente', 'success');
+                } catch (err) {
+                    console.error('Error accediendo a la cámara:', err);
+                    showToast('No se pudo acceder a la cámara. Verifica los permisos.', 'error');
+                }
+            } else {
+                if (mediaStream) {
+                    mediaStream.getVideoTracks().forEach(track => track.stop());
+                }
+                videoElement.classList.add('hidden');
+                if (!isScreenSharing) placeholder.classList.remove('hidden');
+
+                btnCam.classList.remove('bg-emerald-600');
+                btnCam.classList.add('bg-slate-800');
+                btnCam.innerHTML = `<i class="fas fa-video-slash text-red-400"></i>`;
+
+                isCameraActive = false;
+                showToast('Cámara desactivada', 'info');
+            }
+        }
+
+        function toggleMic() {
+            const btnMic = document.getElementById('btnToggleMic');
+            isMicActive = !isMicActive;
+
+            if (mediaStream) {
+                mediaStream.getAudioTracks().forEach(track => track.enabled = isMicActive);
+            }
+
+            if (isMicActive) {
+                btnMic.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i>`;
+                showToast('Micrófono activado', 'success');
+            } else {
+                btnMic.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i>`;
+                showToast('Micrófono silenciado', 'warning');
+            }
+        }
+
+        async function toggleScreenShare() {
+            const screenVideo = document.getElementById('screenShareVideo');
+            const placeholder = document.getElementById('videoPlaceholder');
+            const webcamVideo = document.getElementById('webcamVideo');
+
+            if (!isScreenSharing) {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    screenVideo.srcObject = screenStream;
+                    screenVideo.classList.remove('hidden');
+                    webcamVideo.classList.add('hidden');
+                    placeholder.classList.add('hidden');
+
+                    document.getElementById('participantMiniatures').classList.remove('hidden');
+                    isScreenSharing = true;
+                    
+                    // Enable whiteboard annotation mode automatically
+                    if (!isAnnotationActive) toggleAnnotationBoard();
+
+                    showToast('Compartiendo pantalla con los estudiantes', 'success');
+
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+                } catch (err) {
+                    console.error('Error compartiendo pantalla:', err);
+                    showToast('Se canceló el compartido de pantalla', 'info');
+                }
+            } else {
+                stopScreenShare();
+            }
+        }
+
+        function stopScreenShare() {
+            const screenVideo = document.getElementById('screenShareVideo');
+            const placeholder = document.getElementById('videoPlaceholder');
+            const webcamVideo = document.getElementById('webcamVideo');
+
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+
+            screenVideo.classList.add('hidden');
+            if (isCameraActive) {
+                webcamVideo.classList.remove('hidden');
+            } else {
+                placeholder.classList.remove('hidden');
+            }
+
+            isScreenSharing = false;
+            showToast('Pantalla compartida finalizada', 'info');
+        }
+
+        function stopAllStreams() {
+            showConfirm('¿Finalizar Clase Virtual?', 'Se cerrará la transmisión para todos los estudiantes.', () => {
+                if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
+                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+
+                document.getElementById('webcamVideo').classList.add('hidden');
+                document.getElementById('screenShareVideo').classList.add('hidden');
+                document.getElementById('videoPlaceholder').classList.remove('hidden');
+
+                isCameraActive = false;
+                isScreenSharing = false;
+                stopCallTimer();
+
+                showToast('La clase virtual ha finalizado', 'info');
+            });
+        }
+
+        function startCallTimer() {
+            if (callTimerInterval) return;
+            document.getElementById('topCallBadge').classList.remove('hidden');
+            document.getElementById('topCallBadge').classList.add('flex');
+
+            callTimerInterval = setInterval(() => {
+                callSeconds++;
+                const hrs = String(Math.floor(callSeconds / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((callSeconds % 3600) / 60)).padStart(2, '0');
+                const secs = String(callSeconds % 60).padStart(2, '0');
+
+                const formatted = `${hrs}:${mins}:${secs}`;
+                document.getElementById('callDuration').textContent = formatted;
+                document.getElementById('topCallTimer').textContent = formatted;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            callSeconds = 0;
+            document.getElementById('callDuration').textContent = '00:00:00';
+            document.getElementById('topCallBadge').classList.add('hidden');
+        }
+
+        // ==========================================
+        // ANNOTATION & WHITEBOARD DRAWING ENGINE
+        // ==========================================
+        function initCanvas() {
+            canvas = document.getElementById('annotationCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+
+            window.addEventListener('resize', resizeCanvas);
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch Events
+            canvas.addEventListener('touchstart', handleTouchStart);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function toggleAnnotationBoard() {
+            const drawingToolbar = document.getElementById('drawingToolbar');
+            const boardBtnText = document.getElementById('boardBtnText');
+
+            isAnnotationActive = !isAnnotationActive;
+
+            if (isAnnotationActive) {
+                canvas.classList.remove('hidden');
+                canvas.classList.add('canvas-active');
+                drawingToolbar.classList.remove('hidden');
+                boardBtnText.textContent = 'Ocultar Tablero / Rayado';
+                showToast('Herramientas de rayado sobre pantalla activadas', 'success');
+            } else {
+                canvas.classList.add('hidden');
+                canvas.classList.remove('canvas-active');
+                drawingToolbar.classList.add('hidden');
+                boardBtnText.textContent = 'Activar Rayado / Tablero';
+            }
+        }
+
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('bg-pombo-600', 'text-white', 'active-tool');
+                btn.classList.add('text-slate-300');
+            });
+
+            const activeBtn = document.getElementById(`tool-${tool}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool');
+                activeBtn.classList.remove('text-slate-300');
+            }
+        }
+
+        function setColor(hex) {
+            currentColor = hex;
+            document.getElementById('drawColor').value = hex;
+        }
+
+        function setLineWidth(val) {
+            currentLineWidth = val;
+        }
+
+        function clearCanvas() {
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                showToast('Lienzo de dibujo limpiado', 'info');
+            }
+        }
+
+        function toggleCanvasGrid() {
+            isWhiteBackground = !isWhiteBackground;
+            if (isWhiteBackground) {
+                canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+            } else {
+                canvas.style.backgroundColor = 'transparent';
+            }
+        }
+
+        function getCanvasCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            if (!isAnnotationActive) return;
+            isDrawing = true;
+            const coords = getCanvasCoords(e);
+            ctx.beginPath();
+            ctx.moveTo(coords.x, coords.y);
+        }
+
+        function draw(e) {
+            if (!isDrawing || !isAnnotationActive) return;
+            const coords = getCanvasCoords(e);
+
+            ctx.lineWidth = currentLineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (currentTool === 'eraser') {
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.strokeStyle = 'rgba(0,0,0,1)';
+                ctx.lineWidth = currentLineWidth * 3;
+            } else if (currentTool === 'highlighter') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.globalAlpha = 0.35;
+                ctx.lineWidth = currentLineWidth * 2.5;
+            } else if (currentTool === 'crayon') {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.globalAlpha = 0.7;
+                ctx.lineWidth = currentLineWidth * 1.5;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = currentColor;
+                ctx.globalAlpha = 1.0;
+            }
+
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+
+            // Reset composite operation & alpha
+            ctx.globalAlpha = 1.0;
+            ctx.globalCompositeOperation = 'source-over';
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function handleTouchStart(e) {
+            if (e.touches.length === 1) {
+                startDrawing(e.touches[0]);
+                e.preventDefault();
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length === 1) {
+                draw(e.touches[0]);
+                e.preventDefault();
+            }
+        }
+
+        // ==========================================
+        // STUDENT ROSTER & ATTENDANCE LOGIC
+        // ==========================================
+        function renderStudentTable() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = students.map(s => {
+                const statusBadge = s.status === 'present' ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Presente</span>' :
+                                    s.status === 'absent' ? '<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">Ausente</span>' :
+                                    '<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">Pendiente</span>';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3.5 px-4 font-medium text-slate-800 flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs">
+                                ${s.name.charAt(0)}
+                            </div>
+                            <span>${s.name}</span>
+                        </td>
+                        <td class="py-3.5 px-4">${statusBadge}</td>
+                        <td class="py-3.5 px-4 text-center">
+                            <div class="inline-flex gap-1">
+                                <button onclick="setStudentStatus(${s.id}, 'present')" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Marcar Presente">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="setStudentStatus(${s.id}, 'absent')" class="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition" title="Marcar Ausente">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <button onclick="deleteStudent(${s.id})" class="text-slate-400 hover:text-red-600 p-1 transition" title="Eliminar de lista">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateAttendanceStats();
+        }
+
+        function setStudentStatus(id, status) {
+            const student = students.find(s => s.id === id);
+            if (student) {
+                student.status = status;
+                renderStudentTable();
+            }
+        }
+
+        function addStudentFromInput() {
+            const input = document.getElementById('newStudentName');
+            const name = input.value.trim();
+            if (!name) {
+                showToast('Ingresa el nombre del estudiante', 'warning');
+                return;
+            }
+
+            const newId = students.length ? Math.max(...students.map(s => s.id)) + 1 : 1;
+            students.push({ id: newId, name, status: 'pending' });
+            input.value = '';
+            renderStudentTable();
+            showToast(`Estudiante "${name}" agregado`, 'success');
+        }
+
+        function deleteStudent(id) {
+            showConfirm('¿Eliminar Estudiante?', 'Se quitará del registro de asistencia.', () => {
+                students = students.filter(s => s.id !== id);
+                renderStudentTable();
+                showToast('Estudiante eliminado', 'info');
+            });
+        }
+
+        function updateAttendanceStats() {
+            const total = students.length;
+            const present = students.filter(s => s.status === 'present').length;
+            const absent = students.filter(s => s.status === 'absent').length;
+            const pending = students.filter(s => s.status === 'pending').length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPresent').textContent = present;
+            document.getElementById('statAbsent').textContent = absent;
+            document.getElementById('statPending').textContent = pending;
+
+            document.getElementById('tabBadgeCount').textContent = `${present}/${total}`;
+        }
+
+        function startInteractiveRollCall() {
+            if (students.length === 0) {
+                showToast('No hay estudiantes en la lista', 'warning');
+                return;
+            }
+            let index = 0;
+
+            const callNext = () => {
+                if (index >= students.length) {
+                    showToast('Llamado a lista completado', 'success');
+                    return;
+                }
+                const st = students[index];
+                showConfirm(`¿Está presente ${st.name}?`, 'Haz clic en Confirmar para PRESENTE o Cancelar para AUSENTE', () => {
+                    st.status = 'present';
+                    renderStudentTable();
+                    index++;
+                    callNext();
+                });
+            };
+
+            callNext();
+        }
+
+        function confirmResetAttendance() {
+            showConfirm('¿Reiniciar Asistencia?', 'Todos los estudiantes volverán a estado Pendiente.', () => {
+                students.forEach(s => s.status = 'pending');
+                renderStudentTable();
+                showToast('Asistencia reiniciada', 'info');
+            });
+        }
+
+        function exportAttendanceReport() {
+            if (students.length === 0) {
+                showToast('No hay datos para exportar', 'warning');
+                return;
+            }
+
+            let text = `=====================================\n`;
+            text += `REPORTE DE ASISTENCIA - ESCUELA RAFAEL POMBO (TULUÁ)\n`;
+            text += `Docente: Prof. Fannor Alejandro Andrade Soto\n`;
+            text += `Fecha: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
+            text += `Desarrollado por: Fundación Ecopienza Evolution\n`;
+            text += `=====================================\n\n`;
+
+            students.forEach((s, idx) => {
+                const st = s.status === 'present' ? 'PRESENTE' : s.status === 'absent' ? 'AUSENTE' : 'PENDIENTE';
+                text += `${idx + 1}. ${s.name} ---> ${st}\n`;
+            });
+
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Asistencia_RafaelPombo_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showToast('Reporte descargado correctamente', 'success');
+        }
+
+        // ==========================================
+        // CLASS SCHEDULER & LINK GENERATION
+        // ==========================================
+        function renderSchedules() {
+            const container = document.getElementById('scheduleList');
+            document.getElementById('schedCount').textContent = `${schedules.length} Clases`;
+
+            if (schedules.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No hay clases programadas.</p>`;
+                return;
+            }
+
+            container.innerHTML = schedules.map(s => `
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 hover:border-pombo-300 transition flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="bg-pombo-100 text-pombo-700 font-bold text-[11px] px-2.5 py-0.5 rounded-full">${s.grade}</span>
+                            <span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span>
+                        </div>
+                        <h4 class="font-outfit font-bold text-slate-800 text-base">${s.title}</h4>
+                        <p class="text-xs text-slate-500 mt-1">${s.notes || 'Sin instrucciones adicionales'}</p>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button onclick="openShareModal('${s.code}')" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fas fa-share-alt"></i> Enviar Link
+                        </button>
+                        <button onclick="deleteSchedule(${s.id})" class="text-slate-400 hover:text-red-600 p-2 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function handleCreateSchedule(e) {
+            e.preventDefault();
+            const title = document.getElementById('schedTitle').value.trim();
+            const grade = document.getElementById('schedGrade').value;
+            const date = document.getElementById('schedDate').value;
+            const time = document.getElementById('schedTime').value;
+            const notes = document.getElementById('schedNotes').value.trim();
+
+            const code = `POMBO-${Math.floor(1000 + Math.random() * 9000)}`;
+            const newSched = { id: Date.now(), title, grade, date, time, notes, code };
+
+            schedules.unshift(newSched);
+            renderSchedules();
+            document.getElementById('scheduleForm').reset();
+            showToast('Clase programada y enlace generado', 'success');
+        }
+
+        function deleteSchedule(id) {
+            showConfirm('¿Eliminar Clase Programada?', 'Se borrará de la agenda.', () => {
+                schedules = schedules.filter(s => s.id !== id);
+                renderSchedules();
+                showToast('Clase eliminada', 'info');
+            });
+        }
+
+        // ==========================================
+        // SHARING & MEDIA HUB LOGIC
+        // ==========================================
+        function openShareModal(code = 'CLASE-ENVIVO') {
+            const baseUrl = window.location.origin + window.location.pathname;
+            document.getElementById('shareRoomUrl').value = `${baseUrl}?room=${code}`;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareUrl() {
+            const copyText = document.getElementById('shareRoomUrl');
+            copyText.select();
+            document.execCommand('copy');
+            showToast('Enlace copiado al portapapeles', 'success');
+        }
+
+        function shareViaWhatsApp() {
+            const url = document.getElementById('shareRoomUrl').value;
+            const text = `*Escuela Rafael Pombo (Tuluá)*\n*Docente:* Prof. Fannor Alejandro Andrade Soto\n\nEstimados estudiantes, los invito a unirse a la clase virtual ingresando aquí:\n${url}`;
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+        }
+
+        function loadYouTubeVideo() {
+            const input = document.getElementById('ytUrlInput').value.trim();
+            if (!input) return;
+
+            let videoId = '';
+            if (input.includes('v=')) {
+                videoId = input.split('v=')[1].split('&')[0];
+            } else if (input.includes('youtu.be/')) {
+                videoId = input.split('youtu.be/')[1];
+            }
+
+            if (videoId) {
+                playPresetVideo(`https://www.youtube.com/embed/${videoId}`);
+            } else {
+                showToast('URL de YouTube no válida', 'error');
+            }
+        }
+
+        function playPresetVideo(embedUrl) {
+            const iframe = document.getElementById('youtubeIframe');
+            const placeholder = document.getElementById('noVideoMsg');
+
+            iframe.src = embedUrl;
+            iframe.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+            showToast('Video cargado para la clase', 'success');
+        }
+
+        // ==========================================
+        // CLASSROOM CHAT & INTERACTION LOGIC
+        // ==========================================
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            const bubble = document.createElement('div');
+            bubble.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2 animate-fade-in';
+            bubble.innerHTML = `
+                <div class="w-6 h-6 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">F</div>
+                <div>
+                    <strong class="text-slate-800">Prof. Fannor Andrade:</strong> <span class="text-slate-600">${msg}</span>
+                </div>
+            `;
+
+            chatMessages.appendChild(bubble);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            input.value = '';
+        }
+
+        function lowerHand(btn) {
+            btn.closest('li').remove();
+            const countElem = document.getElementById('handCount');
+            countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
+            showToast('Palabra concedida al estudiante', 'info');
+        }
+
+        function triggerQuickPoll() {
+            showToast('Encuesta rápida enviada a las pantallas de los alumnos', 'success');
+        }
+    </script>
+</body>
+</html>
