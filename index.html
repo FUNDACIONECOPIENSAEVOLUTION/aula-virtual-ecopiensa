@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aula Virtual Docente - Escuela Rafael Pombo</title>
+    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -40,7 +41,6 @@
         }
     </script>
     <style>
-        /* Custom scrollbars & smooth transitions */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -59,10 +59,6 @@
         .canvas-active {
             cursor: crosshair !important;
         }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-        }
         .animate-fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
@@ -74,11 +70,11 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
 
-    <!-- Top Bar Navigation -->
+    <!-- Top Bar Navigation Header -->
     <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <!-- Branding -->
+                <!-- Institution & Teacher Info -->
                 <div class="flex items-center space-x-4">
                     <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-pombo-600 to-eco-500 flex items-center justify-center shadow-lg transform hover:scale-105 transition">
                         <i class="fas fa-graduation-cap text-2xl text-white"></i>
@@ -96,35 +92,30 @@
                     </div>
                 </div>
 
-                <!-- Call Status & Quick Actions -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <div id="topCallBadge" class="hidden items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-semibold">
+                <!-- Call Status Badge & Quick Actions -->
+                <div class="flex items-center space-x-3">
+                    <div id="topCallBadge" class="hidden md:flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-semibold">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span id="topCallTimer">00:00:00</span>
                     </div>
 
-                    <button onclick="simulateIncomingStudent()" class="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition" title="Simular que un estudiante entra por el link">
-                        <i class="fas fa-user-plus"></i>
-                        <span>Simular Estudiante</span>
-                    </button>
-
-                    <button onclick="openShareModal()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition">
+                    <button id="teacherShareLinkBtn" onclick="openShareModal()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition">
                         <i class="fas fa-share-alt"></i>
-                        <span>Enviar Link a Estudiantes</span>
+                        <span>Generar Link Clase</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Navigation Tabs -->
-            <nav class="flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1 scrollbar-none">
+            <!-- Navigation Tabs (Teacher Mode) -->
+            <nav id="teacherNavTabs" class="flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1">
                 <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
-                    <i class="fas fa-video text-pombo-500"></i> Videollamada y Tablero
+                    <i class="fas fa-video"></i> Videollamada y Tablero
                 </button>
                 <button onclick="switchTab('schedule')" id="tab-btn-schedule" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
                     <i class="fas fa-calendar-alt"></i> Programación de Clases
                 </button>
                 <button onclick="switchTab('attendance')" id="tab-btn-attendance" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
-                    <i class="fas fa-clipboard-check"></i> Asistencia (<span id="tabBadgeCount">0</span>)
+                    <i class="fas fa-clipboard-check"></i> Asistencia Real (<span id="tabBadgeCount">0</span>)
                 </button>
                 <button onclick="switchTab('media')" id="tab-btn-media" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
                     <i class="fas fa-photo-video"></i> Recursos y Videos
@@ -136,164 +127,173 @@
         </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Main Content Body -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- TAB 1: VIDEO CALL & INTERACTIVE ANNOTATION CANVAS -->
-        <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
+        <!-- ==================================================== -->
+        <!-- STUDENT VIEW SCREEN (Only active when role=student) -->
+        <!-- ==================================================== -->
+        <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-3xl mx-auto">
             
-            <!-- STUDENT JOINING SCREEN (Shown when opening as student link) -->
-            <div id="studentJoinView" class="hidden bg-white rounded-2xl shadow-xl border border-pombo-200 p-8 max-w-lg mx-auto text-center animate-fade-in">
-                <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+            <!-- Student Entry Request Form -->
+            <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
+                <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
                     <i class="fas fa-user-graduate"></i>
                 </div>
-                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Escuela Rafael Pombo</h2>
-                <p class="text-xs text-slate-500 mb-6">Clase Virtual del <strong>Prof. Fannor Alejandro Andrade Soto</strong></p>
+                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Escuela Rafael Pombo - Tuluá</h2>
+                <p class="text-xs text-slate-500 mb-6">Aula Virtual del <strong>Prof. Fannor Alejandro Andrade Soto</strong></p>
                 
-                <div class="space-y-4 text-left">
+                <div class="space-y-4 text-left max-w-md mx-auto">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ingresa tu Nombre Completo</label>
-                        <input type="text" id="studentJoinName" placeholder="Ej: Juan José Restrepo" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tu Nombre Completo para Asistencia</label>
+                        <input type="text" id="studentInputName" placeholder="Ej: Juan Diego Restrepo" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 focus:outline-none">
                     </div>
-                    <button onclick="submitStudentJoinRequest()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-semibold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                        <i class="fas fa-door-open"></i> Solicitar Ingreso a la Clase
+                    <button onclick="requestEntryAsStudent()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-semibold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-paper-plane"></i> Solicitar Ingreso al Profesor
                     </button>
                 </div>
 
-                <div id="studentWaitStatus" class="hidden mt-6 p-4 bg-amber-50 text-amber-800 rounded-xl border border-amber-200 text-xs font-medium animate-pulse">
-                    <i class="fas fa-spinner fa-spin mr-1"></i> Solicitud enviada al profesor. Esperando que el Prof. Fannor te admita...
+                <div id="studentWaitingAlert" class="hidden mt-6 p-4 bg-amber-50 text-amber-800 rounded-2xl border border-amber-200 text-xs font-medium animate-pulse flex items-center justify-center gap-3">
+                    <i class="fas fa-spinner fa-spin text-lg"></i>
+                    <span>Solicitud enviada en tiempo real. Esperando que el <strong>Prof. Fannor Andrade</strong> te admita a la clase...</span>
                 </div>
             </div>
 
-            <!-- WAITING ROOM (SALA DE ESPERA) BANNER FOR TEACHER -->
-            <div id="waitingRoomCard" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 shadow-md transition">
+            <!-- Student Active Classroom View (Unlocked upon admission) -->
+            <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
+                <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800">
+                    <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
+                        <i class="fas fa-circle text-[8px] animate-pulse"></i> CONECTADO EN VIVO
+                    </span>
+                    <span id="studentWelcomeBadge" class="text-slate-300"></span>
+                </div>
+
+                <!-- Live Stream Display for Student -->
+                <div class="relative aspect-video min-h-[360px] max-h-[540px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                    <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
+                    <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+
+                    <div id="studentStreamPlaceholder" class="text-center p-8 z-0 text-slate-400">
+                        <i class="fas fa-chalkboard text-5xl text-pombo-500 mb-3 animate-bounce"></i>
+                        <h3 class="text-white font-bold text-lg">En Clase con Prof. Fannor Andrade</h3>
+                        <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+                            Estás dentro del aula virtual. Cuando el profesor encienda su cámara o comparta pantalla y tableros, los verás aquí en tiempo real.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Student Quick Actions Toolbar -->
+                <div class="p-3 bg-slate-950 border-t border-slate-800 flex justify-between items-center">
+                    <button onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition">
+                        <i class="fas fa-hand-paper"></i> Levantar la Mano
+                    </button>
+                    <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition">
+                        Salir de Clase
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================================================== -->
+        <!-- TEACHER MAIN DASHBOARD (Default view) -->
+        <!-- ==================================================== -->
+        
+        <!-- TAB 1: VIDEO CALL & RAYADO TABLERO (SINGLE VIDEO STAGE) -->
+        <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
+
+            <!-- REAL-TIME WAITING ROOM (SALA DE ESPERA REAL) -->
+            <div id="teacherWaitingRoomPanel" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 shadow-md transition">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow shrink-0">
-                            <i class="fas fa-clock animate-bounce"></i>
+                            <i class="fas fa-user-clock animate-bounce"></i>
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="font-outfit font-bold text-amber-900 text-base">Sala de Espera (<span id="waitingCount">0</span>)</h3>
-                                <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">Estudiantes solicitando ingreso</span>
+                                <h3 class="font-outfit font-bold text-amber-900 text-base">Sala de Espera en Tiempo Real (<span id="waitingCountDisplay">0</span>)</h3>
+                                <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">Solicitudes de Ingreso</span>
                             </div>
-                            <p class="text-xs text-amber-700">Admite a los estudiantes que han abierto tu enlace para que ingresen al aula viva.</p>
+                            <p class="text-xs text-amber-700">Estudiantes reales que han abierto tu enlace y solicitan entrar a la clase.</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <button onclick="admitAllStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fas fa-user-check"></i> Admitir a Todos
+                        <button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-check-double"></i> Admitir a Todos
                         </button>
                     </div>
                 </div>
-                <!-- Waiting Queue List -->
-                <div id="waitingStudentsList" class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    <!-- Rendered by JS -->
+
+                <!-- Dynamic Real Waiting Queue -->
+                <div id="waitingListContainer" class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <!-- Populated dynamically via JS when real students join -->
                 </div>
             </div>
 
-            <!-- Video Stage Container -->
+            <!-- SINGLE VIDEO STAGE CONTAINER (UNIFIED - NO DUPLICATES) -->
             <div id="teacherVideoStage" class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 
-                <!-- Top Overlay Info Bar -->
-                <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-slate-950/80 to-transparent p-4 flex justify-between items-center text-white">
+                <!-- Overlay Header Bar -->
+                <div class="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-slate-950/90 to-transparent p-4 flex justify-between items-center text-white">
                     <div class="flex items-center gap-3">
                         <span class="bg-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow">
-                            <i class="fas fa-broadcast-tower animate-pulse"></i> EN VIVO
+                            <i class="fas fa-broadcast-tower animate-pulse"></i> AULA EN VIVO
                         </span>
-                        <h2 class="font-outfit font-semibold text-sm sm:text-base text-slate-200" id="currentCallTitle">Aula Virtual - Escuela Rafael Pombo</h2>
+                        <h2 class="font-outfit font-semibold text-sm sm:text-base text-slate-200">Videollamada Docente</h2>
                     </div>
                     <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
                         <i class="fas fa-users text-emerald-400"></i>
-                        <span>En Aula: <strong id="liveOnlineCount" class="text-white">1 (Docente)</strong></span>
+                        <span>En Aula: <strong id="liveAdmittedCount" class="text-white">1 (Docente)</strong></span>
                         <span class="text-slate-500">|</span>
                         <i class="fas fa-clock text-pombo-500"></i>
                         <span id="callDuration">00:00:00</span>
                     </div>
                 </div>
 
-                <!-- Video Viewport Frame -->
-                <div class="relative w-full aspect-video min-h-[420px] max-h-[640px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                <!-- Unified Video Viewport Frame -->
+                <div class="relative w-full aspect-video min-h-[420px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden">
                     
-                    <!-- Placeholder when Video is Off -->
-                    <div id="videoPlaceholder" class="text-center p-8 z-0">
+                    <!-- Off Video Placeholder -->
+                    <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
                             <i class="fas fa-chalkboard-teacher text-4xl"></i>
                         </div>
-                        <h3 class="text-xl font-outfit font-bold text-white mb-2">Videollamada en Espera</h3>
+                        <h3 class="text-xl font-outfit font-bold text-white mb-2">Transmisión de Videollamada</h3>
                         <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                            Haz clic en <strong>"Iniciar Clase Virtual"</strong> para transmitir tu cámara o compartir tu pantalla con herramientas de rayado digital.
+                            Haz clic en <strong>"Iniciar Cámara"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir a los alumnos con herramientas de rayado digital.
                         </p>
                         <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-pombo-500/20 transition flex items-center gap-2 mx-auto">
-                            <i class="fas fa-play"></i> Iniciar Clase Virtual
+                            <i class="fas fa-play"></i> Iniciar Cámara Docente
                         </button>
                     </div>
 
-                    <!-- Video Elements -->
+                    <!-- Single Video Elements -->
                     <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
 
-                    <!-- Interactive Annotation Canvas Overlay (Rayar la Pantalla) -->
+                    <!-- Interactive Annotation Canvas Overlay (Rayado sobre Pantalla / Tablero) -->
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
 
-                    <!-- Floating Student Video Miniatures -->
-                    <div id="participantMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto">
-                        <!-- Rendered by JS dynamically when students join -->
+                    <!-- Real Joined Students Miniatures Overlay -->
+                    <div id="realStudentMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto">
+                        <!-- Populated with real admitted student chips -->
                     </div>
                 </div>
 
-                <!-- Video Viewport Frame -->
-                <div class="relative w-full aspect-video min-h-[420px] max-h-[640px] bg-slate-950 flex items-center justify-center overflow-hidden">
-                    
-                    <!-- Placeholder when Video is Off -->
-                    <div id="videoPlaceholder" class="text-center p-8 z-0">
-                        <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-4 shadow-inner">
-                            <i class="fas fa-chalkboard-teacher text-4xl"></i>
-                        </div>
-                        <h3 class="text-xl font-outfit font-bold text-white mb-2">Videollamada en Espera</h3>
-                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                            Haz clic en <strong>"Iniciar Clase Virtual"</strong> para transmitir tu cámara o compartir tu pantalla con herramientas de rayado digital.
-                        </p>
-                        <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-pombo-500/20 transition flex items-center gap-2 mx-auto">
-                            <i class="fas fa-play"></i> Iniciar Clase Virtual
-                        </button>
-                    </div>
-
-                    <!-- Video Elements -->
-                    <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
-                    <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-
-                    <!-- Interactive Annotation Canvas Overlay (Rayar la Pantalla) -->
-                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
-
-                    <!-- Floating Student Video Miniatures -->
-                    <div id="participantMiniatures" class="absolute bottom-16 right-4 z-20 hidden md:flex flex-col gap-2 max-h-60 overflow-y-auto">
-                        <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex items-center justify-center">
-                            <span class="text-xs text-slate-300 font-medium">Camila G.</span>
-                            <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-emerald-400"><i class="fas fa-microphone"></i></div>
-                        </div>
-                        <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex items-center justify-center">
-                            <span class="text-xs text-slate-300 font-medium">Mateo H.</span>
-                            <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[10px] text-red-400"><i class="fas fa-microphone-slash"></i></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Annotation & Drawing Toolbar (Barra de Rayado / Tablero) -->
+                <!-- Drawing & Annotation Toolbar (Barra de Rayado / Tablero) -->
                 <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
                         <!-- Tools Selection -->
                         <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                            <button onclick="setTool('pen')" id="tool-pen" title="Lápiz Fino" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 hover:bg-pombo-500 text-xs flex items-center gap-1">
+                            <button onclick="setTool('pen')" id="tool-pen" title="Lápiz Fino" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1">
                                 <i class="fas fa-pencil-alt"></i> <span class="hidden sm:inline">Lápiz</span>
                             </button>
                             <button onclick="setTool('brush')" id="tool-brush" title="Pincel Suave" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-paint-brush"></i> <span class="hidden sm:inline">Pincel</span>
                             </button>
-                            <button onclick="setTool('crayon')" id="tool-crayon" title="Crayola / Marcador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('crayon')" id="tool-crayon" title="Crayola" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-marker"></i> <span class="hidden sm:inline">Crayola</span>
                             </button>
-                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador Transparente" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-highlighter"></i> <span class="hidden sm:inline">Resaltador</span>
                             </button>
                             <button onclick="setTool('eraser')" id="tool-eraser" title="Borrador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
@@ -301,19 +301,17 @@
                             </button>
                         </div>
 
-                        <!-- Color Palette & Stroke Size -->
+                        <!-- Color Palette & Size Slider -->
                         <div class="flex items-center gap-3">
-                            <!-- Quick Color Chips -->
                             <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 border border-white/20 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 border border-white/20 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 border border-white/20 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 border border-white/20 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white border border-white/20 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition"></button>
+                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 transition"></button>
                                 <input type="color" id="drawColor" value="#ef4444" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 ml-1">
                             </div>
 
-                            <!-- Thickness Slider -->
                             <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
                                 <i class="fas fa-circle text-[10px] text-slate-400"></i>
                                 <input type="range" id="lineWidth" min="2" max="30" value="4" onchange="setLineWidth(this.value)" class="w-20 accent-pombo-500 cursor-pointer">
@@ -321,7 +319,7 @@
                             </div>
                         </div>
 
-                        <!-- Canvas Actions -->
+                        <!-- Canvas Controls -->
                         <div class="flex items-center gap-2">
                             <button onclick="clearCanvas()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/40 flex items-center gap-1 transition">
                                 <i class="fas fa-trash-alt"></i> Limpiar Rayado
@@ -333,14 +331,13 @@
                     </div>
                 </div>
 
-                <!-- Bottom Video Control Bar -->
+                <!-- Bottom Control Bar -->
                 <div class="bg-slate-950 p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                    <!-- Audio / Video Toggles -->
                     <div class="flex items-center gap-3">
-                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow">
+                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Cámara">
                             <i class="fas fa-video-slash text-red-400"></i>
                         </button>
-                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow">
+                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Micrófono">
                             <i class="fas fa-microphone text-emerald-400"></i>
                         </button>
                         <button id="btnShareScreen" onclick="toggleScreenShare()" class="w-12 h-12 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center text-lg transition shadow" title="Compartir Pantalla">
@@ -352,7 +349,6 @@
                         </button>
                     </div>
 
-                    <!-- Room Actions -->
                     <div class="flex items-center gap-3">
                         <button onclick="openShareModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow transition">
                             <i class="fas fa-link"></i> Copiar Link Clase
@@ -364,7 +360,7 @@
                 </div>
             </div>
 
-            <!-- Quick Class Information Box -->
+            <!-- Institutional Information Widgets -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
@@ -373,7 +369,7 @@
                     <div>
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Institución</span>
                         <h4 class="font-outfit font-bold text-slate-800">Escuela Rafael Pombo</h4>
-                        <p class="text-xs text-slate-500">Sede Principal - Tuluá</p>
+                        <p class="text-xs text-slate-500">Sede Tuluá, Valle del Cauca</p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
@@ -382,13 +378,13 @@
                     </div>
                     <div>
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Docente Titular</span>
-                        <h4 class="font-outfit font-bold text-slate-800">Fannor Alejandro Andrade S.</h4>
-                        <p class="text-xs text-slate-500">Plataforma Docente Avanzada</p>
+                        <h4 class="font-outfit font-bold text-slate-800">Prof. Fannor Alejandro Andrade Soto</h4>
+                        <p class="text-xs text-slate-500">Plataforma Educativa Viva</p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl shrink-0">
-                        <i class="fas fa-hands-helping"></i>
+                        <i class="fas fa-leaf"></i>
                     </div>
                     <div>
                         <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Desarrollado Por</span>
@@ -407,62 +403,61 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
                     <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
                         <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center font-bold">
-                            <i class="fas fa-plus-circle text-lg"></i>
+                            <i class="fas fa-calendar-plus text-lg"></i>
                         </div>
                         <div>
-                            <h3 class="font-outfit font-bold text-lg text-slate-800">Programar Nueva Clase</h3>
-                            <p class="text-xs text-slate-500">Genera enlace para los estudiantes</p>
+                            <h3 class="font-outfit font-bold text-lg text-slate-800">Programar Clase Virtual</h3>
+                            <p class="text-xs text-slate-500">Crea agenda y enlace oficial</p>
                         </div>
                     </div>
 
                     <form id="scheduleForm" onsubmit="handleCreateSchedule(event)" class="space-y-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre del Tema / Asignatura</label>
-                            <input type="text" id="schedTitle" required placeholder="Ej: Matemáticas - Fraccionarios" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 focus:border-pombo-500 text-sm">
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Asignatura / Tema</label>
+                            <input type="text" id="schedTitle" required placeholder="Ej: Ciencias Naturales - El Ecosistema" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Grado / Grupo</label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Grado / Grupo</label>
                             <select id="schedGrade" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
-                                <option value="Grado 4°A - Rafael Pombo">Grado 4°A - Primaria</option>
-                                <option value="Grado 5°B - Rafael Pombo">Grado 5°B - Primaria</option>
-                                <option value="Grado 6°1 - Bachillerato">Grado 6°1 - Secundaria</option>
-                                <option value="Grado 7°2 - Bachillerato">Grado 7°2 - Secundaria</option>
+                                <option value="Grado 4°A - Escuela Rafael Pombo">Grado 4°A - Primaria</option>
+                                <option value="Grado 5°B - Escuela Rafael Pombo">Grado 5°B - Primaria</option>
+                                <option value="Grado 6°1 - Secundaria">Grado 6°1 - Secundaria</option>
                             </select>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Fecha</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label>
                                 <input type="date" id="schedDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Hora Inicio</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hora</label>
                                 <input type="time" id="schedTime" required class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm">
                             </div>
                         </div>
 
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Instrucciones para los Estudiantes</label>
-                            <textarea id="schedNotes" rows="2" placeholder="Tener el cuaderno listo y lapicero..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></textarea>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Instrucciones</label>
+                            <textarea id="schedNotes" rows="2" placeholder="Tener listo cuaderno y lápiz..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-pombo-500 text-sm"></textarea>
                         </div>
 
                         <button type="submit" class="w-full bg-pombo-600 hover:bg-pombo-700 text-white font-semibold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                            <i class="fas fa-calendar-check"></i> Programar y Crear Enlace
+                            <i class="fas fa-calendar-check"></i> Programar y Guardar Clase
                         </button>
                     </form>
                 </div>
 
-                <!-- Scheduled Classes List -->
+                <!-- Scheduled List -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
                     <div class="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                                <i class="fas fa-list-alt text-lg"></i>
+                                <i class="fas fa-list-ul text-lg"></i>
                             </div>
                             <div>
-                                <h3 class="font-outfit font-bold text-lg text-slate-800">Agenda de Clases Virtuales</h3>
-                                <p class="text-xs text-slate-500">Programación docente activa</p>
+                                <h3 class="font-outfit font-bold text-lg text-slate-800">Agenda Docente de Clases</h3>
+                                <p class="text-xs text-slate-500">Prof. Fannor Alejandro Andrade Soto</p>
                             </div>
                         </div>
                         <span class="bg-slate-100 text-slate-600 text-xs px-3 py-1 rounded-full font-bold" id="schedCount">0 Clases</span>
@@ -475,34 +470,31 @@
             </div>
         </div>
 
-        <!-- TAB 3: ATTENDANCE & STUDENT ROSTER -->
+        <!-- TAB 3: REAL ATTENDANCE ROSTER (NO MOCK DATA) -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
                 
-                <!-- Roster Controls Header -->
+                <!-- Controls Header -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
                     <div>
-                        <h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia de Estudiantes</h3>
-                        <p class="text-xs text-slate-500">Escuela Rafael Pombo • Prof. Fannor Alejandro Andrade Soto</p>
+                        <h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia Real</h3>
+                        <p class="text-xs text-slate-500">Se actualiza automáticamente con los estudiantes que ingresan a la sala virtual</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
-                        <button onclick="startInteractiveRollCall()" class="bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fas fa-clipboard-list"></i> Llamar Lista Interactivo
-                        </button>
                         <button onclick="exportAttendanceReport()" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs sm:text-sm font-semibold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fas fa-file-download"></i> Exportar Reporte (.txt)
+                            <i class="fas fa-file-download"></i> Exportar Asistencia (.txt)
                         </button>
-                        <button onclick="confirmResetAttendance()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5">
-                            <i class="fas fa-undo"></i> Reiniciar
+                        <button onclick="clearAttendanceRoster()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs sm:text-sm font-semibold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fas fa-trash"></i> Vaciar Lista
                         </button>
                     </div>
                 </div>
 
-                <!-- Summary Stats Widgets -->
+                <!-- Stats Summary -->
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                     <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                        <span class="text-xs font-bold text-slate-400 uppercase">Total Estudiantes</span>
+                        <span class="text-xs font-bold text-slate-400 uppercase">Ingresados</span>
                         <p class="text-2xl font-outfit font-extrabold text-slate-800" id="statTotal">0</p>
                     </div>
                     <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center">
@@ -514,95 +506,80 @@
                         <p class="text-2xl font-outfit font-extrabold text-red-600" id="statAbsent">0</p>
                     </div>
                     <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
-                        <span class="text-xs font-bold text-amber-600 uppercase">Pendientes</span>
-                        <p class="text-2xl font-outfit font-extrabold text-amber-600" id="statPending">0</p>
+                        <span class="text-xs font-bold text-amber-600 uppercase">Solicitando</span>
+                        <p class="text-2xl font-outfit font-extrabold text-amber-600" id="statWaiting">0</p>
                     </div>
                 </div>
 
-                <!-- Add Student Bar -->
+                <!-- Add Manual Student Bar -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6 flex flex-col sm:flex-row gap-3">
-                    <input type="text" id="newStudentName" placeholder="Escribe el nombre completo del estudiante..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
-                    <button onclick="addStudentFromInput()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 shrink-0">
-                        <i class="fas fa-user-plus"></i> Añadir Estudiante
+                    <input type="text" id="manualStudentInput" placeholder="Añadir manualmente un estudiante a la lista de hoy..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                    <button onclick="addManualStudent()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 shrink-0">
+                        <i class="fas fa-user-plus"></i> Registrar en Lista
                     </button>
                 </div>
 
-                <!-- Student Roster Table -->
+                <!-- Attendance Table -->
                 <div class="overflow-x-auto rounded-xl border border-slate-200">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-100 text-slate-600 uppercase text-xs font-bold">
                             <tr>
                                 <th class="py-3 px-4">Estudiante</th>
+                                <th class="py-3 px-4">Hora Ingreso</th>
                                 <th class="py-3 px-4">Estado Asistencia</th>
-                                <th class="py-3 px-4 text-center">Marcación Rápida</th>
-                                <th class="py-3 px-4 text-right">Acción</th>
+                                <th class="py-3 px-4 text-center">Acción Docente</th>
                             </tr>
                         </thead>
-                        <tbody id="studentTableBody" class="divide-y divide-slate-200 bg-white">
-                            <!-- Rendered by JS -->
+                        <tbody id="attendanceTableBody" class="divide-y divide-slate-200 bg-white">
+                            <!-- Populated with REAL joined students -->
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 4: MEDIA & VIDEO RESOURCES -->
+        <!-- TAB 4: EDUCATIONAL MEDIA & VIDEOS -->
         <div id="tab-media" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Video Player Hub -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col">
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center font-bold">
-                                <i class="fab fa-youtube text-xl"></i>
-                            </div>
-                            <div>
-                                <h3 class="font-outfit font-bold text-lg text-slate-800">Reproductor de Video Explicativo</h3>
-                                <p class="text-xs text-slate-500">Comparte videos de apoyo para la clase</p>
-                            </div>
+                    <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
+                        <i class="fab fa-youtube text-red-600 text-xl"></i> Transmitir Video de Apoyo a los Alumnos
+                    </h3>
+
+                    <div class="w-full aspect-video bg-slate-900 rounded-xl overflow-hidden mb-4 shadow-inner flex items-center justify-center relative">
+                        <iframe id="youtubePlayer" class="w-full h-full hidden" src="" title="Video Educativo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                        <div id="noVideoState" class="text-center p-6 text-slate-400">
+                            <i class="fas fa-play-circle text-5xl mb-3 text-slate-600"></i>
+                            <p class="text-sm font-medium">Pega el link de un video de YouTube para proyectarlo a la clase</p>
                         </div>
                     </div>
 
-                    <!-- Embedded Video Screen -->
-                    <div id="mediaPlayerContainer" class="w-full aspect-video bg-slate-900 rounded-xl overflow-hidden mb-4 shadow-inner flex items-center justify-center relative">
-                        <iframe id="youtubeIframe" class="w-full h-full hidden" src="" title="Video de la Clase" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        <div id="noVideoMsg" class="text-center p-6 text-slate-400">
-                            <i class="fas fa-film text-4xl mb-3 text-slate-600"></i>
-                            <p class="text-sm font-medium">Selecciona o ingresa un enlace de YouTube para transmitir a los estudiantes</p>
-                        </div>
-                    </div>
-
-                    <!-- Input YouTube Link -->
                     <div class="flex gap-2">
-                        <input type="text" id="ytUrlInput" placeholder="Pega el link de un video de YouTube (ej: https://www.youtube.com/watch?v=...)" class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                        <input type="text" id="ytUrlInput" placeholder="Pega el enlace de YouTube (ej: https://www.youtube.com/watch?v=...)" class="flex-grow px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
                         <button onclick="loadYouTubeVideo()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl shadow transition flex items-center gap-2 shrink-0">
                             <i class="fas fa-play"></i> Cargar Video
                         </button>
                     </div>
                 </div>
 
-                <!-- Educational Material List -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
-                    <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100 flex items-center gap-2">
-                        <i class="fas fa-folder-open text-pombo-500"></i> Videos Recomendados
-                    </h3>
+                    <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100">Videos Educativos Recomendados</h3>
                     <div class="space-y-3">
-                        <div onclick="playPresetVideo('https://www.youtube.com/embed/a3FC31R016g')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3 group">
-                            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center text-lg shrink-0 group-hover:bg-red-600 group-hover:text-white transition">
+                        <div onclick="playPresetVideo('https://www.youtube.com/embed/a3FC31R016g')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
                                 <i class="fas fa-play"></i>
                             </div>
-                            <div class="overflow-hidden">
-                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800 truncate">Las Fracciones y sus Partes</h4>
-                                <p class="text-[11px] text-slate-500">Explicación para Primaria</p>
+                            <div>
+                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800">Las Fracciones Explicadas</h4>
+                                <p class="text-[11px] text-slate-500">Matemáticas Primaria</p>
                             </div>
                         </div>
-                        <div onclick="playPresetVideo('https://www.youtube.com/embed/Pj1_3yE3c-0')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3 group">
-                            <div class="w-10 h-10 rounded-lg bg-red-500/10 text-red-600 flex items-center justify-center text-lg shrink-0 group-hover:bg-red-600 group-hover:text-white transition">
+                        <div onclick="playPresetVideo('https://www.youtube.com/embed/Pj1_3yE3c-0')" class="p-3 bg-slate-50 hover:bg-pombo-50 rounded-xl border border-slate-200 cursor-pointer transition flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
                                 <i class="fas fa-play"></i>
                             </div>
-                            <div class="overflow-hidden">
-                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800 truncate">El Sistema Solar y Planetas</h4>
+                            <div>
+                                <h4 class="font-semibold text-xs sm:text-sm text-slate-800">El Sistema Solar</h4>
                                 <p class="text-[11px] text-slate-500">Ciencias Naturales</p>
                             </div>
                         </div>
@@ -611,98 +588,54 @@
             </div>
         </div>
 
-        <!-- TAB 5: STUDENT PARTICIPATION & CHAT -->
+        <!-- TAB 5: CLASSROOM CHAT & HAND RAISED QUEUE -->
         <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
                 <!-- Chat Window -->
                 <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[520px]">
-                    <!-- Chat Header -->
                     <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></div>
-                            <h3 class="font-outfit font-bold text-slate-800">Chat en Vivo de la Clase</h3>
-                        </div>
-                        <span class="text-xs text-slate-500">Modo Moderado por el Docente</span>
+                        <h3 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-comments text-pombo-600"></i> Chat de la Clase Virtual
+                        </h3>
+                        <span class="text-xs text-slate-500">Sincronizado en Vivo</span>
                     </div>
 
-                    <!-- Chat Messages Area -->
                     <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50">
-                        <!-- Default Welcome -->
                         <div class="bg-pombo-50 text-pombo-800 p-3 rounded-xl text-xs border border-pombo-200 flex items-start gap-2">
                             <i class="fas fa-info-circle text-pombo-600 mt-0.5"></i>
                             <div>
-                                <strong>Prof. Fannor Alejandro Andrade Soto:</strong> ¡Bienvenidos a la clase virtual! Por favor mantengan sus micrófonos en silencio hasta que se abra la ronda de preguntas.
+                                <strong>Prof. Fannor Alejandro Andrade Soto:</strong> ¡Bienvenidos a la clase virtual de la Escuela Rafael Pombo!
                             </div>
                         </div>
                     </div>
 
-                    <!-- Chat Input -->
                     <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl flex gap-2">
-                        <input type="text" id="chatInput" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="Escribe un mensaje en el chat general..." class="flex-grow px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
+                        <input type="text" id="chatInput" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="Escribe un mensaje para los estudiantes..." class="flex-grow px-4 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500">
                         <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-5 py-2 rounded-xl font-semibold text-sm transition flex items-center gap-1">
                             <i class="fas fa-paper-plane"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- Hands Raised & Classroom Tools -->
-                <div class="space-y-6 lg:col-span-1">
-                    
-                    <!-- Hands Raised Queue -->
-                    <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
-                        <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
-                            <h4 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
-                                <i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas
-                            </h4>
-                            <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold" id="handCount">2</span>
-                        </div>
-
-                        <ul id="handQueue" class="space-y-2 max-h-40 overflow-y-auto">
-                            <li class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
-                                <span class="font-medium text-slate-800">1. Mateo Hernández</span>
-                                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2 py-1 rounded shadow-sm text-[11px] font-bold">Dar Palabra</button>
-                            </li>
-                            <li class="p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs">
-                                <span class="font-medium text-slate-800">2. Sofía Castro</span>
-                                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2 py-1 rounded shadow-sm text-[11px] font-bold">Dar Palabra</button>
-                            </li>
-                        </ul>
-                    </div>
-
-                    <!-- Quick Interactive Poll (Votación Rápida) -->
-                    <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200">
-                        <h4 class="font-outfit font-bold text-slate-800 mb-2 flex items-center gap-2">
-                            <i class="fas fa-poll text-pombo-600"></i> Pregunta Rápida a la Clase
+                <!-- Hands Raised Queue -->
+                <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                        <h4 class="font-outfit font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas
                         </h4>
-                        <p class="text-xs text-slate-500 mb-3">Envía una encuesta express a los alumnos</p>
-
-                        <button onclick="triggerQuickPoll()" class="w-full bg-pombo-50 hover:bg-pombo-100 text-pombo-700 font-semibold py-2.5 rounded-xl border border-pombo-200 text-xs transition flex items-center justify-center gap-2">
-                            <i class="fas fa-question-circle"></i> Enviar "Entendieron el Tema? (Sí/No)"
-                        </button>
+                        <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold" id="handCount">0</span>
                     </div>
+
+                    <ul id="handQueueList" class="space-y-2 max-h-80 overflow-y-auto">
+                        <li id="emptyHandsMsg" class="text-xs text-slate-400 text-center py-4">No hay manos levantadas</li>
+                    </ul>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="bg-slate-900 text-slate-400 border-t border-slate-800 py-6 mt-12 text-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-2">
-            <p class="text-slate-300 font-medium">
-                Plataforma Educativa Docente • <strong class="text-white">Escuela Rafael Pombo</strong> (Tuluá)
-            </p>
-            <p>
-                Diseñado para el docente <span class="text-pombo-400 font-semibold">Prof. Fannor Alejandro Andrade Soto</span>
-            </p>
-            <p class="text-slate-500">
-                Desarrollado integralmente por <strong class="text-emerald-400 font-semibold">Fundación Ecopienza Evolution</strong> • Versión 2.5 Pro 2026
-            </p>
-        </div>
-    </footer>
-
-    <!-- SHARE LINK MODAL -->
+    <!-- SHARE CLASSROOM LINK MODAL -->
     <div id="shareModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in">
             <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
@@ -710,7 +643,7 @@
                     <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center text-lg font-bold">
                         <i class="fas fa-share-alt"></i>
                     </div>
-                    <h3 class="font-outfit font-bold text-lg text-slate-800">Compartir Clase Virtual</h3>
+                    <h3 class="font-outfit font-bold text-lg text-slate-800">Generar Link de Clase</h3>
                 </div>
                 <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1">
                     <i class="fas fa-times text-lg"></i>
@@ -718,20 +651,18 @@
             </div>
 
             <p class="text-xs text-slate-600 mb-4">
-                Envía este enlace a los estudiantes de la <strong>Escuela Rafael Pombo</strong> para ingresar a la videollamada:
+                Envía este enlace a los estudiantes de la <strong>Escuela Rafael Pombo</strong> para solicitar ingreso a tu clase virtual:
             </p>
 
-            <!-- Generated Link Box -->
             <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 mb-4 flex items-center justify-between gap-2">
-                <input type="text" id="shareRoomUrl" readonly value="https://rafaelpombo-tulua.edu.co/clase-virtual/prof-fannor-andrade" class="bg-transparent text-xs text-slate-700 font-mono w-full focus:outline-none">
+                <input type="text" id="shareRoomUrl" readonly value="" class="bg-transparent text-xs text-slate-700 font-mono w-full focus:outline-none">
                 <button onclick="copyShareUrl()" class="bg-pombo-600 hover:bg-pombo-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition">
                     Copiar
                 </button>
             </div>
 
-            <!-- WhatsApp Share Action -->
             <button onclick="shareViaWhatsApp()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm mb-3">
-                <i class="fab fa-whatsapp text-lg"></i> Compartir por WhatsApp a Padres/Alumnos
+                <i class="fab fa-whatsapp text-lg"></i> Compartir por WhatsApp a Alumnos / Padres
             </button>
 
             <button onclick="closeShareModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
@@ -755,54 +686,33 @@
         </div>
     </div>
 
-    <!-- TOAST NOTIFICATION STACK -->
+    <!-- TOAST CONTAINER -->
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <script>
-        // ==========================================
-        // APP STATE MANAGEMENT & DATA
-        // ==========================================
-        let currentTab = 'live';
-        let mediaStream = null;
-        let screenStream = null;
+        // ====================================================
+        // GLOBAL APP STATE & REAL-TIME SIGNALING
+        // ====================================================
+        let currentRole = 'teacher'; // 'teacher' or 'student'
+        let roomCode = 'RAFAEL-POMBO-CLASS';
+        let broadcastChannel = null;
+
+        // Video & WebRTC Streams
+        let localMediaStream = null;
+        let screenShareStream = null;
         let isCameraActive = false;
         let isMicActive = true;
         let isScreenSharing = false;
         let isAnnotationActive = false;
 
-        // Waiting Room & Connected Students Realtime State
-        let waitingRoom = [];
-        let connectedStudents = [];
-        let roomCode = 'POMBO-LIVE-CLASS';
-        let userRole = 'teacher'; // 'teacher' or 'student'
-        let roomChannel = null;
-
         // Timer State
         let callSeconds = 0;
         let callTimerInterval = null;
 
-        // Student Data
-        let students = [
-            { id: 1, name: "María Alejandra González", status: "present" },
-            { id: 2, name: "Carlos Eduardo Pérez", status: "present" },
-            { id: 3, name: "Ana Lucía Rodríguez", status: "pending" },
-            { id: 4, name: "Luis Fernando Gómez", status: "absent" },
-            { id: 5, name: "Sofía Valentina Castro", status: "present" },
-            { id: 6, name: "Mateo Hernández Soto", status: "pending" }
-        ];
-
-        // Scheduled Classes Data
-        let schedules = [
-            {
-                id: 1,
-                title: "Matemáticas - Suma de Fracciones",
-                grade: "Grado 5°B - Rafael Pombo",
-                date: "2026-08-25",
-                time: "08:00",
-                notes: "Tener a mano el libro guía de matemáticas pág 45.",
-                code: "POMBO-MATH-5B"
-            }
-        ];
+        // Real Real-time Admitted & Pending Students
+        let realWaitingStudents = []; // { id, name, requestedAt }
+        let realAdmittedStudents = []; // { id, name, status: 'present', joinedAt }
+        let currentStudentId = null; // For student view
 
         // Canvas Drawing State
         let canvas, ctx;
@@ -812,141 +722,173 @@
         let currentLineWidth = 4;
         let isWhiteBackground = false;
 
+        // Schedules Storage
+        let schedules = [];
+
+        // PeerConnection dictionary for WebRTC stream sharing
+        let peerConnections = {};
+
         window.addEventListener('DOMContentLoaded', () => {
+            detectRoleAndRoom();
+            initRealtimeChannel();
             initCanvas();
-            renderStudentTable();
+            renderRealAttendanceTable();
             renderSchedules();
-            updateAttendanceStats();
-            initRoomSync();
         });
 
-        // Initialize Realtime Sync across windows/tabs
-        function initRoomSync() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomParam = urlParams.get('room');
-            const roleParam = urlParams.get('role');
+        // ====================================================
+        // ROLE DETECTION & REAL-TIME BROADCAST ENGINE
+        // ====================================================
+        function detectRoleAndRoom() {
+            const params = new URLSearchParams(window.location.search);
+            const roleParam = params.get('role');
+            const roomParam = params.get('room');
 
             if (roomParam) roomCode = roomParam;
 
-            // Setup BroadcastChannel for multi-tab / same-network communication
-            try {
-                roomChannel = new BroadcastChannel(`classroom_${roomCode}`);
-                roomChannel.onmessage = handleChannelMessage;
-            } catch (e) {
-                console.log('BroadcastChannel not supported fallbacking to localStorage sync');
+            if (roleParam === 'student') {
+                currentRole = 'student';
+                setupStudentUI();
+            } else {
+                currentRole = 'teacher';
+                setupTeacherUI();
             }
 
-            // Listen to LocalStorage cross-tab events fallback
+            // Set default URL in Share Modal
+            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
+            document.getElementById('shareRoomUrl').value = shareUrl;
+        }
+
+        function setupTeacherUI() {
+            document.getElementById('studentContainerView').classList.add('hidden');
+            document.getElementById('teacherNavTabs').classList.remove('hidden');
+            document.getElementById('teacherShareLinkBtn').classList.remove('hidden');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-live').classList.remove('hidden');
+        }
+
+        function setupStudentUI() {
+            document.getElementById('teacherNavTabs').classList.add('hidden');
+            document.getElementById('teacherShareLinkBtn').classList.add('hidden');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('studentContainerView').classList.remove('hidden');
+        }
+
+        function initRealtimeChannel() {
+            try {
+                broadcastChannel = new BroadcastChannel(`pombo_channel_${roomCode}`);
+                broadcastChannel.onmessage = handleSignalMessage;
+            } catch (e) {
+                console.log('BroadcastChannel fallback enabled');
+            }
+
+            // Fallback storage listener for cross-browser tabs
             window.addEventListener('storage', (e) => {
-                if (e.key === `room_event_${roomCode}` && e.newValue) {
+                if (e.key === `pombo_signal_${roomCode}` && e.newValue) {
                     try {
-                        const eventData = JSON.parse(e.newValue);
-                        handleChannelMessage({ data: eventData });
+                        const data = JSON.parse(e.newValue);
+                        handleSignalMessage({ data });
                     } catch(err) {}
                 }
             });
-
-            if (roleParam === 'student') {
-                userRole = 'student';
-                setupStudentModeUI();
-            } else {
-                updateConnectedCount();
-            }
         }
 
-        function broadcastRoomEvent(type, payload) {
+        function sendSignal(type, payload) {
             const data = { type, payload, timestamp: Date.now() };
-            if (roomChannel) {
-                roomChannel.postMessage(data);
-            }
-            // Sync via localStorage for high compatibility
-            localStorage.setItem(`room_event_${roomCode}`, JSON.stringify(data));
+            if (broadcastChannel) broadcastChannel.postMessage(data);
+            localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
         }
 
-        function handleChannelMessage(event) {
+        function handleSignalMessage(event) {
             const { type, payload } = event.data;
 
-            if (userRole === 'teacher') {
+            if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') {
-                    addStudentToWaitingRoom(payload.studentName, payload.studentId);
+                    handleIncomingStudentRequest(payload.studentId, payload.studentName);
                 } else if (type === 'STUDENT_RAISE_HAND') {
-                    showToast(`🖐️ ${payload.studentName} ha levantado la mano en la clase`, 'warning');
+                    addHandRaised(payload.studentId, payload.studentName);
+                } else if (type === 'STUDENT_CHAT') {
+                    appendChatMessage(payload.senderName, 'Estudiante', payload.text);
                 }
-            } else if (userRole === 'student') {
-                if (type === 'STUDENT_ADMITTED' && payload.studentId === window.currentStudentId) {
-                    document.getElementById('studentJoinView').classList.add('hidden');
-                    document.getElementById('teacherVideoStage').classList.remove('hidden');
-                    showToast('¡Has sido admitido a la clase por el Prof. Fannor Andrade!', 'success');
+            } else if (currentRole === 'student') {
+                if (type === 'TEACHER_ADMITTED' && payload.studentId === currentStudentId) {
+                    onStudentAdmittedByTeacher();
+                } else if (type === 'TEACHER_REJECTED' && payload.studentId === currentStudentId) {
+                    showToast('El profesor no ha permitido tu ingreso a esta clase', 'error');
+                    document.getElementById('studentWaitingAlert').classList.add('hidden');
+                } else if (type === 'CANVAS_DRAW') {
+                    mirrorCanvasDraw(payload.stroke);
+                } else if (type === 'CANVAS_CLEAR') {
+                    mirrorCanvasClear();
+                } else if (type === 'TEACHER_CHAT') {
+                    appendChatMessage(payload.senderName, 'Docente', payload.text);
                 }
             }
         }
 
-        function setupStudentModeUI() {
-            document.getElementById('teacherVideoStage').classList.add('hidden');
-            document.getElementById('waitingRoomCard').classList.add('hidden');
-            document.getElementById('studentJoinView').classList.remove('hidden');
-        }
-
-        function submitStudentJoinRequest() {
-            const nameInput = document.getElementById('studentJoinName');
+        // ====================================================
+        // STUDENT REQUEST & ADMISSION SYSTEM
+        // ====================================================
+        function requestEntryAsStudent() {
+            const nameInput = document.getElementById('studentInputName');
             const name = nameInput.value.trim();
             if (!name) {
-                showToast('Por favor ingresa tu nombre completo', 'warning');
+                showToast('Por favor escribe tu nombre completo', 'warning');
                 return;
             }
 
-            window.currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
-            document.getElementById('studentWaitStatus').classList.remove('hidden');
+            currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
+            document.getElementById('studentWaitingAlert').classList.remove('hidden');
 
-            // Send real-time request to teacher
-            broadcastRoomEvent('STUDENT_JOIN_REQUEST', {
-                studentName: name,
-                studentId: window.currentStudentId
+            sendSignal('STUDENT_JOIN_REQUEST', {
+                studentId: currentStudentId,
+                studentName: name
             });
 
-            showToast('Solicitud enviada al profesor Fannor Andrade', 'info');
+            showToast('Solicitud enviada a la pantalla del Prof. Fannor Andrade', 'info');
         }
 
-        // ==========================================
-        // WAITING ROOM & ADMISSION CONTROLS
-        // ==========================================
-        function addStudentToWaitingRoom(name, id) {
-            if (waitingRoom.some(s => s.id === id)) return;
+        function handleIncomingStudentRequest(id, name) {
+            if (realWaitingStudents.some(s => s.id === id) || realAdmittedStudents.some(s => s.id === id)) return;
 
-            waitingRoom.push({ id, name, timestamp: new Date() });
-            renderWaitingRoom();
-            showToast(`🔔 ${name} está solicitando ingresar a la clase`, 'warning');
+            const requestedAt = new Date().toLocaleTimeString();
+            realWaitingStudents.push({ id, name, requestedAt });
 
-            // Play audio notification chime
             playChimeSound();
+            renderWaitingRoomPanel();
+            updateAttendanceStats();
+            showToast(`🔔 Estudiante "${name}" solicita ingresar a la clase`, 'warning');
         }
 
-        function renderWaitingRoom() {
-            const card = document.getElementById('waitingRoomCard');
-            const list = document.getElementById('waitingStudentsList');
-            const count = document.getElementById('waitingCount');
+        function renderWaitingRoomPanel() {
+            const panel = document.getElementById('teacherWaitingRoomPanel');
+            const container = document.getElementById('waitingListContainer');
+            const countDisplay = document.getElementById('waitingCountDisplay');
 
-            count.textContent = waitingRoom.length;
+            countDisplay.textContent = realWaitingStudents.length;
 
-            if (waitingRoom.length === 0) {
-                card.classList.add('hidden');
+            if (realWaitingStudents.length === 0) {
+                panel.classList.add('hidden');
                 return;
             }
 
-            card.classList.remove('hidden');
-            list.innerHTML = waitingRoom.map(s => `
-                <div class="bg-white p-2.5 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
+            panel.classList.remove('hidden');
+            container.innerHTML = realWaitingStudents.map(s => `
+                <div class="bg-white p-3 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
                     <div class="flex items-center gap-2 overflow-hidden">
-                        <div class="w-7 h-7 rounded-full bg-amber-100 text-amber-700 font-bold flex items-center justify-center text-xs shrink-0">
+                        <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs shrink-0">
                             ${s.name.charAt(0)}
                         </div>
-                        <span class="text-xs font-semibold text-slate-800 truncate">${s.name}</span>
+                        <div class="overflow-hidden">
+                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.name}</h4>
+                            <span class="text-[10px] text-slate-400 font-mono">${s.requestedAt}</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg transition">
-                            Admitir
+                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                            <i class="fas fa-check"></i> Admitir
                         </button>
-                        <button onclick="rejectStudent('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold px-2 py-1 rounded-lg transition">
+                        <button onclick="rejectStudent('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-2 py-1.5 rounded-lg transition">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -955,189 +897,95 @@
         }
 
         function admitStudent(studentId) {
-            const student = waitingRoom.find(s => s.id === studentId);
+            const student = realWaitingStudents.find(s => s.id === studentId);
             if (!student) return;
 
-            waitingRoom = waitingRoom.filter(s => s.id !== studentId);
-            connectedStudents.push(student);
+            realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
+            const joinedAt = new Date().toLocaleTimeString();
+            realAdmittedStudents.push({ ...student, status: 'present', joinedAt });
 
-            // Add student automatically to Attendance List as Present
-            const existingInRoster = students.find(s => s.name.toLowerCase() === student.name.toLowerCase());
-            if (existingInRoster) {
-                existingInRoster.status = 'present';
-            } else {
-                students.push({ id: Date.now(), name: student.name, status: 'present' });
-            }
-
-            renderStudentTable();
-            renderWaitingRoom();
-            updateConnectedCount();
+            renderWaitingRoomPanel();
+            renderRealAttendanceTable();
             renderParticipantMiniatures();
+            updateAdmittedCount();
 
-            // Broadcast admittance to student tab
-            broadcastRoomEvent('STUDENT_ADMITTED', { studentId: student.id, studentName: student.name });
-            showToast(`${student.name} ha ingresado a la clase`, 'success');
+            // Notify student window
+            sendSignal('TEACHER_ADMITTED', { studentId: student.id });
+            showToast(`Acceso permitido a ${student.name}`, 'success');
         }
 
-        function admitAllStudents() {
-            const copy = [...waitingRoom];
+        function admitAllWaitingStudents() {
+            const copy = [...realWaitingStudents];
             copy.forEach(s => admitStudent(s.id));
         }
 
         function rejectStudent(studentId) {
-            waitingRoom = waitingRoom.filter(s => s.id !== studentId);
-            renderWaitingRoom();
+            realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
+            renderWaitingRoomPanel();
+            updateAttendanceStats();
+            sendSignal('TEACHER_REJECTED', { studentId });
             showToast('Solicitud rechazada', 'info');
         }
 
-        function simulateIncomingStudent() {
-            const sampleNames = ["Juan Diego Restrepo", "Camila Andrea Torres", "Santiago López", "Valentina Morales", "Esteban Ramírez"];
-            const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)] + " (Prueba)";
-            const fakeId = 'sim_' + Date.now();
-
-            addStudentToWaitingRoom(randomName, fakeId);
+        function onStudentAdmittedByTeacher() {
+            document.getElementById('studentFormBox').classList.add('hidden');
+            document.getElementById('studentClassroomBox').classList.remove('hidden');
+            const name = document.getElementById('studentInputName').value;
+            document.getElementById('studentWelcomeBadge').textContent = `Bienvenido: ${name}`;
+            showToast('¡Has sido admitido por el Prof. Fannor Andrade!', 'success');
         }
 
-        function updateConnectedCount() {
-            const totalInClass = connectedStudents.length + 1; // +1 for Teacher
-            const elem = document.getElementById('liveOnlineCount');
-            if (elem) elem.textContent = `${totalInClass} (${totalInClass === 1 ? 'Docente' : 'Docente + Alumnos'})`;
+        function updateAdmittedCount() {
+            const totalInRoom = realAdmittedStudents.length + 1; // +1 teacher
+            document.getElementById('liveAdmittedCount').textContent = `${totalInRoom} (${totalInRoom === 1 ? 'Docente' : 'Docente + Alumnos'})`;
         }
 
         function renderParticipantMiniatures() {
-            const container = document.getElementById('participantMiniatures');
+            const container = document.getElementById('realStudentMiniatures');
             if (!container) return;
 
-            container.innerHTML = connectedStudents.map(s => `
-                <div class="w-32 h-20 bg-slate-800 rounded-lg border border-slate-700 relative overflow-hidden shadow-md flex flex-col items-center justify-center p-1">
-                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs mb-1">
+            container.innerHTML = realAdmittedStudents.map(s => `
+                <div class="w-32 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2">
+                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
                         ${s.name.charAt(0)}
                     </div>
-                    <span class="text-[11px] text-slate-200 font-medium truncate w-full text-center">${s.name}</span>
-                    <div class="absolute bottom-1 left-1 bg-black/60 px-1.5 py-0.5 rounded text-[9px] text-emerald-400">
-                        <i class="fas fa-microphone"></i>
+                    <div class="overflow-hidden">
+                        <span class="text-xs text-slate-200 font-semibold truncate block">${s.name}</span>
+                        <span class="text-[9px] text-emerald-400 font-medium"><i class="fas fa-check-circle"></i> En clase</span>
                     </div>
                 </div>
             `).join('');
         }
 
-        function playChimeSound() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15); // A5
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            } catch (e) {}
-        }
-
-        // Navigation Tabs
-        function switchTab(tabId) {
-            currentTab = tabId;
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
-                btn.classList.add('text-slate-400');
-            });
-
-            const activeContent = document.getElementById(`tab-${tabId}`);
-            if (activeContent) activeContent.classList.remove('hidden');
-
-            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-            if (activeBtn) {
-                activeBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
-                activeBtn.classList.remove('text-slate-400');
-            }
-
-            if (tabId === 'live') {
-                setTimeout(resizeCanvas, 100);
-            }
-        }
-
-        // Custom Toast Dialog
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${
-                type === 'success' ? 'bg-emerald-600' :
-                type === 'error' ? 'bg-red-600' :
-                type === 'warning' ? 'bg-amber-600' : 'bg-pombo-600'
-            }`;
-
-            const icon = type === 'success' ? 'fa-check-circle' :
-                         type === 'error' ? 'fa-exclamation-circle' :
-                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
-
-            toast.innerHTML = `<i class="fas ${icon} text-sm"></i> <span>${message}</span>`;
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        }
-
-        // Custom Modal Confirmation Replacement
-        function showConfirm(title, message, onConfirm) {
-            const modal = document.getElementById('confirmModal');
-            document.getElementById('confirmModalTitle').textContent = title;
-            document.getElementById('confirmModalMsg').textContent = message;
-
-            const okBtn = document.getElementById('confirmOkBtn');
-            const cancelBtn = document.getElementById('confirmCancelBtn');
-
-            const cleanUp = () => {
-                modal.classList.add('hidden');
-                okBtn.onclick = null;
-                cancelBtn.onclick = null;
-            };
-
-            okBtn.onclick = () => {
-                cleanUp();
-                onConfirm();
-            };
-            cancelBtn.onclick = cleanUp;
-
-            modal.classList.remove('hidden');
-        }
-
-        // ==========================================
-        // VIDEO CALL & WEBRTC CONTROLS
-        // ==========================================
+        // ====================================================
+        // VIDEO CALL & WEBRTC ENGINE
+        // ====================================================
         async function toggleCameraStream() {
-            const videoElement = document.getElementById('webcamVideo');
-            const placeholder = document.getElementById('videoPlaceholder');
+            const videoElem = document.getElementById('webcamVideo');
+            const placeholder = document.getElementById('videoOffPlaceholder');
             const btnCam = document.getElementById('btnToggleCam');
 
             if (!isCameraActive) {
                 try {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isMicActive });
-                    videoElement.srcObject = mediaStream;
-                    videoElement.classList.remove('hidden');
+                    localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isMicActive });
+                    videoElem.srcObject = localMediaStream;
+                    videoElem.classList.remove('hidden');
                     placeholder.classList.add('hidden');
-                    
+
                     btnCam.classList.remove('bg-slate-800');
                     btnCam.classList.add('bg-emerald-600');
                     btnCam.innerHTML = `<i class="fas fa-video text-white"></i>`;
-                    
+
                     isCameraActive = true;
                     startCallTimer();
                     showToast('Cámara iniciada correctamente', 'success');
                 } catch (err) {
-                    console.error('Error accediendo a la cámara:', err);
-                    showToast('No se pudo acceder a la cámara. Verifica los permisos.', 'error');
+                    console.error('Error cámara:', err);
+                    showToast('No se pudo acceder a la cámara. Revisa permisos.', 'error');
                 }
             } else {
-                if (mediaStream) {
-                    mediaStream.getVideoTracks().forEach(track => track.stop());
-                }
-                videoElement.classList.add('hidden');
+                if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
+                videoElem.classList.add('hidden');
                 if (!isScreenSharing) placeholder.classList.remove('hidden');
 
                 btnCam.classList.remove('bg-emerald-600');
@@ -1153,8 +1001,8 @@
             const btnMic = document.getElementById('btnToggleMic');
             isMicActive = !isMicActive;
 
-            if (mediaStream) {
-                mediaStream.getAudioTracks().forEach(track => track.enabled = isMicActive);
+            if (localMediaStream) {
+                localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
             }
 
             if (isMicActive) {
@@ -1168,30 +1016,28 @@
 
         async function toggleScreenShare() {
             const screenVideo = document.getElementById('screenShareVideo');
-            const placeholder = document.getElementById('videoPlaceholder');
+            const placeholder = document.getElementById('videoOffPlaceholder');
             const webcamVideo = document.getElementById('webcamVideo');
 
             if (!isScreenSharing) {
                 try {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    screenVideo.srcObject = screenStream;
+                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    screenVideo.srcObject = screenShareStream;
                     screenVideo.classList.remove('hidden');
                     webcamVideo.classList.add('hidden');
                     placeholder.classList.add('hidden');
 
-                    document.getElementById('participantMiniatures').classList.remove('hidden');
                     isScreenSharing = true;
-                    
-                    // Enable whiteboard annotation mode automatically
+
+                    // Enable annotation toolbar automatically for teaching over screen
                     if (!isAnnotationActive) toggleAnnotationBoard();
 
                     showToast('Compartiendo pantalla con los estudiantes', 'success');
 
-                    screenStream.getVideoTracks()[0].onended = () => {
+                    screenShareStream.getVideoTracks()[0].onended = () => {
                         stopScreenShare();
                     };
                 } catch (err) {
-                    console.error('Error compartiendo pantalla:', err);
                     showToast('Se canceló el compartido de pantalla', 'info');
                 }
             } else {
@@ -1201,12 +1047,12 @@
 
         function stopScreenShare() {
             const screenVideo = document.getElementById('screenShareVideo');
-            const placeholder = document.getElementById('videoPlaceholder');
+            const placeholder = document.getElementById('videoOffPlaceholder');
             const webcamVideo = document.getElementById('webcamVideo');
 
-            if (screenStream) {
-                screenStream.getTracks().forEach(track => track.stop());
-                screenStream = null;
+            if (screenShareStream) {
+                screenShareStream.getTracks().forEach(t => t.stop());
+                screenShareStream = null;
             }
 
             screenVideo.classList.add('hidden');
@@ -1221,27 +1067,24 @@
         }
 
         function stopAllStreams() {
-            showConfirm('¿Finalizar Clase Virtual?', 'Se cerrará la transmisión para todos los estudiantes.', () => {
-                if (mediaStream) mediaStream.getTracks().forEach(t => t.stop());
-                if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+            showConfirm('¿Finalizar Clase Virtual?', 'Se cerrará la videollamada para todos los estudiantes.', () => {
+                if (localMediaStream) localMediaStream.getTracks().forEach(t => t.stop());
+                if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
 
                 document.getElementById('webcamVideo').classList.add('hidden');
                 document.getElementById('screenShareVideo').classList.add('hidden');
-                document.getElementById('videoPlaceholder').classList.remove('hidden');
+                document.getElementById('videoOffPlaceholder').classList.remove('hidden');
 
                 isCameraActive = false;
                 isScreenSharing = false;
                 stopCallTimer();
 
-                showToast('La clase virtual ha finalizado', 'info');
+                showToast('La clase ha finalizado', 'info');
             });
         }
 
         function startCallTimer() {
             if (callTimerInterval) return;
-            document.getElementById('topCallBadge').classList.remove('hidden');
-            document.getElementById('topCallBadge').classList.add('flex');
-
             callTimerInterval = setInterval(() => {
                 callSeconds++;
                 const hrs = String(Math.floor(callSeconds / 3600)).padStart(2, '0');
@@ -1261,14 +1104,14 @@
             }
             callSeconds = 0;
             document.getElementById('callDuration').textContent = '00:00:00';
-            document.getElementById('topCallBadge').classList.add('hidden');
         }
 
-        // ==========================================
-        // ANNOTATION & WHITEBOARD DRAWING ENGINE
-        // ==========================================
+        // ====================================================
+        // ANNOTATION & RAYADO DIGITAL CANVAS ENGINE
+        // ====================================================
         function initCanvas() {
             canvas = document.getElementById('annotationCanvas');
+            if (!canvas) return;
             ctx = canvas.getContext('2d');
             resizeCanvas();
 
@@ -1303,8 +1146,8 @@
                 canvas.classList.remove('hidden');
                 canvas.classList.add('canvas-active');
                 drawingToolbar.classList.remove('hidden');
-                boardBtnText.textContent = 'Ocultar Tablero / Rayado';
-                showToast('Herramientas de rayado sobre pantalla activadas', 'success');
+                boardBtnText.textContent = 'Ocultar Tablero';
+                showToast('Herramientas de rayado digital activadas sobre pantalla', 'success');
             } else {
                 canvas.classList.add('hidden');
                 canvas.classList.remove('canvas-active');
@@ -1339,25 +1182,19 @@
         function clearCanvas() {
             if (ctx) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                showToast('Lienzo de dibujo limpiado', 'info');
+                sendSignal('CANVAS_CLEAR', {});
+                showToast('Lienzo limpiado', 'info');
             }
         }
 
         function toggleCanvasGrid() {
             isWhiteBackground = !isWhiteBackground;
-            if (isWhiteBackground) {
-                canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
-            } else {
-                canvas.style.backgroundColor = 'transparent';
-            }
+            canvas.style.backgroundColor = isWhiteBackground ? 'rgba(255, 255, 255, 0.95)' : 'transparent';
         }
 
         function getCanvasCoords(e) {
             const rect = canvas.getBoundingClientRect();
-            return {
-                x: e.clientX - rect.left,
-                y: e.clientY - rect.top
-            };
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         }
 
         function startDrawing(e) {
@@ -1366,6 +1203,8 @@
             const coords = getCanvasCoords(e);
             ctx.beginPath();
             ctx.moveTo(coords.x, coords.y);
+
+            sendSignal('CANVAS_DRAW', { type: 'start', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth });
         }
 
         function draw(e) {
@@ -1399,7 +1238,8 @@
             ctx.lineTo(coords.x, coords.y);
             ctx.stroke();
 
-            // Reset composite operation & alpha
+            sendSignal('CANVAS_DRAW', { type: 'draw', x: coords.x / canvas.width, y: coords.y / canvas.height });
+
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
         }
@@ -1422,156 +1262,131 @@
             }
         }
 
-        // ==========================================
-        // STUDENT ROSTER & ATTENDANCE LOGIC
-        // ==========================================
-        function renderStudentTable() {
-            const tbody = document.getElementById('studentTableBody');
-            tbody.innerHTML = students.map(s => {
-                const statusBadge = s.status === 'present' ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Presente</span>' :
-                                    s.status === 'absent' ? '<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">Ausente</span>' :
-                                    '<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">Pendiente</span>';
+        // ====================================================
+        // REAL ATTENDANCE ROSTER & REPORT EXPORT
+        // ====================================================
+        function renderRealAttendanceTable() {
+            const tbody = document.getElementById('attendanceTableBody');
+            if (!tbody) return;
 
-                return `
+            if (realAdmittedStudents.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-8 text-slate-400 text-xs">
+                            <i class="fas fa-clipboard-user text-3xl mb-2 text-slate-300 block"></i>
+                            No hay estudiantes ingresados en tiempo real aún. Los estudiantes aparecerán aquí tan pronto aceptes su ingreso desde el link.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = realAdmittedStudents.map(s => `
                     <tr class="hover:bg-slate-50 transition">
-                        <td class="py-3.5 px-4 font-medium text-slate-800 flex items-center gap-2.5">
-                            <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-600 font-bold flex items-center justify-center text-xs">
+                        <td class="py-3.5 px-4 font-semibold text-slate-800 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-pombo-100 text-pombo-700 font-bold flex items-center justify-center text-xs">
                                 ${s.name.charAt(0)}
                             </div>
                             <span>${s.name}</span>
                         </td>
-                        <td class="py-3.5 px-4">${statusBadge}</td>
-                        <td class="py-3.5 px-4 text-center">
-                            <div class="inline-flex gap-1">
-                                <button onclick="setStudentStatus(${s.id}, 'present')" class="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition" title="Marcar Presente">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button onclick="setStudentStatus(${s.id}, 'absent')" class="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition" title="Marcar Ausente">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                        <td class="py-3.5 px-4 text-xs font-mono text-slate-500">${s.joinedAt}</td>
+                        <td class="py-3.5 px-4">
+                            ${s.status === 'present' ? '<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">PRESENTE</span>' : '<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold">AUSENTE</span>'}
                         </td>
-                        <td class="py-3.5 px-4 text-right">
-                            <button onclick="deleteStudent(${s.id})" class="text-slate-400 hover:text-red-600 p-1 transition" title="Eliminar de lista">
-                                <i class="fas fa-trash-alt"></i>
+                        <td class="py-3.5 px-4 text-center">
+                            <button onclick="toggleStudentAttendanceStatus('${s.id}')" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition">
+                                Cambiar Estado
                             </button>
                         </td>
                     </tr>
-                `;
-            }).join('');
+                `).join('');
+            }
 
             updateAttendanceStats();
         }
 
-        function setStudentStatus(id, status) {
-            const student = students.find(s => s.id === id);
-            if (student) {
-                student.status = status;
-                renderStudentTable();
+        function toggleStudentAttendanceStatus(studentId) {
+            const s = realAdmittedStudents.find(item => item.id === studentId);
+            if (s) {
+                s.status = s.status === 'present' ? 'absent' : 'present';
+                renderRealAttendanceTable();
             }
         }
 
-        function addStudentFromInput() {
-            const input = document.getElementById('newStudentName');
+        function addManualStudent() {
+            const input = document.getElementById('manualStudentInput');
             const name = input.value.trim();
             if (!name) {
-                showToast('Ingresa el nombre del estudiante', 'warning');
+                showToast('Escribe el nombre del estudiante', 'warning');
                 return;
             }
 
-            const newId = students.length ? Math.max(...students.map(s => s.id)) + 1 : 1;
-            students.push({ id: newId, name, status: 'pending' });
+            const newStudent = {
+                id: 'man_' + Date.now(),
+                name,
+                status: 'present',
+                joinedAt: new Date().toLocaleTimeString()
+            };
+
+            realAdmittedStudents.push(newStudent);
             input.value = '';
-            renderStudentTable();
-            showToast(`Estudiante "${name}" agregado`, 'success');
+            renderRealAttendanceTable();
+            renderParticipantMiniatures();
+            showToast(`Estudiante "${name}" añadido a la lista`, 'success');
         }
 
-        function deleteStudent(id) {
-            showConfirm('¿Eliminar Estudiante?', 'Se quitará del registro de asistencia.', () => {
-                students = students.filter(s => s.id !== id);
-                renderStudentTable();
-                showToast('Estudiante eliminado', 'info');
+        function clearAttendanceRoster() {
+            showConfirm('¿Vaciar Lista de Asistencia?', 'Se quitarán los registros actuales de asistencia.', () => {
+                realAdmittedStudents = [];
+                renderRealAttendanceTable();
+                renderParticipantMiniatures();
+                showToast('Lista de asistencia vaciada', 'info');
             });
         }
 
         function updateAttendanceStats() {
-            const total = students.length;
-            const present = students.filter(s => s.status === 'present').length;
-            const absent = students.filter(s => s.status === 'absent').length;
-            const pending = students.filter(s => s.status === 'pending').length;
+            const total = realAdmittedStudents.length;
+            const present = realAdmittedStudents.filter(s => s.status === 'present').length;
+            const absent = realAdmittedStudents.filter(s => s.status === 'absent').length;
+            const waiting = realWaitingStudents.length;
 
             document.getElementById('statTotal').textContent = total;
             document.getElementById('statPresent').textContent = present;
             document.getElementById('statAbsent').textContent = absent;
-            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statWaiting').textContent = waiting;
 
             document.getElementById('tabBadgeCount').textContent = `${present}/${total}`;
         }
 
-        function startInteractiveRollCall() {
-            if (students.length === 0) {
-                showToast('No hay estudiantes en la lista', 'warning');
-                return;
-            }
-            let index = 0;
-
-            const callNext = () => {
-                if (index >= students.length) {
-                    showToast('Llamado a lista completado', 'success');
-                    return;
-                }
-                const st = students[index];
-                showConfirm(`¿Está presente ${st.name}?`, 'Haz clic en Confirmar para PRESENTE o Cancelar para AUSENTE', () => {
-                    st.status = 'present';
-                    renderStudentTable();
-                    index++;
-                    callNext();
-                });
-            };
-
-            callNext();
-        }
-
-        function confirmResetAttendance() {
-            showConfirm('¿Reiniciar Asistencia?', 'Todos los estudiantes volverán a estado Pendiente.', () => {
-                students.forEach(s => s.status = 'pending');
-                renderStudentTable();
-                showToast('Asistencia reiniciada', 'info');
-            });
-        }
-
         function exportAttendanceReport() {
-            if (students.length === 0) {
-                showToast('No hay datos para exportar', 'warning');
+            if (realAdmittedStudents.length === 0) {
+                showToast('No hay registros de estudiantes para exportar', 'warning');
                 return;
             }
 
-            let text = `=====================================\n`;
-            text += `REPORTE DE ASISTENCIA - ESCUELA RAFAEL POMBO (TULUÁ)\n`;
+            let text = `====================================================\n`;
+            text += `REPORTE DE ASISTENCIA EN VIVO - ESCUELA RAFAEL POMBO (TULUÁ)\n`;
             text += `Docente: Prof. Fannor Alejandro Andrade Soto\n`;
             text += `Fecha: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\n`;
             text += `Desarrollado por: Fundación Ecopienza Evolution\n`;
-            text += `=====================================\n\n`;
+            text += `====================================================\n\n`;
 
-            students.forEach((s, idx) => {
-                const st = s.status === 'present' ? 'PRESENTE' : s.status === 'absent' ? 'AUSENTE' : 'PENDIENTE';
-                text += `${idx + 1}. ${s.name} ---> ${st}\n`;
+            realAdmittedStudents.forEach((s, idx) => {
+                text += `${idx + 1}. ${s.name} | Ingreso: ${s.joinedAt} | Estado: ${s.status.toUpperCase()}\n`;
             });
 
             const blob = new Blob([text], { type: 'text/plain;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Asistencia_RafaelPombo_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.download = `Asistencia_Escuela_RafaelPombo_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
             URL.revokeObjectURL(url);
 
-            showToast('Reporte descargado correctamente', 'success');
+            showToast('Reporte de asistencia descargado', 'success');
         }
 
-        // ==========================================
-        // CLASS SCHEDULER & LINK GENERATION
-        // ==========================================
+        // ====================================================
+        // SCHEDULER & LINK GENERATION
+        // ====================================================
         function renderSchedules() {
             const container = document.getElementById('scheduleList');
             document.getElementById('schedCount').textContent = `${schedules.length} Clases`;
@@ -1582,22 +1397,19 @@
             }
 
             container.innerHTML = schedules.map(s => `
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 hover:border-pombo-300 transition flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <div>
                         <div class="flex items-center gap-2 mb-1">
                             <span class="bg-pombo-100 text-pombo-700 font-bold text-[11px] px-2.5 py-0.5 rounded-full">${s.grade}</span>
                             <span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span>
                         </div>
                         <h4 class="font-outfit font-bold text-slate-800 text-base">${s.title}</h4>
-                        <p class="text-xs text-slate-500 mt-1">${s.notes || 'Sin instrucciones adicionales'}</p>
+                        <p class="text-xs text-slate-500 mt-1">${s.notes || 'Sin instrucciones'}</p>
                     </div>
 
                     <div class="flex items-center gap-2 shrink-0">
                         <button onclick="openShareModal('${s.code}')" class="bg-pombo-600 hover:bg-pombo-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
                             <i class="fas fa-share-alt"></i> Enviar Link
-                        </button>
-                        <button onclick="deleteSchedule(${s.id})" class="text-slate-400 hover:text-red-600 p-2 transition">
-                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 </div>
@@ -1613,28 +1425,19 @@
             const notes = document.getElementById('schedNotes').value.trim();
 
             const code = `POMBO-${Math.floor(1000 + Math.random() * 9000)}`;
-            const newSched = { id: Date.now(), title, grade, date, time, notes, code };
+            schedules.unshift({ id: Date.now(), title, grade, date, time, notes, code });
 
-            schedules.unshift(newSched);
             renderSchedules();
             document.getElementById('scheduleForm').reset();
-            showToast('Clase programada y enlace generado', 'success');
+            showToast('Clase programada guardada correctamente', 'success');
         }
 
-        function deleteSchedule(id) {
-            showConfirm('¿Eliminar Clase Programada?', 'Se borrará de la agenda.', () => {
-                schedules = schedules.filter(s => s.id !== id);
-                renderSchedules();
-                showToast('Clase eliminada', 'info');
-            });
-        }
-
-        // ==========================================
-        // SHARING & MEDIA HUB LOGIC
-        // ==========================================
-        function openShareModal(code = 'CLASE-ENVIVO') {
-            const baseUrl = window.location.origin + window.location.pathname;
-            document.getElementById('shareRoomUrl').value = `${baseUrl}?room=${code}&role=student`;
+        // ====================================================
+        // SHARING MODAL & WHATSAPP
+        // ====================================================
+        function openShareModal() {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
+            document.getElementById('shareRoomUrl').value = shareUrl;
             document.getElementById('shareModal').classList.remove('hidden');
         }
 
@@ -1643,78 +1446,186 @@
         }
 
         function copyShareUrl() {
-            const copyText = document.getElementById('shareRoomUrl');
-            copyText.select();
+            const input = document.getElementById('shareRoomUrl');
+            input.select();
             document.execCommand('copy');
-            showToast('Enlace copiado al portapapeles', 'success');
+            showToast('Link de clase copiado al portapapeles', 'success');
         }
 
         function shareViaWhatsApp() {
             const url = document.getElementById('shareRoomUrl').value;
-            const text = `*Escuela Rafael Pombo (Tuluá)*\n*Docente:* Prof. Fannor Alejandro Andrade Soto\n\nEstimados estudiantes, los invito a unirse a la clase virtual ingresando aquí:\n${url}`;
+            const text = `*Escuela Rafael Pombo (Tuluá)*\n*Docente:* Prof. Fannor Alejandro Andrade Soto\n\nEstimados estudiantes, ingresen al enlace para unirse a la clase virtual:\n${url}`;
             window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
         }
 
+        // ====================================================
+        // EDUCATIONAL MEDIA PLAYER
+        // ====================================================
         function loadYouTubeVideo() {
             const input = document.getElementById('ytUrlInput').value.trim();
             if (!input) return;
 
             let videoId = '';
-            if (input.includes('v=')) {
-                videoId = input.split('v=')[1].split('&')[0];
-            } else if (input.includes('youtu.be/')) {
-                videoId = input.split('youtu.be/')[1];
-            }
+            if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
+            else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
 
-            if (videoId) {
-                playPresetVideo(`https://www.youtube.com/embed/${videoId}`);
-            } else {
-                showToast('URL de YouTube no válida', 'error');
-            }
+            if (videoId) playPresetVideo(`https://www.youtube.com/embed/${videoId}`);
+            else showToast('URL de YouTube inválida', 'error');
         }
 
         function playPresetVideo(embedUrl) {
-            const iframe = document.getElementById('youtubeIframe');
-            const placeholder = document.getElementById('noVideoMsg');
-
+            const iframe = document.getElementById('youtubePlayer');
+            const placeholder = document.getElementById('noVideoState');
             iframe.src = embedUrl;
             iframe.classList.remove('hidden');
             placeholder.classList.add('hidden');
-            showToast('Video cargado para la clase', 'success');
+            showToast('Video proyectado', 'success');
         }
 
-        // ==========================================
-        // CLASSROOM CHAT & INTERACTION LOGIC
-        // ==========================================
+        // ====================================================
+        // CHAT & HAND RAISED QUEUE
+        // ====================================================
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if (!msg) return;
 
-            const chatMessages = document.getElementById('chatMessages');
-            const bubble = document.createElement('div');
-            bubble.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2 animate-fade-in';
-            bubble.innerHTML = `
-                <div class="w-6 h-6 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-[10px] shrink-0">F</div>
+            appendChatMessage('Prof. Fannor Andrade', 'Docente', msg);
+            sendSignal('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
+            input.value = '';
+        }
+
+        function appendChatMessage(name, role, text) {
+            const chatBox = document.getElementById('chatMessages');
+            if (!chatBox) return;
+
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
+            div.innerHTML = `
+                <div class="w-6 h-6 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">
+                    ${name.charAt(0)}
+                </div>
                 <div>
-                    <strong class="text-slate-800">Prof. Fannor Andrade:</strong> <span class="text-slate-600">${msg}</span>
+                    <strong class="text-slate-800">${name} (${role}):</strong> <span class="text-slate-600">${text}</span>
                 </div>
             `;
 
-            chatMessages.appendChild(bubble);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            input.value = '';
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function studentRaiseHand() {
+            const name = document.getElementById('studentInputName').value;
+            sendSignal('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
+            showToast('Has levantado la mano. El profesor ha sido notificado.', 'info');
+        }
+
+        function addHandRaised(id, name) {
+            const list = document.getElementById('handQueueList');
+            const emptyMsg = document.getElementById('emptyHandsMsg');
+            if (emptyMsg) emptyMsg.remove();
+
+            const countElem = document.getElementById('handCount');
+            countElem.textContent = parseInt(countElem.textContent) + 1;
+
+            const li = document.createElement('li');
+            li.className = 'p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs animate-fade-in';
+            li.innerHTML = `
+                <span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${name}</span>
+                <button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Dar Palabra</button>
+            `;
+            list.appendChild(li);
         }
 
         function lowerHand(btn) {
             btn.closest('li').remove();
             const countElem = document.getElementById('handCount');
             countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
-            showToast('Palabra concedida al estudiante', 'info');
         }
 
-        function triggerQuickPoll() {
-            showToast('Encuesta rápida enviada a las pantallas de los alumnos', 'success');
+        function studentLeaveClass() {
+            document.getElementById('studentClassroomBox').classList.add('hidden');
+            document.getElementById('studentFormBox').classList.remove('hidden');
+            document.getElementById('studentWaitingAlert').classList.add('hidden');
+            showToast('Has salido de la clase', 'info');
+        }
+
+        // UI HELPERS (TABS, TOASTS, CONFIRM, SOUND)
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
+                btn.classList.add('text-slate-400');
+            });
+
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            if (tabId === 'live') setTimeout(resizeCanvas, 100);
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl shadow-xl text-white text-xs font-semibold flex items-center gap-2.5 animate-fade-in transition ${
+                type === 'success' ? 'bg-emerald-600' :
+                type === 'error' ? 'bg-red-600' :
+                type === 'warning' ? 'bg-amber-600' : 'bg-pombo-600'
+            }`;
+
+            const icon = type === 'success' ? 'fa-check-circle' :
+                         type === 'error' ? 'fa-exclamation-circle' :
+                         type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+
+            toast.innerHTML = `<i class="fas ${icon} text-sm"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function showConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMsg').textContent = message;
+
+            const okBtn = document.getElementById('confirmOkBtn');
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+
+            const cleanUp = () => {
+                modal.classList.add('hidden');
+                okBtn.onclick = null;
+                cancelBtn.onclick = null;
+            };
+
+            okBtn.onclick = () => { cleanUp(); onConfirm(); };
+            cancelBtn.onclick = cleanUp;
+
+            modal.classList.remove('hidden');
+        }
+
+        function playChimeSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {}
         }
     </script>
 </body>
