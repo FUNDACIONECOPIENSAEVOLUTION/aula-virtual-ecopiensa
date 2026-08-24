@@ -94,6 +94,12 @@
 
                 <!-- Call Status Badge & Quick Actions -->
                 <div class="flex items-center space-x-3">
+                    <!-- Nav Waiting Room Alert Badge -->
+                    <button onclick="switchTab('live')" id="navWaitingBadge" class="hidden bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-full animate-pulse shadow-lg flex items-center gap-1.5 transition">
+                        <i class="fas fa-user-clock text-slate-900"></i>
+                        <span id="navWaitingText">1 Solicitud Pendiente</span>
+                    </button>
+
                     <div id="topCallBadge" class="hidden md:flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-semibold">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         <span id="topCallTimer">00:00:00</span>
@@ -635,6 +641,30 @@
 
     </main>
 
+    <!-- FLOATING GLOBAL ADMISSION REQUEST BANNER FOR TEACHER -->
+    <div id="teacherGlobalRequestBanner" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xl rounded-2xl p-4 border-2 border-amber-200 max-w-lg w-full transition-all animate-fade-in">
+        <div class="flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white text-amber-600 flex items-center justify-center font-bold text-xl shrink-0 shadow">
+                    <i class="fas fa-user-clock animate-bounce"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold uppercase tracking-wider bg-amber-800/60 px-2 py-0.5 rounded text-amber-100">¡Nueva Solicitud de Ingreso!</span>
+                    <h4 class="font-outfit font-bold text-sm sm:text-base text-white" id="bannerStudentName">Estudiante solicita ingresar</h4>
+                    <p class="text-[11px] text-amber-100">Prof. Fannor Andrade, autorice el acceso a la clase virtual.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button id="bannerAdmitBtn" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+                    <i class="fas fa-check-circle"></i> Admitir
+                </button>
+                <button id="bannerRejectBtn" class="bg-red-700/80 hover:bg-red-800 text-white font-bold text-xs px-2.5 py-2 rounded-xl transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- SHARE CLASSROOM LINK MODAL -->
     <div id="shareModal" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in">
@@ -713,6 +743,7 @@
         let realWaitingStudents = []; // { id, name, requestedAt }
         let realAdmittedStudents = []; // { id, name, status: 'present', joinedAt }
         let currentStudentId = null; // For student view
+        let pollingInterval = null;
 
         // Canvas Drawing State
         let canvas, ctx;
@@ -725,12 +756,10 @@
         // Schedules Storage
         let schedules = [];
 
-        // PeerConnection dictionary for WebRTC stream sharing
-        let peerConnections = {};
-
         window.addEventListener('DOMContentLoaded', () => {
             detectRoleAndRoom();
             initRealtimeChannel();
+            startStatePolling();
             initCanvas();
             renderRealAttendanceTable();
             renderSchedules();
@@ -782,7 +811,6 @@
                 console.log('BroadcastChannel fallback enabled');
             }
 
-            // Fallback storage listener for cross-browser tabs
             window.addEventListener('storage', (e) => {
                 if (e.key === `pombo_signal_${roomCode}` && e.newValue) {
                     try {
@@ -797,6 +825,54 @@
             const data = { type, payload, timestamp: Date.now() };
             if (broadcastChannel) broadcastChannel.postMessage(data);
             localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
+        }
+
+        // ====================================================
+        // REAL-TIME STATE SYNC & CROSS-TAB POLLING
+        // ====================================================
+        function getRoomState() {
+            try {
+                const raw = localStorage.getItem(`pombo_room_data_${roomCode}`);
+                return raw ? JSON.parse(raw) : { waiting: [], admitted: [] };
+            } catch (e) {
+                return { waiting: [], admitted: [] };
+            }
+        }
+
+        function saveRoomState(state) {
+            localStorage.setItem(`pombo_room_data_${roomCode}`, JSON.stringify(state));
+        }
+
+        function startStatePolling() {
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(() => {
+                const state = getRoomState();
+
+                if (currentRole === 'teacher') {
+                    // Check for new waiting students
+                    let stateChanged = false;
+                    state.waiting.forEach(st => {
+                        if (!realWaitingStudents.some(w => w.id === st.id) && !realAdmittedStudents.some(a => a.id === st.id)) {
+                            realWaitingStudents.push(st);
+                            stateChanged = true;
+                            playChimeSound();
+                            showGlobalRequestBanner(st);
+                        }
+                    });
+
+                    if (stateChanged) {
+                        renderWaitingRoomPanel();
+                        updateAttendanceStats();
+                    }
+                } else if (currentRole === 'student' && currentStudentId) {
+                    // Check if current student has been admitted
+                    const isAdmitted = state.admitted.some(a => a.id === currentStudentId);
+                    if (isAdmitted && document.getElementById('studentClassroomBox').classList.contains('hidden')) {
+                        onStudentAdmittedByTeacher();
+                    }
+                }
+            }, 400); // Poll every 400ms for fast responsive entry
         }
 
         function handleSignalMessage(event) {
@@ -840,39 +916,82 @@
             currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
 
+            const reqObj = {
+                id: currentStudentId,
+                name: name,
+                requestedAt: new Date().toLocaleTimeString()
+            };
+
+            // Write request to shared state
+            const state = getRoomState();
+            state.waiting.push(reqObj);
+            saveRoomState(state);
+
             sendSignal('STUDENT_JOIN_REQUEST', {
                 studentId: currentStudentId,
                 studentName: name
             });
 
-            showToast('Solicitud enviada a la pantalla del Prof. Fannor Andrade', 'info');
+            showToast('Solicitud enviada en vivo al Prof. Fannor Andrade', 'info');
         }
 
         function handleIncomingStudentRequest(id, name) {
             if (realWaitingStudents.some(s => s.id === id) || realAdmittedStudents.some(s => s.id === id)) return;
 
-            const requestedAt = new Date().toLocaleTimeString();
-            realWaitingStudents.push({ id, name, requestedAt });
+            const reqObj = { id, name, requestedAt: new Date().toLocaleTimeString() };
+            realWaitingStudents.push(reqObj);
 
             playChimeSound();
+            showGlobalRequestBanner(reqObj);
             renderWaitingRoomPanel();
             updateAttendanceStats();
-            showToast(`🔔 Estudiante "${name}" solicita ingresar a la clase`, 'warning');
+        }
+
+        function showGlobalRequestBanner(student) {
+            const banner = document.getElementById('teacherGlobalRequestBanner');
+            const nameSpan = document.getElementById('bannerStudentName');
+            const admitBtn = document.getElementById('bannerAdmitBtn');
+            const rejectBtn = document.getElementById('bannerRejectBtn');
+            const navBadge = document.getElementById('navWaitingBadge');
+            const navText = document.getElementById('navWaitingText');
+
+            nameSpan.textContent = `"${student.name}" solicita ingreso`;
+            banner.classList.remove('hidden');
+
+            navBadge.classList.remove('hidden');
+            navText.textContent = `${realWaitingStudents.length} Solicitud(es) Pendiente(s)`;
+
+            admitBtn.onclick = () => {
+                admitStudent(student.id);
+                banner.classList.add('hidden');
+            };
+
+            rejectBtn.onclick = () => {
+                rejectStudent(student.id);
+                banner.classList.add('hidden');
+            };
         }
 
         function renderWaitingRoomPanel() {
             const panel = document.getElementById('teacherWaitingRoomPanel');
             const container = document.getElementById('waitingListContainer');
             const countDisplay = document.getElementById('waitingCountDisplay');
+            const navBadge = document.getElementById('navWaitingBadge');
+            const navText = document.getElementById('navWaitingText');
 
             countDisplay.textContent = realWaitingStudents.length;
 
             if (realWaitingStudents.length === 0) {
                 panel.classList.add('hidden');
+                navBadge.classList.add('hidden');
+                document.getElementById('teacherGlobalRequestBanner').classList.add('hidden');
                 return;
             }
 
             panel.classList.remove('hidden');
+            navBadge.classList.remove('hidden');
+            navText.textContent = `${realWaitingStudents.length} Solicitud(es) Pendiente(s)`;
+
             container.innerHTML = realWaitingStudents.map(s => `
                 <div class="bg-white p-3 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
                     <div class="flex items-center gap-2 overflow-hidden">
@@ -902,14 +1021,21 @@
 
             realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
             const joinedAt = new Date().toLocaleTimeString();
-            realAdmittedStudents.push({ ...student, status: 'present', joinedAt });
+            const admittedObj = { ...student, status: 'present', joinedAt };
+            realAdmittedStudents.push(admittedObj);
+
+            // Sync shared state in LocalStorage
+            const state = getRoomState();
+            state.waiting = state.waiting.filter(w => w.id !== studentId);
+            state.admitted.push(admittedObj);
+            saveRoomState(state);
 
             renderWaitingRoomPanel();
             renderRealAttendanceTable();
             renderParticipantMiniatures();
             updateAdmittedCount();
 
-            // Notify student window
+            // Notify student window via Broadcast signal
             sendSignal('TEACHER_ADMITTED', { studentId: student.id });
             showToast(`Acceso permitido a ${student.name}`, 'success');
         }
@@ -921,6 +1047,11 @@
 
         function rejectStudent(studentId) {
             realWaitingStudents = realWaitingStudents.filter(s => s.id !== studentId);
+
+            const state = getRoomState();
+            state.waiting = state.waiting.filter(w => w.id !== studentId);
+            saveRoomState(state);
+
             renderWaitingRoomPanel();
             updateAttendanceStats();
             sendSignal('TEACHER_REJECTED', { studentId });
