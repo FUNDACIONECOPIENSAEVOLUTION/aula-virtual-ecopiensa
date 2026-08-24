@@ -4,19 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
+    
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- PeerJS CDN for Real-time Internet Cross-Device WebRTC Communication -->
+    <!-- PeerJS CDN for WebRTC Communication -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
+    <!-- PDF.js CDN for Rendering PowerPoint/PDF Slides in Browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
     <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -61,12 +69,16 @@
         }
         .canvas-active {
             cursor: crosshair !important;
+            pointer-events: auto !important;
+        }
+        .canvas-disabled {
+            pointer-events: none !important;
         }
         .animate-fade-in {
-            animation: fadeIn 0.3s ease-in-out;
+            animation: fadeIn 0.25s ease-in-out;
         }
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(6px); }
+            from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
         :fullscreen, :-webkit-full-screen, :-moz-full-screen {
@@ -81,7 +93,6 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
 
-    <!-- Top Bar Navigation Header -->
     <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
@@ -145,7 +156,6 @@
         </div>
     </header>
 
-    <!-- Main Content Body -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- ==================================================== -->
@@ -189,7 +199,7 @@
                         
                         <!-- Zoom & Fullscreen Button for Student View -->
                         <button onclick="toggleStudentFullscreen()" id="studentFullscreenBtn" class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition">
-                            <i class="fas fa-expand text-xs"></i> <span class="hidden xs:inline">Zoom / Pantalla Completa</span>
+                            <i class="fas fa-expand text-xs"></i> <span>Zoom / Pantalla Completa</span>
                         </button>
                     </div>
                 </div>
@@ -197,12 +207,12 @@
                 <!-- Live Stream Display for Student with Real-time Mirrored Drawing Canvas -->
                 <div id="studentStreamWrapper" class="relative aspect-video min-h-[360px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <!-- Real WebRTC Received Video Stream from Teacher -->
-                    <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline controls></video>
+                    <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     
                     <!-- PowerPoint / Slide Image Display for Student -->
                     <img id="studentSlideImage" class="w-full h-full object-contain hidden z-0" src="" alt="Diapositiva del Profesor">
 
-                    <!-- Synchronized Drawing Overlay Canvas (Mirrored directly from Teacher) -->
+                    <!-- Synchronized Drawing Overlay Canvas (Transparent canvas layer mirrored directly from Teacher) -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
 
                     <!-- Student Self Webcam Small Overlay -->
@@ -213,7 +223,7 @@
                         <i class="fas fa-video-slash text-5xl text-amber-400 mb-3 animate-pulse"></i>
                         <h3 class="text-white font-bold text-lg">Conectado a la Clase Virtual</h3>
                         <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video, presentaciones PowerPoint, pantalla compartida y rayado en tablero se sincronizarán aquí automáticamente.
+                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video, presentaciones PowerPoint, pantalla compartida y el rayado en tablero se sincronizarán en tiempo real.
                         </p>
                     </div>
                 </div>
@@ -314,14 +324,14 @@
                         </div>
                         <h3 class="text-xl font-outfit font-bold text-white mb-2">Transmisión de Videollamada y Presentaciones</h3>
                         <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                            Haz clic en <strong>"Iniciar Cámara"</strong>, <strong>"PowerPoint / Diapositivas"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir en vivo a los alumnos.
+                            Haz clic en <strong>"Iniciar Cámara"</strong>, <strong>"PowerPoint / PDF"</strong> o <strong>"Compartir Pantalla"</strong> para transmitir en vivo a los alumnos.
                         </p>
                         <div class="flex flex-wrap items-center justify-center gap-3">
                             <button onclick="toggleCameraStream()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2">
                                 <i class="fas fa-video"></i> Iniciar Cámara
                             </button>
                             <button onclick="togglePowerPointMode()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition flex items-center gap-2">
-                                <i class="fas fa-file-powerpoint"></i> Proyectar PowerPoint
+                                <i class="fas fa-file-powerpoint"></i> Proyectar PowerPoint / PDF
                             </button>
                         </div>
                     </div>
@@ -333,8 +343,8 @@
                     <!-- PowerPoint / Slide Image Viewer Element -->
                     <img id="teacherSlideViewer" class="w-full h-full object-contain hidden z-0" src="" alt="Diapositiva PowerPoint">
 
-                    <!-- Interactive Annotation Canvas Overlay (Draw over webcam, screen, slides or whiteboard) -->
-                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+                    <!-- Interactive Transparent Annotation Canvas Overlay (Draw over webcam, screen, slides or whiteboard) -->
+                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden canvas-disabled"></canvas>
 
                     <!-- PowerPoint Slide Navigation Floating Controls -->
                     <div id="pptSlideControls" class="hidden absolute top-16 left-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-xl">
@@ -346,9 +356,9 @@
                             <i class="fas fa-chevron-right"></i>
                         </button>
                         <span class="text-slate-600">|</span>
-                        <label class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition flex items-center gap-1">
-                            <i class="fas fa-file-upload"></i> Subir PowerPoint / PDF
-                            <input type="file" id="pptFileInput" accept="image/*,.pdf,.pptx,.ppt" onchange="handlePptUpload(event)" class="hidden">
+                        <label class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition flex items-center gap-1.5">
+                            <i class="fas fa-file-upload"></i> Subir PowerPoint (PDF/Imágenes)
+                            <input type="file" id="pptFileInput" accept="image/*,.pdf,.pptx,.ppt" multiple onchange="handlePptUpload(event)" class="hidden">
                         </label>
                     </div>
 
@@ -369,11 +379,11 @@
                             <button onclick="setTool('brush')" id="tool-brush" title="Pincel Suave" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-paint-brush"></i> <span class="hidden sm:inline">Pincel</span>
                             </button>
-                            <button onclick="setTool('crayon')" id="tool-crayon" title="Crayola" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
-                                <i class="fas fa-marker"></i> <span class="hidden sm:inline">Crayola</span>
-                            </button>
-                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                            <button onclick="setTool('highlighter')" id="tool-highlighter" title="Resaltador Transparente" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-highlighter"></i> <span class="hidden sm:inline">Resaltador</span>
+                            </button>
+                            <button onclick="setTool('arrow')" id="tool-arrow" title="Flecha Indicadora" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
+                                <i class="fas fa-long-arrow-alt-right"></i> <span class="hidden sm:inline">Flecha</span>
                             </button>
                             <button onclick="setTool('eraser')" id="tool-eraser" title="Borrador" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-eraser"></i> <span class="hidden sm:inline">Borrador</span>
@@ -383,17 +393,17 @@
                         <!-- Color Palette & Size Slider -->
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition"></button>
-                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 transition"></button>
+                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 transition ring-2 ring-white/20"></button>
                                 <input type="color" id="drawColor" value="#ef4444" onchange="setColor(this.value)" class="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 ml-1">
                             </div>
 
                             <div class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
                                 <i class="fas fa-circle text-[10px] text-slate-400"></i>
-                                <input type="range" id="lineWidth" min="2" max="30" value="4" onchange="setLineWidth(this.value)" class="w-20 accent-pombo-500 cursor-pointer">
+                                <input type="range" id="lineWidth" min="2" max="35" value="5" onchange="setLineWidth(this.value)" class="w-20 accent-pombo-500 cursor-pointer">
                                 <i class="fas fa-circle text-base text-slate-300"></i>
                             </div>
                         </div>
@@ -441,6 +451,7 @@
                 </div>
             </div>
 
+            <!-- School Info Footer Chips -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
                     <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
@@ -631,7 +642,7 @@
 
                     <div class="w-full aspect-video bg-slate-900 rounded-xl overflow-hidden mb-4 shadow-inner flex items-center justify-center relative">
                         <iframe id="youtubePlayer" class="w-full h-full hidden" src="" title="Video Educativo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-                        <canvas id="mediaAnnotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
+                        <canvas id="mediaAnnotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden canvas-disabled"></canvas>
                         
                         <div id="noVideoState" class="text-center p-6 text-slate-400">
                             <i class="fas fa-play-circle text-5xl mb-3 text-slate-600"></i>
@@ -870,7 +881,7 @@
         let isStudentMicActive = false;
         let isHandRaised = false;
 
-        // PowerPoint & Slide Presentation State
+        // PowerPoint & PDF Slide Presentation State
         let isPowerPointMode = false;
         let pptSlides = [
             "https://placehold.co/1280x720/0f172a/38bdf8?text=Diapositiva+1%3A+Ecosistemas+de+Tulu%C3%A1+-+Escuela+Rafael+Pombo",
@@ -887,12 +898,12 @@
         let currentStudentId = null;
         let pollingInterval = null;
 
-        // Canvas Drawing State & Live Stroke History
+        // Canvas Drawing State & Live Vector Stroke Sync
         let canvas, ctx;
         let isDrawing = false;
         let currentTool = 'pen';
         let currentColor = '#ef4444';
-        let currentLineWidth = 4;
+        let currentLineWidth = 5;
         let isWhiteBackground = false;
         let drawingStrokes = []; // Live vector strokes array recorded for real-time student synchronization
         let activeStroke = null;
@@ -948,7 +959,6 @@
                         peerInstance.on('connection', (conn) => {
                             conn.on('open', () => {
                                 activePeerConnections[conn.peer] = conn;
-                                // Auto sync complete current state (drawings, whiteboard, slides) to newly connected student
                                 syncFullStateToStudent(conn);
                             });
                             conn.on('data', (data) => {
@@ -970,7 +980,7 @@
                         });
                     }
                 } catch(e) {
-                    console.warn('Cloud Signaling initializing fallback:', e);
+                    console.warn('Cloud Signaling fallback:', e);
                 }
             } else if (currentRole === 'student') {
                 try {
@@ -1106,7 +1116,7 @@
                         activeMediaCalls[student.id] = mediaCall;
                     }
                 } catch(err) {
-                    console.warn(`Call attempt to ${student.name} queued:`, err);
+                    console.warn(`Call attempt queued for ${student.name}:`, err);
                 }
             });
         }
@@ -1266,14 +1276,14 @@
                 stdCtx.beginPath();
                 stdCtx.moveTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
             } else if (stroke.type === 'draw') {
-                stdCtx.lineWidth = (stroke.width || 4);
+                stdCtx.lineWidth = (stroke.width || 5);
                 stdCtx.lineCap = 'round';
                 stdCtx.lineJoin = 'round';
                 stdCtx.strokeStyle = stroke.color || '#ef4444';
 
                 if (stroke.tool === 'eraser') {
                     stdCtx.globalCompositeOperation = 'destination-out';
-                    stdCtx.lineWidth = (stroke.width || 4) * 3;
+                    stdCtx.lineWidth = (stroke.width || 5) * 3;
                 } else if (stroke.tool === 'highlighter') {
                     stdCtx.globalCompositeOperation = 'source-over';
                     stdCtx.globalAlpha = 0.35;
@@ -1305,14 +1315,14 @@
             strokeArray.forEach(stroke => {
                 if (stroke.points && stroke.points.length > 0) {
                     targetCtx.beginPath();
-                    targetCtx.lineWidth = stroke.width || 4;
+                    targetCtx.lineWidth = stroke.width || 5;
                     targetCtx.lineCap = 'round';
                     targetCtx.lineJoin = 'round';
                     targetCtx.strokeStyle = stroke.color || '#ef4444';
 
                     if (stroke.tool === 'eraser') {
                         targetCtx.globalCompositeOperation = 'destination-out';
-                        targetCtx.lineWidth = (stroke.width || 4) * 3;
+                        targetCtx.lineWidth = (stroke.width || 5) * 3;
                     } else if (stroke.tool === 'highlighter') {
                         targetCtx.globalCompositeOperation = 'source-over';
                         targetCtx.globalAlpha = 0.35;
@@ -1368,9 +1378,7 @@
                 } else if (container.msRequestFullscreen) {
                     container.msRequestFullscreen();
                 }
-                if (btnIcon) {
-                    btnIcon.className = "fas fa-compress text-xs";
-                }
+                if (btnIcon) btnIcon.className = "fas fa-compress text-xs";
                 showToast('Modo Pantalla Completa activado', 'info');
             } else {
                 if (document.exitFullscreen) {
@@ -1380,9 +1388,7 @@
                 } else if (document.msExitFullscreen) {
                     document.msExitFullscreen();
                 }
-                if (btnIcon) {
-                    btnIcon.className = "fas fa-expand text-xs";
-                }
+                if (btnIcon) btnIcon.className = "fas fa-expand text-xs";
             }
         }
 
@@ -1729,19 +1735,57 @@
             broadcastToAllStudents('POWERPOINT_SLIDE_CHANGE', { slideUrl: pptSlides[currentPptIndex] });
         }
 
-        function handlePptUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        async function handlePptUpload(event) {
+            const files = Array.from(event.target.files);
+            if (!files || files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const uploadedUrl = e.target.result;
-                pptSlides.unshift(uploadedUrl);
+            showToast('Procesando archivo de presentación...', 'info');
+
+            let newSlides = [];
+
+            for (const file of files) {
+                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                    try {
+                        const fileArrayBuffer = await file.arrayBuffer();
+                        const pdfDoc = await pdfjsLib.getDocument({ data: fileArrayBuffer }).promise;
+                        
+                        for (let i = 1; i <= pdfDoc.numPages; i++) {
+                            const page = await pdfDoc.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const tempCanvas = document.createElement('canvas');
+                            const tempCtx = tempCanvas.getContext('2d');
+                            tempCanvas.width = viewport.width;
+                            tempCanvas.height = viewport.height;
+
+                            await page.render({ canvasContext: tempCtx, viewport: viewport }).promise;
+                            const imgDataUrl = tempCanvas.toDataURL('image/jpeg', 0.85);
+                            newSlides.push(imgDataUrl);
+                        }
+                    } catch(err) {
+                        console.error('PDF parsing error:', err);
+                        showToast('Error al procesar el archivo PDF. Intenta guardarlo como imágenes.', 'error');
+                    }
+                } else if (file.type.startsWith('image/')) {
+                    const dataUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(file);
+                    });
+                    newSlides.push(dataUrl);
+                } else {
+                    showToast(`Formato de "${file.name}" no soportado directamente. Convierte tu PowerPoint a PDF o Imágenes.`, 'warning');
+                }
+            }
+
+            if (newSlides.length > 0) {
+                pptSlides = newSlides;
                 currentPptIndex = 0;
                 updatePptSlideDisplay();
-                showToast(`Presentación "${file.name}" cargada correctamente`, 'success');
-            };
-            reader.readAsDataURL(file);
+
+                if (!isPowerPointMode) togglePowerPointMode();
+
+                showToast(`Presentación cargada con ${newSlides.length} diapositiva(s)`, 'success');
+            }
         }
 
         function showStudentPptSlide(slideUrl) {
@@ -1846,7 +1890,7 @@
 
                     broadcastTeacherStreamToStudents();
 
-                    showToast('Compartiendo pantalla con los estudiantes', 'success');
+                    showToast('Compartiendo pantalla con el lienzo transparente activo', 'success');
 
                     screenShareStream.getVideoTracks()[0].onended = () => {
                         stopScreenShare();
@@ -1995,8 +2039,8 @@
             canvas.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
 
-            canvas.addEventListener('touchstart', handleTouchStart);
-            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
             canvas.addEventListener('touchend', stopDrawing);
         }
 
@@ -2015,13 +2059,13 @@
             isAnnotationActive = !isAnnotationActive;
 
             if (isAnnotationActive) {
-                canvas.classList.remove('hidden');
+                canvas.classList.remove('hidden', 'canvas-disabled');
                 canvas.classList.add('canvas-active');
                 drawingToolbar.classList.remove('hidden');
                 boardBtnText.textContent = 'Ocultar Tablero';
-                showToast('Herramientas de rayado digital activadas', 'success');
+                showToast('Rayado transparente activado sobre la videollamada', 'success');
             } else {
-                canvas.classList.add('hidden');
+                canvas.classList.add('hidden', 'canvas-disabled');
                 canvas.classList.remove('canvas-active');
                 drawingToolbar.classList.add('hidden');
                 boardBtnText.textContent = 'Activar Rayado / Tablero';
@@ -2090,7 +2134,7 @@
             if (!mediaCanvas) return;
 
             if (mediaCanvas.classList.contains('hidden')) {
-                mediaCanvas.classList.remove('hidden');
+                mediaCanvas.classList.remove('hidden', 'canvas-disabled');
                 mediaCanvas.classList.add('canvas-active');
                 if (btn) btn.classList.add('bg-emerald-600');
 
@@ -2104,7 +2148,7 @@
 
                 showToast('Rayado sobre video de YouTube activado', 'success');
             } else {
-                mediaCanvas.classList.add('hidden');
+                mediaCanvas.classList.add('hidden', 'canvas-disabled');
                 mediaCanvas.classList.remove('canvas-active');
                 if (btn) btn.classList.remove('bg-emerald-600');
             }
@@ -2161,11 +2205,6 @@
                 ctx.strokeStyle = currentColor;
                 ctx.globalAlpha = 0.35;
                 ctx.lineWidth = currentLineWidth * 2.5;
-            } else if (currentTool === 'crayon') {
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.strokeStyle = currentColor;
-                ctx.globalAlpha = 0.7;
-                ctx.lineWidth = currentLineWidth * 1.5;
             } else {
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.strokeStyle = currentColor;
