@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá-1)</title>
+    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
@@ -92,12 +92,13 @@
                     </div>
                 </div>
 
-                <!-- Call Status Badge & Quick Actions -->
+                <!-- Call Status Badge & Waiting Room Actions -->
                 <div class="flex items-center space-x-3">
-                    <!-- Nav Waiting Room Alert Badge -->
-                    <button onclick="switchTab('live')" id="navWaitingBadge" class="hidden bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3 py-1.5 rounded-full animate-pulse shadow-lg flex items-center gap-1.5 transition">
-                        <i class="fas fa-user-clock text-slate-900"></i>
-                        <span id="navWaitingText">1 Solicitud Pendiente</span>
+                    <!-- Permanent Waiting Room Button with Dynamic Counter -->
+                    <button id="teacherNavWaitingBtn" onclick="openWaitingRoomModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 transition hover:scale-105">
+                        <i class="fas fa-user-clock text-base"></i>
+                        <span>Solicitudes de Ingreso</span>
+                        <span id="navWaitingCountBadge" class="bg-slate-900 text-amber-400 text-xs font-black px-2 py-0.5 rounded-full">0</span>
                     </button>
 
                     <div id="topCallBadge" class="hidden md:flex items-center gap-2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-3.5 py-1.5 rounded-full text-xs font-semibold">
@@ -169,9 +170,9 @@
             <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800">
                     <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
-                        <i class="fas fa-circle text-[8px] animate-pulse"></i> CONECTADO EN VIVO
+                        <i class="fas fa-circle text-[8px] animate-pulse"></i> CONECTADO EN VIVO A LA CLASE
                     </span>
-                    <span id="studentWelcomeBadge" class="text-slate-300"></span>
+                    <span id="studentWelcomeBadge" class="text-slate-300 font-medium"></span>
                 </div>
 
                 <!-- Live Stream Display for Student -->
@@ -183,7 +184,7 @@
                         <i class="fas fa-chalkboard text-5xl text-pombo-500 mb-3 animate-bounce"></i>
                         <h3 class="text-white font-bold text-lg">En Clase con Prof. Fannor Andrade</h3>
                         <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                            Estás dentro del aula virtual. Cuando el profesor encienda su cámara o comparta pantalla y tableros, los verás aquí en tiempo real.
+                            ¡Bienvenido! Estás dentro del aula virtual. Cuando el profesor encienda su cámara o comparta pantalla y tablero, los verás aquí.
                         </p>
                     </div>
                 </div>
@@ -204,38 +205,44 @@
         <!-- TEACHER MAIN DASHBOARD (Default view) -->
         <!-- ==================================================== -->
         
-        <!-- TAB 1: VIDEO CALL & RAYADO TABLERO (SINGLE VIDEO STAGE) -->
+        <!-- TAB 1: VIDEO CALL & RAYADO TABLERO -->
         <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
 
-            <!-- REAL-TIME WAITING ROOM (SALA DE ESPERA REAL) -->
-            <div id="teacherWaitingRoomPanel" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl p-4 shadow-md transition">
+            <!-- REAL-TIME WAITING ROOM PANEL (SIEMPRE VISIBLE O CUANDO HAY SOLICITUDES) -->
+            <div id="teacherWaitingRoomPanel" class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-4 shadow-lg transition">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-lg shadow shrink-0">
-                            <i class="fas fa-user-clock animate-bounce"></i>
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xl shadow shrink-0">
+                            <i class="fas fa-user-clock"></i>
                         </div>
                         <div>
                             <div class="flex items-center gap-2">
-                                <h3 class="font-outfit font-bold text-amber-900 text-base">Sala de Espera en Tiempo Real (<span id="waitingCountDisplay">0</span>)</h3>
-                                <span class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">Solicitudes de Ingreso</span>
+                                <h3 class="font-outfit font-bold text-slate-900 text-base sm:text-lg">
+                                    Solicitudes de Ingreso a Clase (<span id="waitingCountDisplay" class="text-amber-700 font-black">0</span> en espera)
+                                </h3>
+                                <span id="waitingBadgeStatus" class="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">Sin Pendientes</span>
                             </div>
-                            <p class="text-xs text-amber-700">Estudiantes reales que han abierto tu enlace y solicitan entrar a la clase.</p>
+                            <p class="text-xs text-slate-600">Estudiantes reales ingresando desde WhatsApp o enlace de clase para ser aceptados.</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
+                    
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
                         <button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5">
                             <i class="fas fa-check-double"></i> Admitir a Todos
+                        </button>
+                        <button onclick="simulateMultipleStudents(5)" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition flex items-center gap-1.5" title="Genera 5 estudiantes ficticios para probar el botón de ingreso">
+                            <i class="fas fa-magic text-amber-400"></i> Simular +5 Alumnos
                         </button>
                     </div>
                 </div>
 
-                <!-- Dynamic Real Waiting Queue -->
-                <div id="waitingListContainer" class="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                <!-- Dynamic Real Waiting Queue Grid -->
+                <div id="waitingListContainer" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     <!-- Populated dynamically via JS when real students join -->
                 </div>
             </div>
 
-            <!-- SINGLE VIDEO STAGE CONTAINER (UNIFIED - NO DUPLICATES) -->
+            <!-- SINGLE VIDEO STAGE CONTAINER -->
             <div id="teacherVideoStage" class="bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
                 
                 <!-- Overlay Header Bar -->
@@ -276,7 +283,7 @@
                     <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
 
-                    <!-- Interactive Annotation Canvas Overlay (Rayado sobre Pantalla / Tablero) -->
+                    <!-- Interactive Annotation Canvas Overlay -->
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
 
                     <!-- Real Joined Students Miniatures Overlay -->
@@ -404,7 +411,6 @@
         <!-- TAB 2: CLASS SCHEDULER & LINK GENERATOR -->
         <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
                 <!-- Schedule Form -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
                     <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
@@ -476,15 +482,14 @@
             </div>
         </div>
 
-        <!-- TAB 3: REAL ATTENDANCE ROSTER (NO MOCK DATA) -->
+        <!-- TAB 3: REAL ATTENDANCE ROSTER -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200">
-                
                 <!-- Controls Header -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
                     <div>
                         <h3 class="font-outfit font-bold text-xl text-slate-800">Control de Asistencia Real</h3>
-                        <p class="text-xs text-slate-500">Se actualiza automáticamente con los estudiantes que ingresan a la sala virtual</p>
+                        <p class="text-xs text-slate-500">Se actualiza automáticamente al aceptar estudiantes en la videollamada</p>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2">
@@ -512,7 +517,7 @@
                         <p class="text-2xl font-outfit font-extrabold text-red-600" id="statAbsent">0</p>
                     </div>
                     <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 text-center">
-                        <span class="text-xs font-bold text-amber-600 uppercase">Solicitando</span>
+                        <span class="text-xs font-bold text-amber-600 uppercase">En Sala de Espera</span>
                         <p class="text-2xl font-outfit font-extrabold text-amber-600" id="statWaiting">0</p>
                     </div>
                 </div>
@@ -641,6 +646,56 @@
 
     </main>
 
+    <!-- DEDICATED WAITING ROOM MODAL (SALA DE ESPERA MASIVA) -->
+    <div id="waitingRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 animate-fade-in flex flex-col max-h-[85vh]">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black">
+                        <i class="fas fa-users-viewfinder"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-outfit font-bold text-xl text-slate-900">Solicitudes de Ingreso a Clase</h3>
+                        <p class="text-xs text-slate-500">Acepta la entrada de tus estudiantes a la videollamada</p>
+                    </div>
+                </div>
+                <button onclick="closeWaitingRoomModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Toolbar & Bulk Actions -->
+            <div class="py-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl my-3">
+                <div class="relative w-full sm:w-64">
+                    <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchWaitingInput" onkeyup="filterWaitingStudents()" placeholder="Buscar estudiante por nombre..." class="w-full pl-9 pr-3 py-2 bg-white rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button onclick="admitAllWaitingStudents()" class="flex-1 sm:flex-initial bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                        <i class="fas fa-check-double"></i> Admitir a Todos (<span id="modalWaitingCount">0</span>)
+                    </button>
+                    <button onclick="rejectAllWaitingStudents()" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-2 rounded-xl transition">
+                        Rechazar Todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Student List -->
+            <div id="modalWaitingList" class="flex-grow overflow-y-auto space-y-2 py-2 pr-1 min-h-[200px]">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Total en espera: <strong id="modalTotalCountText" class="text-slate-800">0 estudiantes</strong></span>
+                <button onclick="closeWaitingRoomModal()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold px-5 py-2.5 rounded-xl transition">
+                    Cerrar Ventana
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- FLOATING GLOBAL ADMISSION REQUEST BANNER FOR TEACHER -->
     <div id="teacherGlobalRequestBanner" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 hidden bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-2xl rounded-2xl p-4 border-2 border-amber-200 max-w-lg w-full transition-all animate-fade-in">
         <div class="flex items-center justify-between gap-3">
@@ -727,7 +782,7 @@
         let roomCode = 'RAFAEL-POMBO-CLASS';
         let broadcastChannel = null;
 
-        // Video & WebRTC Streams
+        // Video & Media Streams
         let localMediaStream = null;
         let screenShareStream = null;
         let isCameraActive = false;
@@ -792,6 +847,7 @@
             document.getElementById('studentContainerView').classList.add('hidden');
             document.getElementById('teacherNavTabs').classList.remove('hidden');
             document.getElementById('teacherShareLinkBtn').classList.remove('hidden');
+            document.getElementById('teacherNavWaitingBtn').classList.remove('hidden');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-live').classList.remove('hidden');
         }
@@ -799,6 +855,7 @@
         function setupStudentUI() {
             document.getElementById('teacherNavTabs').classList.add('hidden');
             document.getElementById('teacherShareLinkBtn').classList.add('hidden');
+            document.getElementById('teacherNavWaitingBtn').classList.add('hidden');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('studentContainerView').classList.remove('hidden');
         }
@@ -850,8 +907,9 @@
                 const state = getRoomState();
 
                 if (currentRole === 'teacher') {
-                    // Check for new waiting students
                     let stateChanged = false;
+
+                    // Sync waiting list from persistent storage
                     state.waiting.forEach(st => {
                         if (!realWaitingStudents.some(w => w.id === st.id) && !realAdmittedStudents.some(a => a.id === st.id)) {
                             realWaitingStudents.push(st);
@@ -860,6 +918,13 @@
                             showGlobalRequestBanner(st);
                         }
                     });
+
+                    // Remove any that were rejected/removed elsewhere
+                    const filteredWaiting = realWaitingStudents.filter(w => state.waiting.some(sw => sw.id === w.id));
+                    if (filteredWaiting.length !== realWaitingStudents.length) {
+                        realWaitingStudents = filteredWaiting;
+                        stateChanged = true;
+                    }
 
                     if (stateChanged) {
                         renderWaitingRoomPanel();
@@ -872,7 +937,7 @@
                         onStudentAdmittedByTeacher();
                     }
                 }
-            }, 400); // Poll every 400ms for fast responsive entry
+            }, 300); // Poll every 300ms for fast responsive entry
         }
 
         function handleSignalMessage(event) {
@@ -952,14 +1017,9 @@
             const nameSpan = document.getElementById('bannerStudentName');
             const admitBtn = document.getElementById('bannerAdmitBtn');
             const rejectBtn = document.getElementById('bannerRejectBtn');
-            const navBadge = document.getElementById('navWaitingBadge');
-            const navText = document.getElementById('navWaitingText');
 
-            nameSpan.textContent = `"${student.name}" solicita ingreso`;
+            nameSpan.textContent = `"${student.name}" solicita ingresar`;
             banner.classList.remove('hidden');
-
-            navBadge.classList.remove('hidden');
-            navText.textContent = `${realWaitingStudents.length} Solicitud(es) Pendiente(s)`;
 
             admitBtn.onclick = () => {
                 admitStudent(student.id);
@@ -973,46 +1033,113 @@
         }
 
         function renderWaitingRoomPanel() {
-            const panel = document.getElementById('teacherWaitingRoomPanel');
             const container = document.getElementById('waitingListContainer');
             const countDisplay = document.getElementById('waitingCountDisplay');
-            const navBadge = document.getElementById('navWaitingBadge');
-            const navText = document.getElementById('navWaitingText');
+            const statusBadge = document.getElementById('waitingBadgeStatus');
+            const navBadge = document.getElementById('navWaitingCountBadge');
+            const modalWaitingCount = document.getElementById('modalWaitingCount');
+            const modalTotalCountText = document.getElementById('modalTotalCountText');
 
-            countDisplay.textContent = realWaitingStudents.length;
+            const total = realWaitingStudents.length;
+            countDisplay.textContent = total;
+            navBadge.textContent = total;
+            modalWaitingCount.textContent = total;
+            modalTotalCountText.textContent = `${total} estudiante(s)`;
 
-            if (realWaitingStudents.length === 0) {
-                panel.classList.add('hidden');
-                navBadge.classList.add('hidden');
-                document.getElementById('teacherGlobalRequestBanner').classList.add('hidden');
+            if (total > 0) {
+                navBadge.classList.add('animate-pulse');
+                statusBadge.textContent = `${total} Solicitud(es) Pendiente(s)`;
+                statusBadge.className = "bg-amber-300 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full animate-pulse";
+            } else {
+                navBadge.classList.remove('animate-pulse');
+                statusBadge.textContent = "Sin Pendientes";
+                statusBadge.className = "bg-slate-200 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full";
+            }
+
+            if (total === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-6 text-center text-xs text-slate-500 bg-white/60 rounded-xl border border-dashed border-amber-300">
+                        <i class="fas fa-user-check text-slate-400 text-2xl mb-1 block"></i>
+                        No hay solicitudes pendientes en este momento. Cuando un estudiante abra el enlace, aparecerá aquí.
+                    </div>
+                `;
+            } else {
+                container.innerHTML = realWaitingStudents.map(s => `
+                    <div class="bg-white p-3 rounded-xl border border-amber-300 flex items-center justify-between shadow-sm hover:shadow transition">
+                        <div class="flex items-center gap-2.5 overflow-hidden">
+                            <div class="w-9 h-9 rounded-full bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shrink-0 shadow">
+                                ${s.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div class="overflow-hidden">
+                                <h4 class="text-xs font-bold text-slate-900 truncate">${s.name}</h4>
+                                <span class="text-[10px] text-slate-500 font-mono"><i class="far fa-clock"></i> ${s.requestedAt}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1">
+                                <i class="fas fa-check"></i> Admitir
+                            </button>
+                            <button onclick="rejectStudent('${s.id}')" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-2 py-1.5 rounded-lg transition" title="Rechazar">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderWaitingRoomModalList();
+        }
+
+        function openWaitingRoomModal() {
+            renderWaitingRoomModalList();
+            document.getElementById('waitingRoomModal').classList.remove('hidden');
+        }
+
+        function closeWaitingRoomModal() {
+            document.getElementById('waitingRoomModal').classList.add('hidden');
+        }
+
+        function renderWaitingRoomModalList() {
+            const list = document.getElementById('modalWaitingList');
+            const searchVal = document.getElementById('searchWaitingInput')?.value.toLowerCase() || '';
+
+            const filtered = realWaitingStudents.filter(s => s.name.toLowerCase().includes(searchVal));
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="py-12 text-center text-slate-400 text-xs">
+                        <i class="fas fa-users-slash text-3xl mb-2 text-slate-300"></i>
+                        <p class="font-semibold text-slate-600">No hay solicitudes que coincidan</p>
+                    </div>
+                `;
                 return;
             }
 
-            panel.classList.remove('hidden');
-            navBadge.classList.remove('hidden');
-            navText.textContent = `${realWaitingStudents.length} Solicitud(es) Pendiente(s)`;
-
-            container.innerHTML = realWaitingStudents.map(s => `
-                <div class="bg-white p-3 rounded-xl border border-amber-200 flex items-center justify-between shadow-sm">
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs shrink-0">
-                            ${s.name.charAt(0)}
+            list.innerHTML = filtered.map(s => `
+                <div class="p-3 bg-slate-50 hover:bg-amber-50 rounded-2xl border border-slate-200 flex items-center justify-between transition">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-sm shadow">
+                            ${s.name.charAt(0).toUpperCase()}
                         </div>
-                        <div class="overflow-hidden">
-                            <h4 class="text-xs font-bold text-slate-800 truncate">${s.name}</h4>
-                            <span class="text-[10px] text-slate-400 font-mono">${s.requestedAt}</span>
+                        <div>
+                            <h4 class="font-outfit font-bold text-slate-800 text-sm">${s.name}</h4>
+                            <span class="text-[11px] text-slate-500 font-mono">Solicitó a las ${s.requestedAt}</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-                            <i class="fas fa-check"></i> Admitir
+                    <div class="flex items-center gap-2">
+                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fas fa-check-circle"></i> Aceptar Ingreso
                         </button>
-                        <button onclick="rejectStudent('${s.id}')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold px-2 py-1.5 rounded-lg transition">
-                            <i class="fas fa-times"></i>
+                        <button onclick="rejectStudent('${s.id}')" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold text-xs px-3 py-2 rounded-xl transition">
+                            Rechazar
                         </button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        function filterWaitingStudents() {
+            renderWaitingRoomModalList();
         }
 
         function admitStudent(studentId) {
@@ -1041,8 +1168,21 @@
         }
 
         function admitAllWaitingStudents() {
+            if (realWaitingStudents.length === 0) {
+                showToast('No hay estudiantes en espera para admitir', 'info');
+                return;
+            }
             const copy = [...realWaitingStudents];
             copy.forEach(s => admitStudent(s.id));
+            closeWaitingRoomModal();
+            showToast('Todos los estudiantes han sido admitidos a la clase', 'success');
+        }
+
+        function rejectAllWaitingStudents() {
+            if (realWaitingStudents.length === 0) return;
+            const copy = [...realWaitingStudents];
+            copy.forEach(s => rejectStudent(s.id));
+            closeWaitingRoomModal();
         }
 
         function rejectStudent(studentId) {
@@ -1058,6 +1198,21 @@
             showToast('Solicitud rechazada', 'info');
         }
 
+        function simulateMultipleStudents(count = 5) {
+            const sampleNames = [
+                'Mariana Restrepo', 'Santiago Giraldo', 'Valentina Caicedo', 
+                'Juan Esteban López', 'Sofía Ospina', 'Mateo Ramírez', 
+                'Camila Bermúdez', 'Kevin Alejandro Cardona', 'Isabella Morales'
+            ];
+
+            for (let i = 0; i < count; i++) {
+                const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)] + ` (${Math.floor(Math.random()*90 + 10)})`;
+                const id = 'sim_' + Math.random().toString(36).substr(2, 9);
+                handleIncomingStudentRequest(id, randomName);
+            }
+            showToast(`Se agregaron ${count} estudiantes de prueba a la sala de espera`, 'success');
+        }
+
         function onStudentAdmittedByTeacher() {
             document.getElementById('studentFormBox').classList.add('hidden');
             document.getElementById('studentClassroomBox').classList.remove('hidden');
@@ -1068,7 +1223,7 @@
 
         function updateAdmittedCount() {
             const totalInRoom = realAdmittedStudents.length + 1; // +1 teacher
-            document.getElementById('liveAdmittedCount').textContent = `${totalInRoom} (${totalInRoom === 1 ? 'Docente' : 'Docente + Alumnos'})`;
+            document.getElementById('liveAdmittedCount').textContent = `${totalInRoom} (${totalInRoom === 1 ? 'Docente' : 'Docente + ' + realAdmittedStudents.length + ' Alumnos'})`;
         }
 
         function renderParticipantMiniatures() {
@@ -1076,13 +1231,13 @@
             if (!container) return;
 
             container.innerHTML = realAdmittedStudents.map(s => `
-                <div class="w-32 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2">
-                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                        ${s.name.charAt(0)}
+                <div class="w-36 h-16 bg-slate-800/90 backdrop-blur rounded-xl border border-slate-700 relative overflow-hidden shadow-md flex items-center p-2 gap-2 animate-fade-in">
+                    <div class="w-8 h-8 rounded-full bg-pombo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow">
+                        ${s.name.charAt(0).toUpperCase()}
                     </div>
                     <div class="overflow-hidden">
                         <span class="text-xs text-slate-200 font-semibold truncate block">${s.name}</span>
-                        <span class="text-[9px] text-emerald-400 font-medium"><i class="fas fa-check-circle"></i> En clase</span>
+                        <span class="text-[9px] text-emerald-400 font-medium"><i class="fas fa-circle text-[6px]"></i> En clase</span>
                     </div>
                 </div>
             `).join('');
@@ -1160,7 +1315,6 @@
 
                     isScreenSharing = true;
 
-                    // Enable annotation toolbar automatically for teaching over screen
                     if (!isAnnotationActive) toggleAnnotationBoard();
 
                     showToast('Compartiendo pantalla con los estudiantes', 'success');
@@ -1405,7 +1559,7 @@
                     <tr>
                         <td colspan="4" class="text-center py-8 text-slate-400 text-xs">
                             <i class="fas fa-clipboard-user text-3xl mb-2 text-slate-300 block"></i>
-                            No hay estudiantes ingresados en tiempo real aún. Los estudiantes aparecerán aquí tan pronto aceptes su ingreso desde el link.
+                            No hay estudiantes ingresados en tiempo real aún. Los estudiantes aparecerán aquí tan pronto aceptes su ingreso.
                         </td>
                     </tr>
                 `;
@@ -1414,7 +1568,7 @@
                     <tr class="hover:bg-slate-50 transition">
                         <td class="py-3.5 px-4 font-semibold text-slate-800 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-pombo-100 text-pombo-700 font-bold flex items-center justify-center text-xs">
-                                ${s.name.charAt(0)}
+                                ${s.name.charAt(0).toUpperCase()}
                             </div>
                             <span>${s.name}</span>
                         </td>
@@ -1634,7 +1788,7 @@
             div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
             div.innerHTML = `
                 <div class="w-6 h-6 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">
-                    ${name.charAt(0)}
+                    ${name.charAt(0).toUpperCase()}
                 </div>
                 <div>
                     <strong class="text-slate-800">${name} (${role}):</strong> <span class="text-slate-600">${text}</span>
