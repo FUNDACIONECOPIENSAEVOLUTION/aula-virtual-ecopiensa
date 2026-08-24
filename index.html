@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -68,6 +65,14 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        :fullscreen, :-webkit-full-screen, :-moz-full-screen {
+            width: 100vw !important;
+            height: 100vh !important;
+            background-color: #020617 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
         }
     </style>
 </head>
@@ -137,7 +142,7 @@
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- ==================================================== -->
-        <!-- STUDENT VIEW SCREEN (Only active when role=student) -->
+        <!-- STUDENT VIEW SCREEN (Active when role=student) -->
         <!-- ==================================================== -->
         <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-3xl mx-auto">
             
@@ -165,20 +170,29 @@
                 </div>
             </div>
 
-            <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative">
-                <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800">
+            <!-- Student Active Classroom Box -->
+            <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden relative flex flex-col">
+                <div class="p-3 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800 z-30">
                     <span class="text-emerald-400 font-semibold flex items-center gap-1.5">
                         <i class="fas fa-circle text-[8px] animate-pulse"></i> TRANSMISIÓN EN VIVO DEL DOCENTE
                     </span>
-                    <span id="studentWelcomeBadge" class="text-slate-300 font-medium"></span>
+                    
+                    <div class="flex items-center gap-3">
+                        <span id="studentWelcomeBadge" class="text-slate-300 font-medium hidden sm:inline"></span>
+                        
+                        <!-- Zoom & Fullscreen Button for Student View -->
+                        <button onclick="toggleStudentFullscreen()" id="studentFullscreenBtn" class="bg-pombo-600 hover:bg-pombo-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow transition">
+                            <i class="fas fa-expand text-xs"></i> <span class="hidden xs:inline">Zoom / Pantalla Completa</span>
+                        </button>
+                    </div>
                 </div>
 
-                <!-- Live Stream Display for Student -->
-                <div class="relative aspect-video min-h-[360px] max-h-[540px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                <!-- Live Stream Display for Student with Real-time Mirrored Drawing Canvas -->
+                <div id="studentStreamWrapper" class="relative aspect-video min-h-[360px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <!-- Real WebRTC Received Video Stream from Teacher -->
                     <video id="studentReceivedVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline controls></video>
                     
-                    <!-- Canvas Drawing Overlay Mirrored from Teacher -->
+                    <!-- Canvas Drawing Overlay Mirrored from Teacher in Real Time -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
 
                     <!-- Student Self Webcam Small Overlay -->
@@ -189,12 +203,12 @@
                         <i class="fas fa-video-slash text-5xl text-amber-400 mb-3 animate-pulse"></i>
                         <h3 class="text-white font-bold text-lg">Conectado a la Clase Virtual</h3>
                         <p class="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video o pantalla se activará automáticamente tan pronto el profesor encienda su cámara o tablero.
+                            ¡Estás dentro del aula del Prof. Fannor Andrade! El video, pantalla compartida y rayado en tablero se sincronizarán aquí automáticamente.
                         </p>
                     </div>
                 </div>
 
-                <div class="p-3 bg-slate-950 border-t border-slate-800 flex flex-wrap justify-between items-center gap-2">
+                <div class="p-3 bg-slate-950 border-t border-slate-800 flex flex-wrap justify-between items-center gap-2 z-30">
                     <div class="flex items-center gap-2">
                         <button id="studentCamBtn" onclick="studentToggleCam()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
                             <i class="fas fa-video-slash text-red-400"></i> Mi Cámara
@@ -207,6 +221,9 @@
                     <div class="flex items-center gap-2">
                         <button id="studentHandBtn" onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md">
                             <i class="fas fa-hand-paper"></i> <span>Levantar la Mano</span>
+                        </button>
+                        <button onclick="toggleStudentFullscreen()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1 transition sm:hidden">
+                            <i class="fas fa-expand"></i> Fullscreen
                         </button>
                         <button onclick="studentLeaveClass()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition">
                             Salir
@@ -251,7 +268,6 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Real Waiting Queue Grid -->
                 <div id="waitingListContainer" class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                     <!-- Populated dynamically via JS when real students join -->
                 </div>
@@ -277,7 +293,7 @@
                 </div>
 
                 <!-- Unified Video Viewport Frame -->
-                <div class="relative w-full aspect-video min-h-[420px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                <div id="teacherViewportFrame" class="relative w-full aspect-video min-h-[420px] max-h-[600px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     
                     <!-- Off Video Placeholder -->
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
@@ -297,7 +313,7 @@
                     <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
 
-                    <!-- Interactive Annotation Canvas Overlay -->
+                    <!-- Interactive Annotation Canvas Overlay (Draw over webcam, screen or whiteboard) -->
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden"></canvas>
 
                     <!-- Real Joined Students Miniatures Overlay -->
@@ -306,6 +322,7 @@
                     </div>
                 </div>
 
+                <!-- Drawing Toolbar -->
                 <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
                         <!-- Tools Selection -->
@@ -350,7 +367,7 @@
                             <button onclick="clearCanvas()" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-semibold border border-red-500/40 flex items-center gap-1 transition">
                                 <i class="fas fa-trash-alt"></i> Limpiar Rayado
                             </button>
-                            <button onclick="toggleCanvasGrid()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+                            <button onclick="toggleCanvasGrid()" id="btnWhiteboardGrid" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
                                 <i class="fas fa-border-all"></i> Fondo Blanco
                             </button>
                         </div>
@@ -792,6 +809,7 @@
         let peerInstance = null;
         let activePeerConnections = {};
         let activeMediaCalls = {};
+        let teacherDataConnection = null;
 
         // Media Stream & Video Call Controls
         let localMediaStream = null;
@@ -871,13 +889,13 @@
                         });
 
                         peerInstance.on('connection', (conn) => {
+                            conn.on('open', () => {
+                                activePeerConnections[conn.peer] = conn;
+                            });
                             conn.on('data', (data) => {
                                 if (data && data.type) {
                                     handleSignalMessage({ data }, conn);
                                 }
-                            });
-                            conn.on('open', () => {
-                                activePeerConnections[conn.peer] = conn;
                             });
                         });
 
@@ -905,6 +923,7 @@
 
                         peerInstance.on('open', (id) => {
                             console.log('Conexión Estudiante Conectada:', id);
+                            connectStudentDataChannelToTeacher();
                         });
 
                         peerInstance.on('call', (call) => {
@@ -922,6 +941,39 @@
             }
         }
 
+        function connectStudentDataChannelToTeacher() {
+            if (!peerInstance || currentRole !== 'student') return;
+            const cleanRoom = getCleanRoomId();
+            const teacherPeerId = `${cleanRoom}-host`;
+
+            try {
+                const conn = peerInstance.connect(teacherPeerId);
+                conn.on('open', () => {
+                    teacherDataConnection = conn;
+                });
+                conn.on('data', (data) => {
+                    if (data && data.type) {
+                        handleSignalMessage({ data });
+                    }
+                });
+            } catch(e) {}
+        }
+
+        function broadcastToAllStudents(type, payload) {
+            // 1. Send via active PeerJS data connections (Cross-Device Internet Sync)
+            Object.keys(activePeerConnections).forEach(peerId => {
+                try {
+                    const conn = activePeerConnections[peerId];
+                    if (conn && conn.open) {
+                        conn.send({ type, payload });
+                    }
+                } catch(e) {}
+            });
+
+            // 2. Local fallback for same browser tabs
+            sendSignal(type, payload);
+        }
+
         function handleIncomingTeacherVideoStream(remoteTeacherStream) {
             const stdVideo = document.getElementById('studentReceivedVideo');
             const placeholder = document.getElementById('studentStreamPlaceholder');
@@ -935,7 +987,7 @@
                     console.log('Autoplay handled by user interaction:', err);
                 });
 
-                showToast('¡Videollamada en vivo recibida del profesor!', 'success');
+                showToast('¡Transmisión en vivo recibida del profesor!', 'success');
             }
         }
 
@@ -1134,8 +1186,10 @@
             if (!stdCtx) return;
 
             const rect = stdCanvas.getBoundingClientRect();
-            stdCanvas.width = rect.width;
-            stdCanvas.height = rect.height;
+            if (stdCanvas.width !== rect.width || stdCanvas.height !== rect.height) {
+                stdCanvas.width = rect.width;
+                stdCanvas.height = rect.height;
+            }
 
             if (stroke.type === 'start') {
                 stdCtx.beginPath();
@@ -1169,6 +1223,51 @@
             if (stdCanvas) {
                 const stdCtx = stdCanvas.getContext('2d');
                 if (stdCtx) stdCtx.clearRect(0, 0, stdCanvas.width, stdCanvas.height);
+            }
+        }
+
+        function mirrorCanvasBgToggle(isWhite) {
+            const wrapper = document.getElementById('studentStreamWrapper');
+            if (wrapper) {
+                if (isWhite) {
+                    wrapper.classList.remove('bg-slate-950');
+                    wrapper.classList.add('bg-white');
+                } else {
+                    wrapper.classList.remove('bg-white');
+                    wrapper.classList.add('bg-slate-950');
+                }
+            }
+        }
+
+        function toggleStudentFullscreen() {
+            const container = document.getElementById('studentClassroomBox');
+            if (!container) return;
+
+            const btnIcon = document.querySelector('#studentFullscreenBtn i');
+
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen();
+                } else if (container.webkitRequestFullscreen) {
+                    container.webkitRequestFullscreen();
+                } else if (container.msRequestFullscreen) {
+                    container.msRequestFullscreen();
+                }
+                if (btnIcon) {
+                    btnIcon.className = "fas fa-compress text-xs";
+                }
+                showToast('Modo Pantalla Completa activado', 'info');
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                if (btnIcon) {
+                    btnIcon.className = "fas fa-expand text-xs";
+                }
             }
         }
 
@@ -1212,6 +1311,12 @@
         }
 
         function sendSignalToTeacher(type, payload) {
+            if (teacherDataConnection && teacherDataConnection.open) {
+                try {
+                    teacherDataConnection.send({ type, payload });
+                } catch(e) {}
+            }
+
             const cleanRoom = getCleanRoomId();
             const teacherPeerId = `${cleanRoom}-host`;
 
@@ -1252,6 +1357,8 @@
                     mirrorCanvasDraw(payload.stroke);
                 } else if (type === 'CANVAS_CLEAR') {
                     mirrorCanvasClear();
+                } else if (type === 'CANVAS_BG_TOGGLE') {
+                    mirrorCanvasBgToggle(payload.isWhite);
                 } else if (type === 'TEACHER_CHAT') {
                     appendChatMessage(payload.senderName, 'Docente', payload.text);
                 }
@@ -1343,23 +1450,13 @@
             state.admitted.push(admittedObj);
             saveRoomState(state);
 
-            Object.keys(activePeerConnections).forEach(key => {
-                try {
-                    activePeerConnections[key].send({
-                        type: 'TEACHER_ADMITTED',
-                        payload: { studentId: student.id }
-                    });
-                } catch(e) {}
-            });
-
-            sendSignal('TEACHER_ADMITTED', { studentId: student.id });
+            broadcastToAllStudents('TEACHER_ADMITTED', { studentId: student.id });
 
             renderWaitingRoomPanel();
             renderRealAttendanceTable();
             renderParticipantMiniatures();
             updateAdmittedCount();
 
-            // Transmit live teacher WebRTC stream to the admitted student
             setTimeout(() => {
                 broadcastTeacherStreamToStudents();
             }, 500);
@@ -1394,7 +1491,7 @@
 
             renderWaitingRoomPanel();
             updateAttendanceStats();
-            sendSignal('TEACHER_REJECTED', { studentId });
+            broadcastToAllStudents('TEACHER_REJECTED', { studentId });
             showToast('Solicitud rechazada', 'info');
         }
 
@@ -1575,7 +1672,6 @@
 
                     isStudentCamActive = true;
 
-                    // Transmit student webcam stream to teacher
                     if (peerInstance) {
                         const cleanRoom = getCleanRoomId();
                         const teacherPeerId = `${cleanRoom}-host`;
@@ -1728,14 +1824,33 @@
         function clearCanvas() {
             if (ctx) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                sendSignal('CANVAS_CLEAR', {});
+                broadcastToAllStudents('CANVAS_CLEAR', {});
                 showToast('Lienzo limpiado', 'info');
             }
         }
 
         function toggleCanvasGrid() {
             isWhiteBackground = !isWhiteBackground;
-            canvas.style.backgroundColor = isWhiteBackground ? 'rgba(255, 255, 255, 0.95)' : 'transparent';
+            const viewport = document.getElementById('teacherViewportFrame');
+            const btn = document.getElementById('btnWhiteboardGrid');
+
+            if (isWhiteBackground) {
+                canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+                if (viewport) {
+                    viewport.classList.remove('bg-slate-950');
+                    viewport.classList.add('bg-white');
+                }
+                if (btn) btn.classList.add('bg-emerald-600');
+            } else {
+                canvas.style.backgroundColor = 'transparent';
+                if (viewport) {
+                    viewport.classList.remove('bg-white');
+                    viewport.classList.add('bg-slate-950');
+                }
+                if (btn) btn.classList.remove('bg-emerald-600');
+            }
+
+            broadcastToAllStudents('CANVAS_BG_TOGGLE', { isWhite: isWhiteBackground });
         }
 
         function getCanvasCoords(e) {
@@ -1750,7 +1865,16 @@
             ctx.beginPath();
             ctx.moveTo(coords.x, coords.y);
 
-            sendSignal('CANVAS_DRAW', { stroke: { type: 'start', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth } });
+            broadcastToAllStudents('CANVAS_DRAW', { 
+                stroke: { 
+                    type: 'start', 
+                    x: coords.x / canvas.width, 
+                    y: coords.y / canvas.height, 
+                    tool: currentTool, 
+                    color: currentColor, 
+                    width: currentLineWidth 
+                } 
+            });
         }
 
         function draw(e) {
@@ -1784,7 +1908,16 @@
             ctx.lineTo(coords.x, coords.y);
             ctx.stroke();
 
-            sendSignal('CANVAS_DRAW', { stroke: { type: 'draw', x: coords.x / canvas.width, y: coords.y / canvas.height, tool: currentTool, color: currentColor, width: currentLineWidth } });
+            broadcastToAllStudents('CANVAS_DRAW', { 
+                stroke: { 
+                    type: 'draw', 
+                    x: coords.x / canvas.width, 
+                    y: coords.y / canvas.height, 
+                    tool: currentTool, 
+                    color: currentColor, 
+                    width: currentLineWidth 
+                } 
+            });
 
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
@@ -2112,7 +2245,7 @@
             if (!msg) return;
 
             appendChatMessage('Prof. Fannor Andrade', 'Docente', msg);
-            sendSignalToTeacher('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
+            broadcastToAllStudents('TEACHER_CHAT', { senderName: 'Prof. Fannor Andrade', text: msg });
             input.value = '';
         }
 
