@@ -439,7 +439,7 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.08</span>
+        Versión: <span id="appVersionDisplay">1.09</span>
     </div>
 
     <script>
@@ -447,12 +447,12 @@
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
          * Siempre se debe actualizar la variable `appVersion` sumando 0.01 
-         * (por ejemplo, de 1.07 a 1.08) por CADA VEZ que se corrija un error.
+         * (por ejemplo, de 1.08 a 1.09) por CADA VEZ que se corrija un error.
          * ============================================================================
          */
-        // FIX v1.08: Se corrigieron los flujos de re-ingreso de estudiantes sin permisos adicionales, 
-        // y se estabilizó la transmisión WebRTC para que no se congele al dejar de fijar la cámara o al compartir pantalla.
-        let appVersion = "1.08"; 
+        // FIX v1.09: Se revirtió la lógica de reconexión automática. Ahora TODO ingreso de estudiante, 
+        // sin importar el nombre o si ya estaba conectado antes, requiere aprobación explícita del docente.
+        let appVersion = "1.09"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -525,15 +525,11 @@
                 document.getElementById('studentFormTeacherName').textContent = teacherName;
                 document.getElementById('studentContainerView').classList.remove('hidden');
                 
-                // Recuperación de sesión estudiante
-                const savedId = localStorage.getItem(`pombo_std_id_${roomCode}`);
+                // FIX v1.09: Ya no reconectamos automáticamente al cargar la página.
+                // El estudiante siempre debe ver el formulario y darle a "Solicitar Acceso".
                 const savedName = localStorage.getItem(`pombo_std_name_${roomCode}`);
-                if (savedId && savedName) {
-                    currentStudentId = savedId;
+                if (savedName) {
                     document.getElementById('studentInputName').value = savedName;
-                    
-                    document.getElementById('studentWaitingAlert').classList.remove('hidden');
-                    document.getElementById('studentWaitingAlert').innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i> Reconectando con el aula...';
                 }
                 
                 initRealtimeChannel();
@@ -623,9 +619,7 @@
                         const conn = peerInstance.connect(`${cleanRoom}-host`);
                         conn.on('open', () => { 
                             teacherDataConnection = conn; 
-                            const savedId = localStorage.getItem(`pombo_std_id_${roomCode}`);
-                            const savedName = localStorage.getItem(`pombo_std_name_${roomCode}`);
-                            if (savedId && savedName) { requestEntryAsStudent(true); }
+                            // FIX v1.09: Se eliminó el reingreso automático al abrir conexión de datos.
                         });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
@@ -1411,7 +1405,9 @@
                 if(!isAuto) showToast('Escribe tu nombre', 'warning'); 
                 return; 
             }
-            currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
+            
+            // FIX v1.09: Siempre generar un nuevo ID al solicitar acceso para forzar que sea un usuario "nuevo"
+            currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
             
             localStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
             localStorage.setItem(`pombo_std_name_${roomCode}`, name);
@@ -1424,41 +1420,24 @@
         }
 
         function handleIncomingStudentRequest(id, name) {
-            const cleanReqName = name.trim().toLowerCase();
-
-            // 1. Verificación por ID Exacto (Reconexión normal)
-            if(realAdmittedStudents.some(s=>s.id===id)){
-                sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-                setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1500);
-                return;
-            }
-
-            // FIX v1.08: 2. Verificación por NOMBRE (Evita que el estudiante se quede en sala de espera si perdió su ID pero pone el mismo nombre)
-            const existingAdmitted = realAdmittedStudents.find(s => s.name.trim().toLowerCase() === cleanReqName);
-            if (existingAdmitted) {
-                // Actualizar ID del estudiante para que sus próximos mensajes coincidan
-                existingAdmitted.id = id; 
-                
-                const state = getRoomState();
-                const stateStudent = state.a.find(s => s.name.trim().toLowerCase() === cleanReqName);
-                if(stateStudent) { stateStudent.id = id; saveRoomState(state); }
-                
-                renderRealAttendanceTable(); // Refrescar la tabla si es necesario
-                
-                sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-                setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1500);
-                return;
-            }
-
-            // 3. Estudiante completamente nuevo, va a la sala de espera
+            // FIX v1.09: Se eliminó la verificación automática por ID o Nombre.
+            // TODO estudiante que llega aquí va directo a la sala de espera.
+            
             if(!realWaitingStudents.some(s=>s.id===id)){
-                // También agregamos el requerimiento al estado local por si el profe recarga
+                // Agregar al estado local
                 const state = getRoomState();
                 state.w.push({id, name, time: new Date().toLocaleTimeString()});
                 saveRoomState(state);
                 
                 realWaitingStudents.push({id, name, time: new Date().toLocaleTimeString()});
                 renderWaitingLists(); playChime();
+                
+                // Mostrar un badge visual para el docente si tiene la pestaña cerrada
+                const btnWaiting = document.getElementById('teacherNavWaitingBtn');
+                if (btnWaiting) {
+                    btnWaiting.classList.add('animate-bounce');
+                    setTimeout(() => btnWaiting.classList.remove('animate-bounce'), 3000);
+                }
             }
         }
 
@@ -1490,21 +1469,21 @@
         }
         function admitAllWaitingStudents() { const c=[...realWaitingStudents]; c.forEach(s=>admitStudent(s.id)); closeWaitingRoomModal(); }
         
-        function onStudentAdmittedByTeacher() {
-            document.getElementById('studentFormBox').classList.add('hidden');
-            document.getElementById('studentClassroomBox').classList.remove('hidden');
-            showToast('¡Has ingresado a la clase!', 'success');
-            setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 500);
+        // FIX v1.08: Lógica para que el estudiante salga voluntariamente de la clase
+        function studentLeaveClass() {
+            // Eliminar los datos del Local Storage para que pida nuevo nombre
+            localStorage.removeItem(`pombo_std_id_${roomCode}`);
+            localStorage.removeItem(`pombo_std_name_${roomCode}`);
+            
+            // Avisar al profe que se fue (opcional, para limpiar la lista)
+            if (peerInstance && peerInstance.id) {
+                 try { peerInstance.destroy(); } catch(e){}
+            }
+            // Recargar la página
+            window.location.reload();
         }
 
-        function renderRealAttendanceTable() {
-            const tb = document.getElementById('attendanceTableBody'); if(!tb) return;
-            tb.innerHTML = realAdmittedStudents.map(s=>`<tr><td class="py-4 px-5 font-semibold">${s.name}</td><td class="py-4 px-5 text-slate-500 text-xs">${s.joinedAt}</td><td class="py-4 px-5"><span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">En Aula</span></td></tr>`).join('') || `<tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie conectado.</td></tr>`;
-            document.getElementById('tabBadgeCount').textContent = realAdmittedStudents.length;
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
             document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50'); b.classList.add('text-slate-400'); });
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tabId}`).classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
