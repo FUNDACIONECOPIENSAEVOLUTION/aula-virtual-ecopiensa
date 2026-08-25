@@ -1,9 +1,9 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aula Virtual Docente - Escuela Rafael Pombo</title>
+    <title>Aula Virtual Docente - Escuela Rafael Pombo (Tuluá)</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,14 +16,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- PeerJS (WebRTC) -->
+    <!-- PeerJS -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-    <!-- PDF.js para procesar presentaciones PDF -->
+    <!-- PDF.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
+    <!-- YouTube Iframe API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
     <script>
-        // Configuración del Worker de PDF.js
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         }
@@ -50,16 +52,18 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Control del Canvas interactivo */
         .canvas-active { cursor: crosshair !important; pointer-events: auto !important; }
         .canvas-disabled { pointer-events: none !important; }
         
         .animate-fade-in { animation: fadeIn 0.25s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Asegurar que los iframes cubran el contenedor */
+        :fullscreen, :-webkit-full-screen, :-moz-full-screen {
+            width: 100vw !important; height: 100vh !important; background-color: #020617 !important; display: flex !important; flex-direction: column !important; justify-content: center !important;
+        }
+        
         .iframe-container { position: relative; width: 100%; height: 100%; }
-        .iframe-container iframe { width: 100%; height: 100%; border: none; pointer-events: auto; }
+        .iframe-container iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
@@ -78,7 +82,9 @@
                             <span class="bg-pombo-600/60 text-xs px-2.5 py-0.5 rounded-full border border-pombo-500 font-medium text-pombo-100">Tuluá</span>
                         </div>
                         <p class="text-xs text-slate-300 flex items-center gap-2">
-                            <span>Prof. Fannor Alejandro Andrade Soto</span>
+                            <span>Docente: <strong id="headerTeacherName" class="text-white font-semibold">Cargando...</strong></span>
+                            <span class="text-slate-500">•</span>
+                            <span id="headerRoomCodeBadge" class="text-eco-500 font-medium hidden"><i class="fas fa-leaf text-xs"></i> Aula Única: <span id="headerRoomCode" class="font-mono text-white"></span></span>
                         </p>
                     </div>
                 </div>
@@ -95,7 +101,6 @@
                 </div>
             </div>
 
-            <!-- NAVEGACIÓN DOCENTE -->
             <nav id="teacherNavTabs" class="hidden flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1">
                 <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
                     <i class="fas fa-video"></i> Aula Central
@@ -107,8 +112,7 @@
                     <i class="fas fa-calendar-alt"></i> Programación
                 </button>
                 <button onclick="switchTab('chat')" id="tab-btn-chat" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
-                    <i class="fas fa-comments"></i> Chat / Manos
-                    <span id="handTabBadge" class="hidden w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
+                    <i class="fas fa-comments"></i> Chat / Manos <span id="handTabBadge" class="hidden w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
                 </button>
                 <button onclick="switchTab('attendance')" id="tab-btn-attendance" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
                     <i class="fas fa-users"></i> Asistencia (<span id="tabBadgeCount">0</span>)
@@ -120,21 +124,41 @@
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- ========================================== -->
-        <!-- VISTA DEL ESTUDIANTE                       -->
+        <!-- VISTA INGRESO DOCENTE (NUEVO)              -->
         <!-- ========================================== -->
-        <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-5xl mx-auto">
-            
-            <!-- Formulario Ingreso -->
-            <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center max-w-xl mx-auto mt-10">
-                <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner">
-                    <i class="fas fa-user-graduate"></i>
+        <div id="teacherEntryView" class="hidden space-y-6 animate-fade-in max-w-xl mx-auto mt-10">
+            <div class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
+                <div class="w-20 h-20 bg-pombo-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg">
+                    <i class="fas fa-chalkboard-teacher"></i>
                 </div>
-                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-2">Ingresar a Clase Virtual</h2>
-                <p class="text-sm text-slate-500 mb-6">Profesor: Fannor Alejandro Andrade</p>
+                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Bienvenido Docente</h2>
+                <p class="text-sm text-slate-500 mb-6">Crea tu aula virtual única y compártela con tus estudiantes.</p>
                 
                 <div class="space-y-4 text-left">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Completo</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tu Nombre o Asignatura</label>
+                        <input type="text" id="teacherInputName" placeholder="Ej: Prof. Fannor Andrade" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 focus:outline-none" onkeypress="if(event.key === 'Enter') startTeacherRoom()">
+                    </div>
+                    <button onclick="startTeacherRoom()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-magic"></i> Crear mi Aula Virtual
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- VISTA ESTUDIANTE                           -->
+        <!-- ========================================== -->
+        <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-5xl mx-auto">
+            
+            <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center max-w-xl mx-auto mt-10">
+                <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner"><i class="fas fa-user-graduate"></i></div>
+                <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-2">Ingresar a Clase Virtual</h2>
+                <p class="text-sm text-slate-500 mb-6">Profesor: <strong id="studentFormTeacherName" class="text-slate-800">Cargando...</strong></p>
+                
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tu Nombre Completo</label>
                         <input type="text" id="studentInputName" placeholder="Escribe tu nombre y apellido..." class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 focus:outline-none">
                     </div>
                     <button onclick="requestEntryAsStudent()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
@@ -147,7 +171,6 @@
                 </div>
             </div>
 
-            <!-- Interfaz del Aula Estudiante (Receptor) -->
             <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative flex flex-col">
                 <div class="p-3.5 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800 z-30 shadow-lg">
                     <span class="text-emerald-400 font-bold flex items-center gap-2">
@@ -159,22 +182,17 @@
                     </button>
                 </div>
 
-                <!-- CONTENEDOR 16:9 ESTRICTO (El secreto del rayado perfecto) -->
                 <div id="studentStreamWrapper" class="relative w-full aspect-video min-h-[300px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    
-                    <!-- Capas de Medios (Sólo una visible a la vez) -->
                     <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Presentación">
                     
-                    <!-- CORRECCIÓN YOUTUBE: pointer-events-none eliminado para que el estudiante pueda dar Play -->
                     <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
-                        <iframe id="studentYoutubePlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                        <div id="studentYoutubePlayer"></div>
                     </div>
                     
-                    <!-- Capa Transparente de Rayado (Recibe dibujos, pointer-events-none deja pasar clics a YouTube) -->
+                    <!-- Capa Transparente de Rayado del Estudiante -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
                     
-                    <!-- Miniatura del Propio Estudiante -->
                     <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
 
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0">
@@ -204,15 +222,12 @@
         </div>
 
         <!-- ========================================== -->
-        <!-- VISTA DEL DOCENTE (PESTAÑAS)               -->
+        <!-- VISTA DOCENTE (TABS)                       -->
         <!-- ========================================== -->
 
-        <!-- TAB 1: ESCENARIO PRINCIPAL DOCENTE -->
         <div id="tab-live" class="tab-content hidden animate-fade-in space-y-6">
 
-            <!-- Tablero y Video -->
             <div id="teacherVideoStage" class="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative">
-                
                 <div class="p-3.5 bg-slate-950 flex justify-between items-center text-white border-b border-slate-800 z-30">
                     <div class="flex items-center gap-3">
                         <span class="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md">
@@ -222,63 +237,51 @@
                     </div>
                 </div>
 
-                <!-- CONTENEDOR 16:9 ESTRICTO DEL DOCENTE (Sincronizado con estudiante) -->
                 <div id="teacherViewportFrame" class="relative w-full aspect-video min-h-[360px] max-h-[70vh] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    
-                    <!-- Mensaje Inicial -->
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-5 shadow-inner">
                             <i class="fas fa-photo-video text-4xl"></i>
                         </div>
                         <h3 class="text-2xl font-outfit font-bold text-white mb-2">Escenario Central</h3>
-                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Usa los controles de abajo para proyectar tu cámara, pantalla, un archivo PDF o videos a los estudiantes.</p>
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Usa los controles de abajo para proyectar tu cámara, pantalla, un archivo PDF o videos.</p>
                     </div>
 
-                    <!-- Fuentes Visuales Base (Z-Index 0) -->
                     <video id="webcamVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    <img id="teacherSlideViewer" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Diapositiva PowerPoint">
+                    <img id="teacherSlideViewer" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Diapositiva">
+                    
                     <div id="teacherYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
-                        <iframe id="teacherYoutubePlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                        <div id="teacherYoutubePlayer"></div>
                     </div>
                     
-                    <!-- CAPA TRANSPARENTE MAGICA DE RAYADO (Z-Index 20) -->
-                    <!-- Atrapa los clics cuando canvas-active, los ignora cuando canvas-disabled -->
+                    <!-- Spotlight para el estudiante fijado -->
+                    <video id="pinnedStudentVideo" class="absolute inset-0 w-full h-full object-contain hidden z-10 bg-slate-900 border-4 border-pombo-500" autoplay playsinline></video>
+                    
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active"></canvas>
 
-                    <!-- Miniaturas Flotantes (Cámaras de los estudiantes) -->
-                    <div id="realStudentMiniatures" class="absolute bottom-4 right-4 z-30 flex flex-col gap-2 max-h-60 overflow-y-auto pointer-events-auto pr-2"></div>
-
-                    <!-- Panel Flotante PDF/PPT -->
                     <div id="pptSlideControls" class="hidden absolute top-4 left-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-2xl">
                         <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-left"></i></button>
                         <span id="pptSlideCounter" class="text-xs text-amber-400 font-bold px-2">1 / 1</span>
                         <button onclick="nextPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-right"></i></button>
+                        <span class="text-slate-600">|</span>
+                        <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-times"></i> Cerrar</button>
                     </div>
                 </div>
 
-                <!-- BARRA DE HERRAMIENTAS DE RAYADO -->
                 <div id="drawingToolbar" class="bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
-                        
-                        <!-- MODO MOUSE vs MODO LÁPIZ (CRUCIAL PARA YOUTUBE) -->
                         <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                            <button onclick="togglePointerMode()" id="tool-pointer" class="tool-btn p-2 rounded-lg text-amber-400 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 border border-amber-500/30" title="Usar mouse normal para hacer clic en el video">
+                            <!-- BOTÓN PUNTERO (CLAVE PARA YOUTUBE) -->
+                            <button onclick="togglePointerMode()" id="tool-pointer" class="tool-btn p-2 rounded-lg text-amber-400 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 border border-amber-500/30" title="Usar mouse normal para interactuar">
                                 <i class="fas fa-mouse-pointer"></i> <span class="hidden sm:inline">Puntero Clic</span>
                             </button>
                             <div class="w-px h-6 bg-slate-700 mx-1"></div>
                             <button onclick="setTool('pen')" id="tool-pen" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1 font-bold">
                                 <i class="fas fa-pencil-alt"></i> <span class="hidden sm:inline">Rayar</span>
                             </button>
-                            <button onclick="setTool('highlighter')" id="tool-highlighter" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
-                                <i class="fas fa-highlighter"></i>
-                            </button>
-                            <button onclick="setTool('eraser')" id="tool-eraser" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
-                                <i class="fas fa-eraser"></i>
-                            </button>
+                            <button onclick="setTool('highlighter')" id="tool-highlighter" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"><i class="fas fa-highlighter"></i></button>
+                            <button onclick="setTool('eraser')" id="tool-eraser" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"><i class="fas fa-eraser"></i></button>
                         </div>
-
-                        <!-- Colores y Grosor -->
                         <div class="flex items-center gap-3">
                             <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
                                 <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
@@ -291,68 +294,51 @@
                                 <input type="range" min="2" max="30" value="5" onchange="setLineWidth(this.value)" class="w-24 accent-pombo-500 cursor-pointer">
                             </div>
                         </div>
-
-                        <!-- Limpiar y Pizarra -->
                         <div class="flex items-center gap-2">
-                            <button onclick="clearCanvas()" class="bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm">
-                                <i class="fas fa-trash-alt"></i> Borrar Todo
-                            </button>
-                            <button onclick="toggleCanvasGrid()" id="btnWhiteboardGrid" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm">
-                                <i class="fas fa-square"></i> Pizarra Blanca
-                            </button>
+                            <button onclick="clearCanvas()" class="bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm"><i class="fas fa-trash-alt"></i> Borrar Todo</button>
+                            <button onclick="toggleCanvasGrid()" id="btnWhiteboardGrid" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm"><i class="fas fa-square"></i> Pizarra Blanca</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- CONTROLES MAESTROS DE MEDIOS -->
                 <div class="bg-slate-950 p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
                     <div class="flex flex-wrap items-center gap-2">
-                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold flex items-center gap-2 transition shadow border border-slate-700">
-                            <i class="fas fa-video-slash text-red-400"></i> <span class="hidden sm:inline">Cámara</span>
-                        </button>
-                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm flex items-center justify-center transition shadow">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <button id="btnShareScreen" onclick="toggleScreenShare()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700">
-                            <i class="fas fa-desktop text-pombo-400"></i> <span class="hidden sm:inline">Compartir Pantalla</span>
-                        </button>
-                        
-                        <!-- Botón para subir PDF/PowerPoint -->
+                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold flex items-center gap-2 transition shadow border border-slate-700"><i class="fas fa-video-slash text-red-400"></i> <span class="hidden sm:inline">Cámara</span></button>
+                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm flex items-center justify-center transition shadow"><i class="fas fa-microphone"></i></button>
+                        <button id="btnShareScreen" onclick="toggleScreenShare()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700"><i class="fas fa-desktop text-pombo-400"></i> <span class="hidden sm:inline">Compartir Pantalla</span></button>
                         <label class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700 cursor-pointer">
                             <i class="fas fa-file-pdf text-amber-400"></i> <span class="hidden md:inline">PDF / PowerPoint</span>
                             <input type="file" accept="image/*,.pdf,.pptx,.ppt" multiple onchange="handleFileUploadFlow(event)" class="hidden">
                         </label>
                     </div>
-                    <button onclick="stopAllStreams()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition">
-                        <i class="fas fa-power-off"></i> Finalizar Clase
-                    </button>
+                    <button onclick="stopAllStreams()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition"><i class="fas fa-power-off"></i> Finalizar Clase</button>
+                </div>
+            </div>
+
+            <!-- Panel de Estudiantes -->
+            <div class="mt-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-slate-800 text-sm font-bold flex items-center gap-2"><i class="fas fa-users text-pombo-500"></i> Cámaras de los Estudiantes</h3>
+                    <span class="text-xs text-slate-500">Clic para fijar en el escenario central</span>
+                </div>
+                <div id="realStudentMiniatures" class="flex gap-3 overflow-x-auto pb-2 min-h-[100px] items-center">
+                    <div class="text-slate-400 text-xs w-full text-center">Esperando conexiones de los estudiantes...</div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: YOUTUBE DIRECTO AL ESCENARIO -->
         <div id="tab-media" class="tab-content hidden animate-fade-in space-y-6 max-w-4xl mx-auto">
             <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mt-6 text-center">
                 <i class="fab fa-youtube text-red-600 text-6xl mb-4"></i>
                 <h3 class="font-outfit font-bold text-2xl text-slate-800 mb-2">Proyectar Video de YouTube</h3>
-                <p class="text-sm text-slate-600 mb-6 max-w-md mx-auto">El video se abrirá automáticamente en la pantalla principal de todos los estudiantes. Podrás pausarlo y rayar encima para explicar conceptos.</p>
-                
+                <p class="text-sm text-slate-600 mb-6 max-w-md mx-auto">El video se abrirá automáticamente en la pantalla principal. Podrás pausarlo y rayar encima para explicar conceptos a la clase.</p>
                 <div class="flex flex-col sm:flex-row gap-3 max-w-xl mx-auto">
                     <input type="text" id="ytUrlInput" placeholder="Ej: https://www.youtube.com/watch?v=..." class="flex-grow px-5 py-4 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 shadow-sm">
-                    <button onclick="sendYouTubeToStage()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-6 py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0">
-                        <i class="fas fa-play"></i> Proyectar a la Clase
-                    </button>
-                </div>
-                
-                <div class="mt-6 flex justify-center">
-                    <button onclick="stopYouTube()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold px-5 py-3 rounded-xl shadow transition flex items-center gap-2">
-                        <i class="fas fa-stop-circle"></i> Detener Video
-                    </button>
+                    <button onclick="sendYouTubeToStage()" class="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-6 py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2 shrink-0"><i class="fas fa-play"></i> Proyectar a la Clase</button>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 3: PROGRAMACIÓN DE CLASES -->
         <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
@@ -376,10 +362,8 @@
             </div>
         </div>
 
-        <!-- TAB 4: CHAT Y PARTICIPACIÓN -->
         <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Zona Chat -->
                 <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[500px]">
                     <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50"></div>
                     <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl flex gap-2">
@@ -387,20 +371,13 @@
                         <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-5 py-2 rounded-xl transition"><i class="fas fa-paper-plane"></i></button>
                     </div>
                 </div>
-                <!-- Zona Manos -->
                 <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
-                    <h4 class="font-outfit font-bold text-slate-800 mb-3 flex items-center justify-between">
-                        <span class="flex items-center gap-2"><i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas</span>
-                        <span id="handCount" class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold">0</span>
-                    </h4>
-                    <ul id="handQueueList" class="space-y-2 max-h-80 overflow-y-auto">
-                        <li id="emptyHandsMsg" class="text-xs text-slate-400 text-center py-4">No hay manos levantadas</li>
-                    </ul>
+                    <h4 class="font-outfit font-bold text-slate-800 mb-3 flex items-center justify-between"><span class="flex items-center gap-2"><i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas</span><span id="handCount" class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold">0</span></h4>
+                    <ul id="handQueueList" class="space-y-2 max-h-80 overflow-y-auto"><li id="emptyHandsMsg" class="text-xs text-slate-400 text-center py-4">No hay manos levantadas</li></ul>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 5: ASISTENCIA -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
                 <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
@@ -409,12 +386,8 @@
                 </div>
                 <div class="overflow-hidden rounded-xl border border-slate-200">
                     <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-bold">
-                            <tr><th class="py-4 px-5">Nombre del Estudiante</th><th class="py-4 px-5">Hora de Ingreso</th><th class="py-4 px-5">Estado</th></tr>
-                        </thead>
-                        <tbody id="attendanceTableBody" class="divide-y divide-slate-100 bg-white">
-                            <tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie se ha conectado aún.</td></tr>
-                        </tbody>
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-bold"><tr><th class="py-4 px-5">Nombre del Estudiante</th><th class="py-4 px-5">Hora de Ingreso</th><th class="py-4 px-5">Estado</th></tr></thead>
+                        <tbody id="attendanceTableBody" class="divide-y divide-slate-100 bg-white"><tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie se ha conectado aún.</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -422,68 +395,56 @@
 
     </main>
 
-    <!-- ========================================== -->
-    <!-- MODALES                                    -->
-    <!-- ========================================== -->
-
-    <!-- Sala de Espera -->
     <div id="waitingRoomModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl flex flex-col max-h-[85vh]">
-            <div class="flex justify-between items-center mb-4 border-b pb-4">
-                <h3 class="font-outfit font-bold text-2xl text-slate-800"><i class="fas fa-user-clock text-amber-500 mr-2"></i> Solicitudes de Ingreso</h3>
-                <button onclick="closeWaitingRoomModal()" class="text-slate-400 hover:text-slate-700 text-xl"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-4 border border-slate-200">
-                <span class="text-sm font-semibold text-slate-600"><span id="modalWaitingCount">0</span> en espera</span>
-                <button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow"><i class="fas fa-check-double"></i> Admitir Todos</button>
-            </div>
+            <div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-outfit font-bold text-2xl text-slate-800"><i class="fas fa-user-clock text-amber-500 mr-2"></i> Solicitudes de Ingreso</h3><button onclick="closeWaitingRoomModal()" class="text-slate-400 hover:text-slate-700 text-xl"><i class="fas fa-times"></i></button></div>
+            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl mb-4 border border-slate-200"><span class="text-sm font-semibold text-slate-600"><span id="modalWaitingCount">0</span> en espera</span><button onclick="admitAllWaitingStudents()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-lg shadow"><i class="fas fa-check-double"></i> Admitir Todos</button></div>
             <div id="modalWaitingList" class="flex-grow overflow-y-auto space-y-2 mb-4"></div>
             <button onclick="closeWaitingRoomModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-bold transition">Cerrar</button>
         </div>
     </div>
     
-    <!-- Compartir Link -->
     <div id="shareModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl text-center">
             <div class="w-16 h-16 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl"><i class="fas fa-link"></i></div>
             <h3 class="font-outfit font-bold text-2xl mb-2 text-slate-800">Invitar Alumnos</h3>
-            <p class="text-sm text-slate-500 mb-6">Copia este enlace y envíalo por WhatsApp a tus estudiantes para que entren al aula.</p>
+            <p class="text-sm text-slate-500 mb-6">Copia este enlace y envíalo a tus estudiantes para que entren a tu aula.</p>
             <input type="text" id="shareRoomUrl" readonly class="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4 text-xs font-mono text-center focus:outline-none focus:ring-2 focus:ring-pombo-500">
             <button onclick="copyShareUrl()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition mb-3"><i class="fas fa-copy"></i> Copiar Enlace</button>
             <button onclick="closeShareModal()" class="w-full bg-slate-100 text-slate-700 py-3 rounded-xl font-bold transition">Cerrar</button>
         </div>
     </div>
 
-    <!-- Advertencia PPTX -->
     <div id="pptxWarningModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl text-center">
             <i class="fas fa-file-pdf text-red-500 text-6xl mb-4"></i>
             <h3 class="font-outfit font-bold text-2xl text-slate-900 mb-2">Por favor, usa formato PDF</h3>
-            <p class="text-sm text-slate-600 mb-6">Para garantizar que tus diapositivas carguen rápido, no pierdan el tipo de letra y puedas <strong>rayar perfectamente</strong> sobre ellas, guarda tu presentación de PowerPoint (.pptx) como archivo <strong>PDF</strong> y súbelo nuevamente.</p>
-            <button onclick="closePptxWarning()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition">Entendido, subiré el PDF</button>
+            <p class="text-sm text-slate-600 mb-6">Guarda tu presentación de PowerPoint (.pptx) como archivo <strong>PDF</strong> y súbelo nuevamente para garantizar que puedas rayar sobre él.</p>
+            <button onclick="closePptxWarning()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition">Entendido</button>
         </div>
     </div>
 
     <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
+    <!-- VERSIÓN APP -->
+    <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
+        Versión: <span id="appVersionDisplay">1.02</span>
+    </div>
+
     <script>
-        // ==========================================
-        // 1. ESTADO GLOBAL Y VARIABLES
-        // ==========================================
+        let appVersion = "1.02";
+        let teacherName = "Docente";
         let currentRole = 'teacher';
-        let roomCode = 'RAFAEL-POMBO';
+        let roomCode = '';
         let broadcastChannel = null;
         let peerInstance = null;
         let activePeerConnections = {}; 
         let activeMediaCalls = {};      
         let teacherDataConnection = null;
 
-        // Modos del Escenario (Stage Mode)
-        // Valores: 'none', 'webcam', 'screen', 'ppt', 'youtube'
         let stageMode = 'none'; 
         let isWhiteBackground = false;
 
-        // Media & Streams Docente
         let localMediaStream = null;
         let screenShareStream = null;
         let activeTeacherStream = null;
@@ -491,26 +452,23 @@
         let isMicActive = true;
         let isScreenSharing = false;
 
-        // Media & Streams Estudiante
         let studentLocalStream = null;
         let isStudentCamActive = false;
         let isStudentMicActive = false;
         let isHandRaised = false;
 
-        // Audio Mixer (Micrófono + Audio Sistema Docente)
         let audioMixerCtx = null;
         let audioMixerDest = null;
         let micSource = null;
         let screenSource = null;
 
-        // Presentación PDF/PPT
         let pptSlides = [];
         let currentPptIndex = 0;
         
-        // YouTube
+        let teacherYTPlayer = null;
+        let studentYTPlayer = null;
         let currentYoutubeUrl = '';
 
-        // Tablero y Rayado (Canvas)
         let canvas, ctx;
         let isDrawing = false;
         let currentTool = 'pen';
@@ -521,81 +479,89 @@
         let activeStroke = null;
         let lastNormX = 0, lastNormY = 0;
 
-        // Listas
         let realWaitingStudents = [];
         let realAdmittedStudents = [];
         let currentStudentId = null;
         let pollingInterval = null;
         let schedules = [];
 
-        // ==========================================
-        // 2. INICIALIZACIÓN
-        // ==========================================
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('appVersionDisplay').textContent = appVersion;
             detectRoleAndRoom();
+        });
+
+        function detectRoleAndRoom() {
+            const params = new URLSearchParams(window.location.search);
+            const roleParam = params.get('role');
+            roomCode = params.get('room') || '';
+            const tnameParam = params.get('tname');
+
+            if (roleParam === 'student') {
+                currentRole = 'student';
+                teacherName = tnameParam ? decodeURIComponent(tnameParam) : 'Tu Profesor';
+                document.getElementById('studentFormTeacherName').textContent = teacherName;
+                document.getElementById('studentContainerView').classList.remove('hidden');
+                
+                initRealtimeChannel();
+                initCloudSignaling();
+                startStatePolling();
+                initCanvas();
+                setupAutoResizeObservers();
+            } else {
+                currentRole = 'teacher';
+                document.getElementById('teacherEntryView').classList.remove('hidden');
+                document.getElementById('headerRoomCodeBadge').classList.add('hidden');
+            }
+        }
+
+        function startTeacherRoom() {
+            const inputName = document.getElementById('teacherInputName').value.trim();
+            if (!inputName) { showToast('Escribe tu nombre', 'warning'); return; }
+            teacherName = inputName;
+            
+            if (!roomCode) roomCode = 'POMBO-' + Math.floor(1000 + Math.random() * 9000);
+            window.history.replaceState({}, '', `?room=${roomCode}`);
+            
+            document.getElementById('headerRoomCode').textContent = roomCode;
+            document.getElementById('headerRoomCodeBadge').classList.remove('hidden');
+            document.getElementById('headerTeacherName').textContent = teacherName;
+            
+            document.getElementById('teacherEntryView').classList.add('hidden');
+            document.getElementById('teacherNavTabs').classList.remove('hidden');
+            document.getElementById('teacherShareLinkBtn').classList.remove('hidden');
+            document.getElementById('teacherNavWaitingBtn').classList.remove('hidden');
+            document.getElementById('tab-live').classList.remove('hidden');
+            
+            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student&tname=${encodeURIComponent(teacherName)}`;
+            const shareUrlInput = document.getElementById('shareRoomUrl');
+            if (shareUrlInput) shareUrlInput.value = shareUrl;
+
             initRealtimeChannel();
             initCloudSignaling();
             startStatePolling();
             initCanvas();
             renderRealAttendanceTable();
             setupAutoResizeObservers();
-        });
-
-        function detectRoleAndRoom() {
-            const params = new URLSearchParams(window.location.search);
-            if (params.get('room')) roomCode = params.get('room');
-            if (params.get('role') === 'student') {
-                currentRole = 'student';
-                document.getElementById('teacherNavTabs').classList.add('hidden');
-                document.getElementById('teacherShareLinkBtn').classList.add('hidden');
-                document.getElementById('teacherNavWaitingBtn').classList.add('hidden');
-                document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-                document.getElementById('studentContainerView').classList.remove('hidden');
-            } else {
-                currentRole = 'teacher';
-                document.getElementById('teacherNavTabs').classList.remove('hidden');
-                document.getElementById('teacherShareLinkBtn').classList.remove('hidden');
-                document.getElementById('teacherNavWaitingBtn').classList.remove('hidden');
-                document.getElementById('tab-live').classList.remove('hidden');
-            }
-            const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student`;
-            const shareUrlInput = document.getElementById('shareRoomUrl');
-            if (shareUrlInput) shareUrlInput.value = shareUrl;
+            showToast('Aula creada', 'success');
         }
 
-        function getCleanRoomId() { return 'pombo-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, ''); }
+        function getCleanRoomId() { return 'pombo-' + (roomCode || 'x').toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
-        // ==========================================
-        // 3. WEBRTC Y SEÑALIZACIÓN (PEERJS)
-        // ==========================================
         function initCloudSignaling() {
             const cleanRoom = getCleanRoomId();
-            try {
-                if (window.self !== window.top) {
-                    console.log("Modo Preview Canvas: WebRTC en pausa. Pizarra por Canal Local.");
-                    return; 
-                }
-            } catch(e) {}
+            if (window.self !== window.top) { console.log("Modo Preview Canvas: WebRTC en pausa."); return; }
 
             if (currentRole === 'teacher') {
                 try {
                     const teacherPeerId = `${cleanRoom}-host`;
                     peerInstance = new Peer(teacherPeerId, { debug: 0 });
-                    
                     peerInstance.on('connection', (conn) => {
-                        conn.on('open', () => {
-                            activePeerConnections[conn.peer] = conn;
-                            sendFullStateToStudent(conn);
-                        });
+                        conn.on('open', () => { activePeerConnections[conn.peer] = conn; sendFullStateToStudent(conn); });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }, conn); });
                     });
-                    
                     peerInstance.on('call', (mediaCall) => { 
-                        // El profesor responde la llamada del estudiante (recibe video)
                         mediaCall.answer(); 
-                        mediaCall.on('stream', (remoteStudentStream) => {
-                            handleIncomingStudentVideoStream(mediaCall.peer, remoteStudentStream);
-                        });
+                        mediaCall.on('stream', (remoteStudentStream) => { handleIncomingStudentVideoStream(mediaCall.peer, remoteStudentStream); });
                     });
                 } catch(e) {}
             } else {
@@ -603,45 +569,34 @@
                     currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
                     const studentPeerId = `${cleanRoom}-${currentStudentId}`;
                     peerInstance = new Peer(studentPeerId, { debug: 0 });
-                    
                     peerInstance.on('open', () => {
                         const conn = peerInstance.connect(`${cleanRoom}-host`);
                         conn.on('open', () => { teacherDataConnection = conn; });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
-                    
                     peerInstance.on('call', (call) => {
-                        // El estudiante responde la llamada del profesor
                         call.answer(); 
                         call.on('stream', (remoteTeacherStream) => {
                             const stdVideo = document.getElementById('studentReceivedVideo');
-                            if (stdVideo && remoteTeacherStream) {
-                                stdVideo.srcObject = remoteTeacherStream;
-                                stdVideo.play().catch(e=>{});
-                            }
+                            if (stdVideo && remoteTeacherStream) { stdVideo.srcObject = remoteTeacherStream; stdVideo.play().catch(e=>{}); }
                         });
                     });
                 } catch(e) {}
             }
         }
 
-        // Híbrido: Pestañas locales (BroadcastChannel)
         function initRealtimeChannel() {
             try { broadcastChannel = new BroadcastChannel(`pombo_channel_${roomCode}`); broadcastChannel.onmessage = (e) => handleSignalMessage(e); } catch(e) {}
             window.addEventListener('storage', (e) => {
-                if (e.key === `pombo_signal_${roomCode}` && e.newValue) {
-                    try { const data = JSON.parse(e.newValue); handleSignalMessage({ data }); } catch(err) {}
-                }
+                if (e.key === `pombo_signal_${roomCode}` && e.newValue) { try { const data = JSON.parse(e.newValue); handleSignalMessage({ data }); } catch(err) {} }
             });
         }
 
         function broadcastToAllStudents(type, payload) {
-            Object.keys(activePeerConnections).forEach(peerId => {
-                try { const conn = activePeerConnections[peerId]; if (conn && conn.open) conn.send({ type, payload }); } catch(e) {}
-            });
+            Object.keys(activePeerConnections).forEach(peerId => { try { const conn = activePeerConnections[peerId]; if (conn && conn.open) conn.send({ type, payload }); } catch(e) {} });
             const data = { type, payload, timestamp: Date.now() };
             if (broadcastChannel) broadcastChannel.postMessage(data);
-            if (type !== 'CANVAS_DRAW') { try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {} }
+            if (type !== 'CANVAS_DRAW' && type !== 'YT_SYNC') { try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {} }
         }
 
         function sendSignalToTeacher(type, payload) {
@@ -654,13 +609,10 @@
         function handleSignalMessage(event, connection = null) {
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
-                if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name, connection);
+                if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name);
                 else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
                 else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
-                else if (type === 'CHAT_MESSAGE') {
-                    appendChatMessage(payload.senderName, payload.role, payload.text);
-                    broadcastToAllStudents('CHAT_MESSAGE', payload); // Retransmitir a otros
-                }
+                else if (type === 'CHAT_MESSAGE') { appendChatMessage(payload.senderName, payload.role, payload.text); broadcastToAllStudents('CHAT_MESSAGE', payload); }
             } else if (currentRole === 'student') {
                 if (type === 'TEACHER_ADMITTED' && payload.studentId === currentStudentId) onStudentAdmittedByTeacher();
                 else if (type === 'FULL_STATE_SYNC') applyFullSync(payload);
@@ -668,42 +620,30 @@
                 else if (type === 'CANVAS_DRAW') applyStatelessDrawSegment(payload.stroke);
                 else if (type === 'CANVAS_CLEAR') mirrorCanvasClear();
                 else if (type === 'CANVAS_BG_TOGGLE') applyWhiteboardBg(payload.isWhite);
+                else if (type === 'YT_SYNC') applyYoutubeSync(payload);
                 else if (type === 'CHAT_MESSAGE') appendChatMessage(payload.senderName, payload.role, payload.text);
             }
         }
 
-        // ==========================================
-        // 4. MEZCLADOR DE AUDIO AVANZADO (PC + MIC)
-        // ==========================================
         function getMixedStream(camStream, screenStream) {
             let videoTrack = null;
             if (screenStream && screenStream.getVideoTracks().length > 0) videoTrack = screenStream.getVideoTracks()[0];
             else if (camStream && camStream.getVideoTracks().length > 0) videoTrack = camStream.getVideoTracks()[0];
 
             if (!audioMixerCtx) {
-                try {
-                    audioMixerCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    audioMixerDest = audioMixerCtx.createMediaStreamDestination();
-                } catch(e) { return screenStream || camStream; }
+                try { audioMixerCtx = new (window.AudioContext || window.webkitAudioContext)(); audioMixerDest = audioMixerCtx.createMediaStreamDestination(); } 
+                catch(e) { return screenStream || camStream; }
             }
 
             if (micSource) { micSource.disconnect(); micSource = null; }
             if (screenSource) { screenSource.disconnect(); screenSource = null; }
 
-            if (camStream && camStream.getAudioTracks().length > 0) {
-                micSource = audioMixerCtx.createMediaStreamSource(camStream);
-                micSource.connect(audioMixerDest);
-            }
-            if (screenStream && screenStream.getAudioTracks().length > 0) {
-                screenSource = audioMixerCtx.createMediaStreamSource(screenStream);
-                screenSource.connect(audioMixerDest);
-            }
+            if (camStream && camStream.getAudioTracks().length > 0) { micSource = audioMixerCtx.createMediaStreamSource(camStream); micSource.connect(audioMixerDest); }
+            if (screenStream && screenStream.getAudioTracks().length > 0) { screenSource = audioMixerCtx.createMediaStreamSource(screenStream); screenSource.connect(audioMixerDest); }
 
             const combinedStream = new MediaStream();
             if (videoTrack) combinedStream.addTrack(videoTrack);
-            if (audioMixerDest.stream.getAudioTracks().length > 0) {
-                audioMixerDest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t));
-            }
+            if (audioMixerDest.stream.getAudioTracks().length > 0) { audioMixerDest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t)); }
             return combinedStream;
         }
 
@@ -725,27 +665,8 @@
             });
         }
 
-        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
-            const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
-            const student = realAdmittedStudents.find(s => s.id === studentId);
-            const studentName = student ? student.name : 'Estudiante';
-            const container = document.getElementById('realStudentMiniatures');
-            if (!container) return;
-            let existing = document.getElementById(`std-video-${studentId}`);
-            if (!existing) {
-                const wrapper = document.createElement('div');
-                wrapper.id = `std-wrapper-${studentId}`;
-                wrapper.className = "w-32 h-20 bg-slate-900 rounded-xl border-2 border-emerald-500 relative overflow-hidden shadow-lg animate-fade-in shrink-0";
-                wrapper.innerHTML = `<video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video><div class="absolute bottom-1 left-1 bg-slate-950/80 px-1.5 py-0.5 rounded text-[9px] text-white font-bold truncate max-w-[90%]"><i class="fas fa-video text-emerald-400"></i> ${studentName}</div>`;
-                container.appendChild(wrapper);
-                existing = document.getElementById(`std-video-${studentId}`);
-            }
-            if (existing) { existing.srcObject = remoteStudentStream; }
-        }
+        function closeCurrentProjection() { setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); }
 
-        // ==========================================
-        // 5. CONTROL MAESTRO DEL ESCENARIO 
-        // ==========================================
         function setStageMode(mode, extraData = null) {
             stageMode = mode;
             const ph = document.getElementById('videoOffPlaceholder');
@@ -754,56 +675,73 @@
             const pptViewer = document.getElementById('teacherSlideViewer');
             const pptControls = document.getElementById('pptSlideControls');
             const ytWrapper = document.getElementById('teacherYoutubeWrapper');
-            const ytPlayer = document.getElementById('teacherYoutubePlayer');
+            const pinVid = document.getElementById('pinnedStudentVideo');
             const title = document.getElementById('teacherStageTitle');
 
-            // Ocultar capas base
-            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper].forEach(el => el.classList.add('hidden'));
-
-            // Si cambiamos de modo y NO es youtube, limpiamos el video para cortar el audio
-            if (mode !== 'youtube') ytPlayer.src = "";
+            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper, pinVid].forEach(el => el.classList.add('hidden'));
 
             if (mode === 'none') {
                 ph.classList.remove('hidden');
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
+                if(teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') teacherYTPlayer.stopVideo();
             } else if (mode === 'webcam') {
-                camVid.classList.remove('hidden');
-                title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
+                camVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
             } else if (mode === 'screen') {
-                scrVid.classList.remove('hidden');
-                title.innerHTML = "<i class='fas fa-desktop text-pombo-400'></i> Pantalla Compartida";
+                scrVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-desktop text-pombo-400'></i> Pantalla Compartida";
             } else if (mode === 'ppt') {
-                pptViewer.classList.remove('hidden');
-                pptControls.classList.remove('hidden');
-                pptViewer.src = pptSlides[currentPptIndex];
-                title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación de Clase";
+                pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
+                pptViewer.src = pptSlides[currentPptIndex]; title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación";
             } else if (mode === 'youtube') {
-                ytWrapper.classList.remove('hidden');
-                ytPlayer.src = extraData || currentYoutubeUrl;
+                ytWrapper.classList.remove('hidden'); initTeacherYoutube(extraData || currentYoutubeUrl);
                 title.innerHTML = "<i class='fab fa-youtube text-red-500'></i> Video de YouTube";
-                switchTab('live'); 
-                togglePointerMode(); // Activar puntero para poder dar Play
+                switchTab('live'); togglePointerMode(); 
+            } else if (mode === 'student_pin') {
+                pinVid.classList.remove('hidden');
             }
             
-            // Reactivar lápiz por defecto (si no estamos en youtube y el puntero estaba activo)
             if(mode !== 'youtube' && !isAnnotationActive) { togglePointerMode(); }
-            
-            broadcastStageMode();
+            if(mode !== 'student_pin') broadcastStageMode();
         }
 
         function broadcastStageMode() {
-            broadcastToAllStudents('STAGE_MODE_CHANGE', {
-                mode: stageMode,
-                pptSlideUrl: pptSlides[currentPptIndex] || null,
-                youtubeUrl: currentYoutubeUrl
-            });
+            broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
         }
 
-        function stopYouTube() {
-            if(stageMode === 'youtube') {
-                setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none'));
-                showToast('Video de YouTube detenido. Regresando al escenario.', 'info');
+        function onYouTubeIframeAPIReady() {}
+
+        function sendYouTubeToStage() {
+            const input = document.getElementById('ytUrlInput').value.trim();
+            if (!input) return;
+            let videoId = '';
+            if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
+            else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
+            
+            if (videoId) {
+                currentYoutubeUrl = videoId;
+                clearCanvas();
+                setStageMode('youtube', videoId);
+                document.getElementById('ytUrlInput').value = '';
+            } else { showToast('Enlace inválido', 'error'); }
+        }
+
+        function initTeacherYoutube(videoId) {
+            if (teacherYTPlayer && typeof teacherYTPlayer.loadVideoById === 'function') {
+                teacherYTPlayer.loadVideoById(videoId);
+            } else {
+                teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
+                    videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                    events: { 'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); } }
+                });
             }
+        }
+
+        function applyYoutubeSync(payload) {
+            if (!studentYTPlayer || typeof studentYTPlayer.seekTo !== 'function') return;
+            try {
+                if (payload.state === 1) { studentYTPlayer.seekTo(payload.time, true); studentYTPlayer.playVideo(); } 
+                else if (payload.state === 2) { studentYTPlayer.pauseVideo(); studentYTPlayer.seekTo(payload.time, true); } 
+                else if (payload.state === 0) { studentYTPlayer.stopVideo(); }
+            } catch(e) {}
         }
 
         async function toggleCameraStream() {
@@ -815,20 +753,16 @@
                     localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
                     camVid.srcObject = localMediaStream;
                     btnCam.classList.replace('bg-slate-800', 'bg-emerald-600');
-                    btnCam.innerHTML = `<i class="fas fa-video text-white"></i> <span class="hidden sm:inline">Cámara</span>`;
                     isCameraActive = true;
-                    
-                    setStageMode('webcam'); // Fuerza el escenario a la cámara
+                    setStageMode('webcam');
                     pushTeacherStreamToStudents();
-                    showToast('Cámara iniciada', 'success');
+                    showToast('Cámara encendida', 'success');
                 } catch(err) { showToast('Acceso a cámara denegado', 'error'); }
             } else {
                 if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
                 btnCam.classList.replace('bg-emerald-600', 'bg-slate-800');
-                btnCam.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> <span class="hidden sm:inline">Cámara</span>`;
                 isCameraActive = false;
-                
-                if (stageMode === 'webcam') setStageMode(isScreenSharing ? 'screen' : 'none');
+                setStageMode(isScreenSharing ? 'screen' : 'none');
                 pushTeacherStreamToStudents();
             }
         }
@@ -837,13 +771,8 @@
             isMicActive = !isMicActive;
             if (localMediaStream) localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
             const btn = document.getElementById('btnToggleMic');
-            if (isMicActive) {
-                btn.innerHTML = `<i class="fas fa-microphone"></i>`;
-                btn.classList.replace('bg-red-600', 'bg-emerald-600');
-            } else {
-                btn.innerHTML = `<i class="fas fa-microphone-slash text-white"></i>`;
-                btn.classList.replace('bg-emerald-600', 'bg-red-600');
-            }
+            if (isMicActive) { btn.innerHTML = `<i class="fas fa-microphone"></i>`; btn.classList.replace('bg-red-600', 'bg-emerald-600'); } 
+            else { btn.innerHTML = `<i class="fas fa-microphone-slash text-white"></i>`; btn.classList.replace('bg-emerald-600', 'bg-red-600'); }
         }
 
         async function toggleScreenShare() {
@@ -855,15 +784,14 @@
                     scrVid.srcObject = screenShareStream;
                     isScreenSharing = true;
                     btnScr.classList.replace('bg-slate-800', 'bg-emerald-600');
-                    
-                    setStageMode('screen'); // Fuerza el escenario a la pantalla
+                    setStageMode('screen');
                     pushTeacherStreamToStudents();
-                    showToast('Pantalla compartida. Puedes rayar sobre ella.', 'success');
+                    showToast('Pantalla compartida con audio del sistema', 'success');
                     
                     screenShareStream.getVideoTracks()[0].onended = () => {
                         isScreenSharing = false;
                         btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
-                        if (stageMode === 'screen') setStageMode(isCameraActive ? 'webcam' : 'none');
+                        setStageMode(isCameraActive ? 'webcam' : 'none');
                         pushTeacherStreamToStudents();
                     };
                 } catch(err) {}
@@ -871,29 +799,22 @@
                 if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
                 isScreenSharing = false;
                 btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
-                if (stageMode === 'screen') setStageMode(isCameraActive ? 'webcam' : 'none');
+                setStageMode(isCameraActive ? 'webcam' : 'none');
                 pushTeacherStreamToStudents();
             }
         }
 
-        // ==========================================
-        // 6. FLUJO PDF / POWERPOINT 
-        // ==========================================
         function handleFileUploadFlow(event) {
             const files = Array.from(event.target.files);
             if (!files || files.length === 0) return;
-            const file = files[0];
-            if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) {
-                document.getElementById('pptxWarningModal').classList.remove('hidden');
-                event.target.value = ''; 
-            } else {
-                processValidUpload(files);
-            }
+            if (files[0].name.endsWith('.pptx') || files[0].name.endsWith('.ppt')) {
+                document.getElementById('pptxWarningModal').classList.remove('hidden'); event.target.value = ''; 
+            } else { processValidUpload(files); }
         }
         function closePptxWarning() { document.getElementById('pptxWarningModal').classList.add('hidden'); }
 
         async function processValidUpload(files) {
-            showToast('Procesando archivo...', 'info');
+            showToast('Procesando...', 'info');
             let newSlides = [];
             for (const file of files) {
                 if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
@@ -915,57 +836,28 @@
                 }
             }
             if (newSlides.length > 0) {
-                pptSlides = newSlides;
-                currentPptIndex = 0;
-                clearCanvas(); 
-                setStageMode('ppt');
+                pptSlides = newSlides; currentPptIndex = 0; clearCanvas(); setStageMode('ppt');
                 document.getElementById('pptSlideCounter').textContent = `1 / ${pptSlides.length}`;
             }
         }
-        
         function prevPptSlide() { if(currentPptIndex>0) { currentPptIndex--; updatePptDisplay(); } }
         function nextPptSlide() { if(currentPptIndex<pptSlides.length-1) { currentPptIndex++; updatePptDisplay(); } }
         function updatePptDisplay() {
             document.getElementById('teacherSlideViewer').src = pptSlides[currentPptIndex];
             document.getElementById('pptSlideCounter').textContent = `${currentPptIndex + 1} / ${pptSlides.length}`;
-            clearCanvas(); 
-            broadcastStageMode();
+            clearCanvas(); broadcastStageMode();
         }
 
-        // ==========================================
-        // 7. YOUTUBE CENTRALIZADO
-        // ==========================================
-        function sendYouTubeToStage() {
-            const input = document.getElementById('ytUrlInput').value.trim();
-            if (!input) return;
-            let videoId = '';
-            if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
-            else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
-            
-            if (videoId) {
-                // Alumno ya no tiene pointer-events-none, por lo que el autoplay funcionará
-                currentYoutubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-                clearCanvas();
-                setStageMode('youtube');
-                document.getElementById('ytUrlInput').value = '';
-            } else { showToast('Enlace de YouTube inválido', 'error'); }
-        }
-
-        // ==========================================
-        // 8. DIBUJO Y SINCRONIZACIÓN MILIMÉTRICA
-        // ==========================================
         function initCanvas() {
             canvas = document.getElementById('annotationCanvas');
             if (!canvas) return;
             ctx = canvas.getContext('2d');
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
-            
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             window.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
-            
             canvas.addEventListener('touchstart', (e)=>{ if(e.touches.length===1 && isAnnotationActive){ startDrawing(e.touches[0]); e.preventDefault(); } }, {passive:false});
             canvas.addEventListener('touchmove', (e)=>{ if(e.touches.length===1 && isAnnotationActive){ draw(e.touches[0]); e.preventDefault(); } }, {passive:false});
             window.addEventListener('touchend', stopDrawing);
@@ -975,28 +867,22 @@
             if (!canvas) return;
             const rect = canvas.parentElement.getBoundingClientRect();
             if(rect.width===0) return;
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            canvas.width = rect.width; canvas.height = rect.height;
             redrawAllStrokes(canvas, drawingStrokes);
         }
 
         function togglePointerMode() {
             isAnnotationActive = false;
-            canvas.classList.remove('canvas-active');
-            canvas.classList.add('canvas-disabled'); // Deja pasar clics a YouTube / Pantalla Compartida
-            
+            canvas.classList.remove('canvas-active'); canvas.classList.add('canvas-disabled'); 
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('bg-pombo-600', 'text-white', 'active-tool'));
             const pBtn = document.getElementById('tool-pointer');
             if(pBtn) pBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool');
-            showToast('Modo Puntero: Haz clic libremente en el video', 'info');
         }
 
         function setTool(tool) {
             isAnnotationActive = true;
-            canvas.classList.remove('canvas-disabled');
-            canvas.classList.add('canvas-active');
+            canvas.classList.remove('canvas-disabled'); canvas.classList.add('canvas-active');
             currentTool = tool;
-            
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('bg-pombo-600', 'text-white', 'active-tool'));
             document.getElementById(`tool-${tool}`).classList.add('bg-pombo-600', 'text-white', 'active-tool');
         }
@@ -1007,94 +893,60 @@
             isWhiteBackground = !isWhiteBackground;
             const vp = document.getElementById('teacherViewportFrame');
             if (isWhiteBackground) {
-                canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.98)';
-                vp.classList.replace('bg-slate-950', 'bg-white');
+                canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.98)'; vp.classList.replace('bg-slate-950', 'bg-white');
             } else {
-                canvas.style.backgroundColor = 'transparent';
-                vp.classList.replace('bg-white', 'bg-slate-950');
+                canvas.style.backgroundColor = 'transparent'; vp.classList.replace('bg-white', 'bg-slate-950');
             }
             broadcastToAllStudents('CANVAS_BG_TOGGLE', { isWhite: isWhiteBackground });
         }
 
-        function clearCanvas() {
-            if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawingStrokes = []; broadcastToAllStudents('CANVAS_CLEAR', {}); }
-        }
-
+        function clearCanvas() { if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawingStrokes = []; broadcastToAllStudents('CANVAS_CLEAR', {}); } }
         function getCanvasCoords(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 
         function startDrawing(e) {
             if (!isAnnotationActive) return;
             isDrawing = true;
             const coords = getCanvasCoords(e);
-            lastNormX = coords.x / canvas.width;
-            lastNormY = coords.y / canvas.height;
+            lastNormX = coords.x / canvas.width; lastNormY = coords.y / canvas.height;
             activeStroke = { tool: currentTool, color: currentColor, width: currentLineWidth, points: [{ x: lastNormX, y: lastNormY }] };
         }
 
         function draw(e) {
             if (!isDrawing || !isAnnotationActive) return;
             const coords = getCanvasCoords(e);
-            const normX = coords.x / canvas.width;
-            const normY = coords.y / canvas.height;
-
+            const normX = coords.x / canvas.width; const normY = coords.y / canvas.height;
             renderLineSegment(ctx, canvas.width, canvas.height, lastNormX, lastNormY, normX, normY, currentTool, currentColor, currentLineWidth);
             activeStroke.points.push({ x: normX, y: normY });
-
-            broadcastToAllStudents('CANVAS_DRAW', { 
-                stroke: { fromX: lastNormX, fromY: lastNormY, toX: normX, toY: normY, tool: currentTool, color: currentColor, width: currentLineWidth } 
-            });
+            broadcastToAllStudents('CANVAS_DRAW', { stroke: { fromX: lastNormX, fromY: lastNormY, toX: normX, toY: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
             lastNormX = normX; lastNormY = normY;
         }
 
-        function stopDrawing() {
-            if (isDrawing && activeStroke) { drawingStrokes.push(activeStroke); activeStroke = null; }
-            isDrawing = false;
-        }
+        function stopDrawing() { if (isDrawing && activeStroke) { drawingStrokes.push(activeStroke); activeStroke = null; } isDrawing = false; }
 
         function renderLineSegment(context, w, h, x1, y1, x2, y2, tool, color, width) {
-            context.beginPath();
-            context.lineWidth = width;
-            context.lineCap = 'round'; context.lineJoin = 'round';
-            if (tool === 'eraser') {
-                context.globalCompositeOperation = 'destination-out';
-                context.strokeStyle = 'rgba(0,0,0,1)'; context.lineWidth = width * 3;
-            } else if (tool === 'highlighter') {
-                context.globalCompositeOperation = 'source-over';
-                context.strokeStyle = color; context.globalAlpha = 0.35; context.lineWidth = width * 2.5;
-            } else {
-                context.globalCompositeOperation = 'source-over';
-                context.strokeStyle = color; context.globalAlpha = 1.0;
-            }
+            context.beginPath(); context.lineWidth = width; context.lineCap = 'round'; context.lineJoin = 'round';
+            if (tool === 'eraser') { context.globalCompositeOperation = 'destination-out'; context.strokeStyle = 'rgba(0,0,0,1)'; context.lineWidth = width * 3; } 
+            else if (tool === 'highlighter') { context.globalCompositeOperation = 'source-over'; context.strokeStyle = color; context.globalAlpha = 0.35; context.lineWidth = width * 2.5; } 
+            else { context.globalCompositeOperation = 'source-over'; context.strokeStyle = color; context.globalAlpha = 1.0; }
             context.moveTo(x1 * w, y1 * h); context.lineTo(x2 * w, y2 * h); context.stroke();
             context.globalAlpha = 1.0; context.globalCompositeOperation = 'source-over';
         }
 
         function redrawAllStrokes(targetCanvas, strokes) {
-            const targetCtx = targetCanvas.getContext('2d');
-            if(!targetCtx) return;
+            const targetCtx = targetCanvas.getContext('2d'); if(!targetCtx) return;
             targetCtx.clearRect(0,0, targetCanvas.width, targetCanvas.height);
             strokes.forEach(s => {
-                if(s.points.length > 1) {
-                    for(let i=1; i<s.points.length; i++) {
-                        renderLineSegment(targetCtx, targetCanvas.width, targetCanvas.height, s.points[i-1].x, s.points[i-1].y, s.points[i].x, s.points[i].y, s.tool, s.color, s.width);
-                    }
-                }
+                if(s.points.length > 1) { for(let i=1; i<s.points.length; i++) { renderLineSegment(targetCtx, targetCanvas.width, targetCanvas.height, s.points[i-1].x, s.points[i-1].y, s.points[i].x, s.points[i].y, s.tool, s.color, s.width); } }
             });
         }
 
-        // ==========================================
-        // 9. RECEPTOR DEL ESTUDIANTE Y MEDIOS
-        // ==========================================
         function setupAutoResizeObservers() {
             try {
                 const stdWrap = document.getElementById('studentStreamWrapper');
                 if (stdWrap && currentRole === 'student') {
                     const stdObs = new ResizeObserver(() => {
                         const stdCanvas = document.getElementById('studentCanvasMirror');
-                        if (stdCanvas) {
-                            const r = stdWrap.getBoundingClientRect();
-                            if(r.width>0) { stdCanvas.width = r.width; stdCanvas.height = r.height; redrawAllStrokes(stdCanvas, drawingStrokes); }
-                        }
+                        if (stdCanvas) { const r = stdWrap.getBoundingClientRect(); if(r.width>0) { stdCanvas.width = r.width; stdCanvas.height = r.height; redrawAllStrokes(stdCanvas, drawingStrokes); } }
                     });
                     stdObs.observe(stdWrap);
                 }
@@ -1102,17 +954,15 @@
         }
 
         function sendFullStateToStudent(targetConnection) {
-            const payload = { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex], youtubeUrl: currentYoutubeUrl, isWhiteboard: isWhiteBackground, strokes: drawingStrokes };
+            const payload = { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex], youtubeId: currentYoutubeUrl, isWhiteboard: isWhiteBackground, strokes: drawingStrokes };
             if (targetConnection && targetConnection.open) targetConnection.send({ type: 'FULL_STATE_SYNC', payload });
             else broadcastToAllStudents('FULL_STATE_SYNC', payload);
         }
 
         function applyFullSync(payload) {
-            applyStageMode(payload);
-            applyWhiteboardBg(payload.isWhiteboard);
+            applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
-            const c = document.getElementById('studentCanvasMirror');
-            if(c) redrawAllStrokes(c, drawingStrokes);
+            const c = document.getElementById('studentCanvasMirror'); if(c) redrawAllStrokes(c, drawingStrokes);
         }
 
         function applyStageMode(payload) {
@@ -1120,56 +970,51 @@
             const vid = document.getElementById('studentReceivedVideo');
             const img = document.getElementById('studentSlideImage');
             const ytWrap = document.getElementById('studentYoutubeWrapper');
-            const ytPlayer = document.getElementById('studentYoutubePlayer');
             
             [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
 
-            if (payload.mode === 'none') { ph.classList.remove('hidden'); ytPlayer.src = ""; }
-            else if (payload.mode === 'webcam' || payload.mode === 'screen') { vid.classList.remove('hidden'); ytPlayer.src = ""; }
-            else if (payload.mode === 'ppt') { img.src = payload.pptSlideUrl; img.classList.remove('hidden'); ytPlayer.src = ""; }
-            else if (payload.mode === 'youtube') { ytWrap.classList.remove('hidden'); ytPlayer.src = payload.youtubeUrl; }
+            if (payload.mode === 'none') { 
+                ph.classList.remove('hidden'); 
+                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
+            }
+            else if (payload.mode === 'webcam' || payload.mode === 'screen') { vid.classList.remove('hidden'); }
+            else if (payload.mode === 'ppt') { img.src = payload.pptSlideUrl; img.classList.remove('hidden'); }
+            else if (payload.mode === 'youtube') {
+                ytWrap.classList.remove('hidden');
+                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') { studentYTPlayer.loadVideoById(payload.youtubeId); } 
+                else { studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } }); }
+            }
         }
 
         function applyStatelessDrawSegment(s) {
-            const stdCanvas = document.getElementById('studentCanvasMirror');
-            if (!stdCanvas) return;
+            const stdCanvas = document.getElementById('studentCanvasMirror'); if (!stdCanvas) return;
             renderLineSegment(stdCanvas.getContext('2d'), stdCanvas.width, stdCanvas.height, s.fromX, s.fromY, s.toX, s.toY, s.tool, s.color, s.width);
         }
         function mirrorCanvasClear() {
             const stdCanvas = document.getElementById('studentCanvasMirror');
-            if (stdCanvas) stdCanvas.getContext('2d').clearRect(0,0,stdCanvas.width,stdCanvas.height);
-            drawingStrokes = [];
+            if (stdCanvas) stdCanvas.getContext('2d').clearRect(0,0,stdCanvas.width,stdCanvas.height); drawingStrokes = [];
         }
         function applyWhiteboardBg(isWhite) {
-            const wrap = document.getElementById('studentStreamWrapper');
-            const c = document.getElementById('studentCanvasMirror');
+            const wrap = document.getElementById('studentStreamWrapper'); const c = document.getElementById('studentCanvasMirror');
             if(isWhite) { wrap.classList.replace('bg-slate-950', 'bg-white'); c.style.backgroundColor = 'white'; }
             else { wrap.classList.replace('bg-white', 'bg-slate-950'); c.style.backgroundColor = 'transparent'; }
         }
 
-        // --- Cámara y Micro de Estudiante ---
         async function studentToggleCam() {
-            const selfVideo = document.getElementById('studentSelfVideo');
-            const btn = document.getElementById('studentCamBtn');
+            const selfVideo = document.getElementById('studentSelfVideo'); const btn = document.getElementById('studentCamBtn');
             if (!isStudentCamActive) {
                 try {
                     studentLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isStudentMicActive });
-                    selfVideo.srcObject = studentLocalStream;
-                    selfVideo.classList.remove('hidden');
-                    btn.classList.replace('bg-slate-800', 'bg-emerald-600');
-                    btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
+                    selfVideo.srcObject = studentLocalStream; selfVideo.classList.remove('hidden');
+                    btn.classList.replace('bg-slate-800', 'bg-emerald-600'); btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
                     isStudentCamActive = true;
-                    if (peerInstance) {
-                        const cleanRoom = getCleanRoomId();
-                        peerInstance.call(`${cleanRoom}-host`, studentLocalStream);
-                    }
-                    showToast('Tu cámara está compartida con el profesor', 'success');
-                } catch(e) { showToast('No se pudo activar la cámara', 'error'); }
+                    if (peerInstance) { const cleanRoom = getCleanRoomId(); peerInstance.call(`${cleanRoom}-host`, studentLocalStream); }
+                    showToast('Cámara compartida con el profesor', 'success');
+                } catch(e) { showToast('No se pudo activar', 'error'); }
             } else {
                 if (studentLocalStream) studentLocalStream.getVideoTracks().forEach(t => t.stop());
                 selfVideo.classList.add('hidden');
-                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
-                btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
                 isStudentCamActive = false;
             }
         }
@@ -1178,47 +1023,8 @@
             const btn = document.getElementById('studentMicBtn');
             isStudentMicActive = !isStudentMicActive;
             if (studentLocalStream) studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
-            if (isStudentMicActive) { 
-                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; 
-                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
-            } else { 
-                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; 
-                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
-            }
-        }
-
-        // ==========================================
-        // 10. CHAT Y PARTICIPACIÓN
-        // ==========================================
-        function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            
-            const sender = currentRole === 'teacher' ? 'Prof. Fannor Andrade' : (document.getElementById('studentInputName').value || 'Estudiante');
-            const roleStr = currentRole === 'teacher' ? 'Docente' : 'Estudiante';
-            
-            appendChatMessage(sender, roleStr, msg);
-            
-            const payload = { senderName: sender, role: roleStr, text: msg };
-            if (currentRole === 'teacher') broadcastToAllStudents('CHAT_MESSAGE', payload);
-            else sendSignalToTeacher('CHAT_MESSAGE', payload);
-            
-            input.value = '';
-        }
-
-        function appendChatMessage(name, role, text) {
-            const chatBox = document.getElementById('chatMessages');
-            if (!chatBox) return;
-            const div = document.createElement('div');
-            div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
-            div.innerHTML = `<div class="w-7 h-7 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">${name.charAt(0).toUpperCase()}</div><div><strong class="text-slate-800 block">${name} <span class="text-[9px] text-slate-400 font-normal">(${role})</span></strong> <span class="text-slate-600">${text}</span></div>`;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            if(currentRole === 'teacher') {
-                const handBadge = document.getElementById('handTabBadge');
-                if (handBadge) handBadge.classList.remove('hidden');
-            }
+            if (isStudentMicActive) { btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; btn.classList.replace('bg-slate-800', 'bg-emerald-600'); } 
+            else { btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; btn.classList.replace('bg-emerald-600', 'bg-slate-800'); }
         }
 
         function studentRaiseHand() {
@@ -1227,7 +1033,7 @@
             const name = document.getElementById('studentInputName').value || 'Estudiante';
             if (isHandRaised) {
                 btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; 
-                btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Bajar Mano</span>`;
+                btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Mano Levantada</span>`;
                 sendSignalToTeacher('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
                 showToast('Mano levantada.', 'info');
             } else {
@@ -1235,6 +1041,37 @@
                 btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar Mano</span>`;
                 sendSignalToTeacher('STUDENT_LOWER_HAND', { studentId: currentStudentId });
             }
+        }
+
+        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
+            const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
+            const student = realAdmittedStudents.find(s => s.id === studentId);
+            const studentName = student ? student.name : 'Estudiante';
+            const container = document.getElementById('realStudentMiniatures');
+            if (!container) return;
+            
+            if(container.innerHTML.includes("Esperando")) container.innerHTML = '';
+
+            let existing = document.getElementById(`std-video-${studentId}`);
+            if (!existing) {
+                const wrapper = document.createElement('div');
+                wrapper.id = `std-wrapper-${studentId}`;
+                wrapper.className = "w-40 h-24 bg-slate-900 rounded-xl border-2 border-slate-700 relative overflow-hidden shadow-lg animate-fade-in shrink-0 cursor-pointer hover:border-pombo-500 transition";
+                wrapper.onclick = () => pinStudentLocally(studentId, studentName);
+                wrapper.innerHTML = `<video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video><div class="absolute bottom-1 left-1 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-white font-bold truncate max-w-[90%]"><i class="fas fa-video text-emerald-400"></i> ${studentName}</div>`;
+                container.appendChild(wrapper);
+                existing = document.getElementById(`std-video-${studentId}`);
+            }
+            if (existing) { existing.srcObject = remoteStudentStream; }
+        }
+
+        function pinStudentLocally(studentId, studentName) {
+            const videoElem = document.getElementById(`std-video-${studentId}`);
+            if (!videoElem || !videoElem.srcObject) return;
+            const pinnedVid = document.getElementById('pinnedStudentVideo');
+            pinnedVid.srcObject = videoElem.srcObject;
+            setStageMode('student_pin');
+            document.getElementById('teacherStageTitle').innerHTML = `<i class="fas fa-user-check text-emerald-400"></i> Viendo a: ${studentName}`;
         }
 
         function handleTeacherReceivedRaiseHand(studentId, studentName) {
@@ -1251,57 +1088,45 @@
             li.innerHTML = `<span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${studentName}</span><button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Atendida</button>`;
             list.appendChild(li);
             
-            playChime();
-            showToast(`✋ ¡${studentName} levantó la mano!`, 'warning');
-            const handBadge = document.getElementById('handTabBadge');
-            if (handBadge) handBadge.classList.remove('hidden');
+            playChime(); showToast(`✋ ¡${studentName} levantó la mano!`, 'warning');
+            const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.remove('hidden');
         }
 
         function handleTeacherReceivedLowerHand(studentId) {
-            const list = document.getElementById('handQueueList');
-            if (!list) return;
+            const list = document.getElementById('handQueueList'); if (!list) return;
             const items = list.querySelectorAll('li');
             items.forEach(item => { if (item.getAttribute('data-student-id') === studentId) item.remove(); });
             const countElem = document.getElementById('handCount');
             if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
         }
 
-        function lowerHand(btn) { 
-            btn.closest('li').remove(); 
-            const countElem = document.getElementById('handCount'); 
-            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1); 
+        function lowerHand(btn) { btn.closest('li').remove(); const countElem = document.getElementById('handCount'); if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1); }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            const sender = currentRole === 'teacher' ? teacherName : (document.getElementById('studentInputName').value || 'Estudiante');
+            const roleStr = currentRole === 'teacher' ? 'Docente' : 'Estudiante';
+            appendChatMessage(sender, roleStr, msg);
+            const payload = { senderName: sender, role: roleStr, text: msg };
+            if (currentRole === 'teacher') broadcastToAllStudents('CHAT_MESSAGE', payload);
+            else sendSignalToTeacher('CHAT_MESSAGE', payload);
+            input.value = '';
         }
 
-        // ==========================================
-        // 11. PROGRAMACIÓN
-        // ==========================================
-        function handleCreateSchedule(e) {
-            e.preventDefault();
-            const title = document.getElementById('schedTitle').value.trim();
-            const date = document.getElementById('schedDate').value;
-            const time = document.getElementById('schedTime').value;
-            schedules.unshift({ title, date, time });
-            renderSchedules();
-            document.getElementById('scheduleForm').reset();
-            showToast('Clase programada', 'success');
+        function appendChatMessage(name, role, text) {
+            const chatBox = document.getElementById('chatMessages');
+            if (!chatBox) return;
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
+            div.innerHTML = `<div class="w-7 h-7 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">${name.charAt(0).toUpperCase()}</div><div><strong class="text-slate-800 block">${name} <span class="text-[9px] text-slate-400 font-normal">(${role})</span></strong> <span class="text-slate-600">${text}</span></div>`;
+            chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
+            if(currentRole === 'teacher') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.remove('hidden'); }
         }
 
-        function renderSchedules() {
-            const container = document.getElementById('scheduleList');
-            if (!container) return;
-            container.innerHTML = schedules.map(s => `
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
-                    <div><h4 class="font-outfit font-bold text-slate-800 text-sm">${s.title}</h4><span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span></div>
-                    <button onclick="openShareModal()" class="bg-pombo-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition">Compartir</button>
-                </div>
-            `).join('');
-        }
-
-        // ==========================================
-        // 12. SALA DE ESPERA Y ASISTENCIA
-        // ==========================================
-        function getRoomState() { try { const r = localStorage.getItem(`p_state_${roomCode}`); return r?JSON.parse(r):{w:[],a:[]}; } catch(e){return {w:[],a:[]};} }
-        function saveRoomState(s) { try { localStorage.setItem(`p_state_${roomCode}`, JSON.stringify(s)); } catch(e){} }
+        function getRoomState() { try { const r = localStorage.getItem(`pombo_state_${roomCode}`); return r?JSON.parse(r):{w:[],a:[]}; } catch(e){return {w:[],a:[]};} }
+        function saveRoomState(s) { try { localStorage.setItem(`pombo_state_${roomCode}`, JSON.stringify(s)); } catch(e){} }
 
         function startStatePolling() {
             pollingInterval = setInterval(() => {
@@ -1326,10 +1151,9 @@
             sendSignalToTeacher('STUDENT_JOIN_REQUEST', req);
         }
 
-        function handleIncomingStudentRequest(id, name, conn) {
+        function handleIncomingStudentRequest(id, name) {
             if(!realWaitingStudents.some(s=>s.id===id) && !realAdmittedStudents.some(s=>s.id===id)){
                 realWaitingStudents.push({id, name, time: new Date().toLocaleTimeString()});
-                if(conn) activePeerConnections[`${getCleanRoomId()}-${id}`] = conn;
                 renderWaitingLists(); playChime();
             }
         }
@@ -1338,7 +1162,6 @@
             const count = realWaitingStudents.length;
             document.getElementById('navWaitingCountBadge').textContent = count;
             document.getElementById('modalWaitingCount').textContent = count;
-            
             const cont = document.getElementById('modalWaitingList');
             if(cont) {
                 cont.innerHTML = realWaitingStudents.map(s => `
@@ -1346,7 +1169,7 @@
                         <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center">${s.name.charAt(0).toUpperCase()}</div><div><h4 class="font-bold text-slate-800">${s.name}</h4><span class="text-xs text-slate-400">${s.time}</span></div></div>
                         <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-lg"><i class="fas fa-check"></i> Admitir</button>
                     </div>
-                `).join('') || '<p class="text-center py-6 text-slate-400">Sala de espera vacía.</p>';
+                `).join('') || '<p class="text-center py-6 text-slate-400">Sala vacía.</p>';
             }
         }
 
@@ -1355,13 +1178,10 @@
             realWaitingStudents = realWaitingStudents.filter(s=>s.id!==id);
             st.joinedAt = new Date().toLocaleTimeString();
             realAdmittedStudents.push(st);
-            
             const state = getRoomState();
             state.w = state.w.filter(w=>w.id!==id); state.a.push(st); saveRoomState(state);
-            
             renderWaitingLists(); renderRealAttendanceTable();
             broadcastToAllStudents('TEACHER_ADMITTED', { studentId: id });
-            
             setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1500); 
         }
         function admitAllWaitingStudents() { const c=[...realWaitingStudents]; c.forEach(s=>admitStudent(s.id)); closeWaitingRoomModal(); }
@@ -1375,20 +1195,16 @@
 
         function renderRealAttendanceTable() {
             const tb = document.getElementById('attendanceTableBody'); if(!tb) return;
-            tb.innerHTML = realAdmittedStudents.map(s=>`<tr><td class="py-4 px-5 font-semibold">${s.name}</td><td class="py-4 px-5 text-slate-500 text-xs">${s.joinedAt}</td><td class="py-4 px-5"><span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">En Aula</span></td></tr>`).join('') || `<tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie se ha conectado aún.</td></tr>`;
+            tb.innerHTML = realAdmittedStudents.map(s=>`<tr><td class="py-4 px-5 font-semibold">${s.name}</td><td class="py-4 px-5 text-slate-500 text-xs">${s.joinedAt}</td><td class="py-4 px-5"><span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">En Aula</span></td></tr>`).join('') || `<tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie conectado.</td></tr>`;
             document.getElementById('tabBadgeCount').textContent = realAdmittedStudents.length;
         }
 
-        // ==========================================
-        // 13. UTILIDADES UI
-        // ==========================================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50'); b.classList.add('text-slate-400'); });
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tabId}`).classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
             document.getElementById(`tab-btn-${tabId}`).classList.remove('text-slate-400');
-            
             if (tabId === 'chat') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.add('hidden'); }
             if (tabId === 'live') { setTimeout(resizeCanvas, 100); }
         }
@@ -1414,6 +1230,7 @@
         function stopAllStreams() {
             if(localMediaStream) localMediaStream.getTracks().forEach(t=>t.stop());
             if(screenShareStream) screenShareStream.getTracks().forEach(t=>t.stop());
+            if(teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') teacherYTPlayer.stopVideo();
             setStageMode('none'); isCameraActive=false; isScreenSharing=false; clearCanvas();
             pushTeacherStreamToStudents();
             showToast('Clase Finalizada', 'info');
@@ -1424,7 +1241,6 @@
         function openShareModal(){ document.getElementById('shareModal').classList.remove('hidden'); }
         function closeShareModal(){ document.getElementById('shareModal').classList.add('hidden'); }
         function copyShareUrl(){ const input = document.getElementById('shareRoomUrl'); input.select(); document.execCommand('copy'); showToast('Link copiado', 'success'); }
-        
         function toggleStudentFullscreen() {
             const container = document.getElementById('studentClassroomBox');
             if (!document.fullscreenElement) { container.requestFullscreen && container.requestFullscreen(); } 
