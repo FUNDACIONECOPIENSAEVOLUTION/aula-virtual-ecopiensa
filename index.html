@@ -124,7 +124,7 @@
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
         <!-- ========================================== -->
-        <!-- VISTA INGRESO DOCENTE (NUEVO)              -->
+        <!-- VISTA INGRESO DOCENTE                      -->
         <!-- ========================================== -->
         <div id="teacherEntryView" class="hidden space-y-6 animate-fade-in max-w-xl mx-auto mt-10">
             <div class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
@@ -259,6 +259,7 @@
                     
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active"></canvas>
 
+                    <!-- CONTROLES FLOTANTES -->
                     <div id="pptSlideControls" class="hidden absolute top-4 left-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-2xl">
                         <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-left"></i></button>
                         <span id="pptSlideCounter" class="text-xs text-amber-400 font-bold px-2">1 / 1</span>
@@ -266,12 +267,17 @@
                         <span class="text-slate-600">|</span>
                         <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-times"></i> Cerrar</button>
                     </div>
+
+                    <!-- NUEVOS CONTROLES PARA YOUTUBE (CERRAR) -->
+                    <div id="ytControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
+                        <button onclick="closeYoutubeVideo()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>
+                    </div>
                 </div>
 
                 <div id="drawingToolbar" class="bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
                         <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                            <!-- BOTÓN PUNTERO (CLAVE PARA YOUTUBE) -->
+                            <!-- BOTÓN PUNTERO -->
                             <button onclick="togglePointerMode()" id="tool-pointer" class="tool-btn p-2 rounded-lg text-amber-400 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 border border-amber-500/30" title="Usar mouse normal para interactuar">
                                 <i class="fas fa-mouse-pointer"></i> <span class="hidden sm:inline">Puntero Clic</span>
                             </button>
@@ -428,11 +434,11 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.03</span>
+        Versión: <span id="appVersionDisplay">1.04</span>
     </div>
 
     <script>
-        let appVersion = "1.03";
+        let appVersion = "1.04 (Fix YouTube)";
         let teacherName = "Docente";
         let currentRole = 'teacher';
         let roomCode = '';
@@ -469,6 +475,7 @@
         let studentYTPlayer = null;
         let currentYoutubeUrl = '';
         let ytSyncInterval = null;
+        let isYTAPIReady = false;
 
         let canvas, ctx;
         let isDrawing = false;
@@ -666,7 +673,18 @@
             });
         }
 
-        function closeCurrentProjection() { setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); }
+        function closeCurrentProjection() { 
+            // Para PPTs
+            setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); 
+        }
+        
+        function closeYoutubeVideo() {
+            if (teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') {
+                try { teacherYTPlayer.stopVideo(); } catch(e){}
+            }
+            currentYoutubeUrl = '';
+            setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none'));
+        }
 
         function setStageMode(mode, extraData = null) {
             stageMode = mode;
@@ -676,15 +694,22 @@
             const pptViewer = document.getElementById('teacherSlideViewer');
             const pptControls = document.getElementById('pptSlideControls');
             const ytWrapper = document.getElementById('teacherYoutubeWrapper');
+            const ytControls = document.getElementById('ytControls');
             const pinVid = document.getElementById('pinnedStudentVideo');
             const title = document.getElementById('teacherStageTitle');
 
-            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper, pinVid].forEach(el => el.classList.add('hidden'));
+            // --- FIX YOUTUBE: Asegurar que el video se pausa si cambiamos de vista (ej. mostrar cámara) ---
+            if (mode !== 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.pauseVideo === 'function') {
+                try { teacherYTPlayer.pauseVideo(); } catch(e) {}
+            }
+
+            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper, ytControls, pinVid].forEach(el => {
+                if(el) el.classList.add('hidden');
+            });
 
             if (mode === 'none') {
                 ph.classList.remove('hidden');
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
-                if(teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') teacherYTPlayer.stopVideo();
             } else if (mode === 'webcam') {
                 camVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
             } else if (mode === 'screen') {
@@ -693,9 +718,12 @@
                 pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
                 pptViewer.src = pptSlides[currentPptIndex]; title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación";
             } else if (mode === 'youtube') {
-                ytWrapper.classList.remove('hidden'); initTeacherYoutube(extraData || currentYoutubeUrl);
+                ytWrapper.classList.remove('hidden'); 
+                if (ytControls) ytControls.classList.remove('hidden');
+                initTeacherYoutube(extraData || currentYoutubeUrl);
                 title.innerHTML = "<i class='fab fa-youtube text-red-500'></i> Video de YouTube";
-                switchTab('live'); togglePointerMode(); 
+                switchTab('live'); 
+                togglePointerMode(); // Activar puntero para poder pausar/reproducir
             } else if (mode === 'student_pin') {
                 pinVid.classList.remove('hidden');
             }
@@ -708,7 +736,9 @@
             broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
         }
 
-        function onYouTubeIframeAPIReady() {}
+        function onYouTubeIframeAPIReady() {
+            isYTAPIReady = true;
+        }
 
         function sendYouTubeToStage() {
             const input = document.getElementById('ytUrlInput').value.trim();
@@ -725,47 +755,139 @@
             } else { showToast('Enlace inválido', 'error'); }
         }
 
+        // --- FIX YOUTUBE: Lógica robusta de inicialización/reemplazo ---
         function initTeacherYoutube(videoId) {
-            if (teacherYTPlayer && typeof teacherYTPlayer.loadVideoById === 'function') {
-                teacherYTPlayer.loadVideoById(videoId);
-            } else {
-                teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
-                    videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
-                    events: { 'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); } }
-                });
+            if (!teacherYTPlayer) {
+                createTeacherYTPlayer(videoId);
+                return;
             }
-            startYTSync();
+
+            try {
+                if (typeof teacherYTPlayer.loadVideoById === 'function') {
+                    // Detener el anterior para evitar conflictos de audio/sincronización
+                    teacherYTPlayer.stopVideo();
+                    // Pequeña pausa para asegurar que el estado se limpió antes de cargar el nuevo
+                    setTimeout(() => {
+                        teacherYTPlayer.loadVideoById(videoId);
+                        startYTSync();
+                    }, 150);
+                } else {
+                    throw new Error("API del reproductor no disponible");
+                }
+            } catch (err) {
+                console.warn("Fallo al reutilizar reproductor YT, reconstruyendo...", err);
+                try { teacherYTPlayer.destroy(); } catch(e){}
+                // Limpiar el contenedor y recrear el div base
+                document.getElementById('teacherYoutubeWrapper').innerHTML = '<div id="teacherYoutubePlayer"></div><button onclick="closeYoutubeVideo()" class="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xl transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>';
+                createTeacherYTPlayer(videoId);
+            }
+        }
+
+        function createTeacherYTPlayer(videoId) {
+            teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
+                videoId: videoId, 
+                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                events: { 
+                    'onReady': (e) => {
+                        startYTSync();
+                    },
+                    'onStateChange': (e) => { 
+                        // Enviar estado de pausa/play/seek al estudiante
+                        broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); 
+                    },
+                    'onError': (e) => {
+                        showToast('Error cargando video de YouTube', 'error');
+                    }
+                }
+            });
         }
 
         function startYTSync() {
             if (ytSyncInterval) clearInterval(ytSyncInterval);
             ytSyncInterval = setInterval(() => {
+                // Solo forzar la sincronización continua si está reproduciendo activamente (estado 1)
+                // para no causar saltos constantes (seeks) en los estudiantes cuando está en pausa.
                 if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
-                    broadcastToAllStudents('YT_SYNC', { state: teacherYTPlayer.getPlayerState(), time: teacherYTPlayer.getCurrentTime() });
+                    const state = teacherYTPlayer.getPlayerState();
+                    if (state === 1) { 
+                        broadcastToAllStudents('YT_SYNC', { state: state, time: teacherYTPlayer.getCurrentTime() });
+                    }
                 } else if (stageMode !== 'youtube') {
                     clearInterval(ytSyncInterval);
                 }
-            }, 1000);
+            }, 1500);
         }
 
+        // --- FIX YOUTUBE ESTUDIANTE: Manejo más preciso del estado y pausas ---
         function applyYoutubeSync(payload) {
             if (!studentYTPlayer || typeof studentYTPlayer.getPlayerState !== 'function') return;
             try {
                 const currentState = studentYTPlayer.getPlayerState();
                 const currentTime = studentYTPlayer.getCurrentTime();
 
+                // 1 = Reproduciendo, 2 = Pausado, 0 = Terminado, 3 = Cargando
                 if (payload.state === 1) { 
-                    if (currentState !== 1) studentYTPlayer.playVideo();
+                    if (currentState !== 1 && currentState !== 3) studentYTPlayer.playVideo();
                     if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
                 } 
                 else if (payload.state === 2) { 
-                    if (currentState !== 2) studentYTPlayer.pauseVideo(); 
-                    if (Math.abs(currentTime - payload.time) > 1) studentYTPlayer.seekTo(payload.time, true); 
+                    if (currentState !== 2) {
+                        studentYTPlayer.pauseVideo(); 
+                        studentYTPlayer.seekTo(payload.time, true); // Asegurar que pausan en el mismo cuadro
+                    }
                 } 
                 else if (payload.state === 0) { 
                     if (currentState !== 0) studentYTPlayer.stopVideo(); 
                 }
             } catch(e) {}
+        }
+
+        function applyStageMode(payload) {
+            const ph = document.getElementById('studentStreamPlaceholder');
+            const vid = document.getElementById('studentReceivedVideo');
+            const img = document.getElementById('studentSlideImage');
+            const ytWrap = document.getElementById('studentYoutubeWrapper');
+            
+            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
+
+            if (payload.mode === 'none') { 
+                ph.classList.remove('hidden'); 
+                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') {
+                    try { studentYTPlayer.stopVideo(); } catch(e){}
+                }
+            }
+            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
+                vid.classList.remove('hidden'); 
+            }
+            else if (payload.mode === 'ppt') { 
+                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
+            }
+            else if (payload.mode === 'youtube') {
+                ytWrap.classList.remove('hidden');
+                
+                try {
+                    if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
+                        if (currentYoutubeUrl !== payload.youtubeId) {
+                            studentYTPlayer.loadVideoById(payload.youtubeId);
+                            currentYoutubeUrl = payload.youtubeId;
+                        }
+                    } else {
+                        currentYoutubeUrl = payload.youtubeId;
+                        studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                            videoId: payload.youtubeId, 
+                            playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                        });
+                    }
+                } catch(e) {
+                    // Recreación de emergencia lado estudiante si el objeto falló
+                    document.getElementById('studentYoutubeWrapper').innerHTML = '<div id="studentYoutubePlayer"></div>';
+                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                        videoId: payload.youtubeId, 
+                        playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                    });
+                    currentYoutubeUrl = payload.youtubeId;
+                }
+            }
         }
 
         async function toggleCameraStream() {
@@ -987,34 +1109,6 @@
             applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
             const c = document.getElementById('studentCanvasMirror'); if(c) redrawAllStrokes(c, drawingStrokes);
-        }
-
-        function applyStageMode(payload) {
-            const ph = document.getElementById('studentStreamPlaceholder');
-            const vid = document.getElementById('studentReceivedVideo');
-            const img = document.getElementById('studentSlideImage');
-            const ytWrap = document.getElementById('studentYoutubeWrapper');
-            
-            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
-
-            if (payload.mode === 'none') { 
-                ph.classList.remove('hidden'); 
-                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
-            }
-            else if (payload.mode === 'webcam' || payload.mode === 'screen') { vid.classList.remove('hidden'); }
-            else if (payload.mode === 'ppt') { img.src = payload.pptSlideUrl; img.classList.remove('hidden'); }
-            else if (payload.mode === 'youtube') {
-                ytWrap.classList.remove('hidden');
-                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
-                    if (currentYoutubeUrl !== payload.youtubeId) {
-                        studentYTPlayer.loadVideoById(payload.youtubeId);
-                        currentYoutubeUrl = payload.youtubeId;
-                    }
-                } else {
-                    currentYoutubeUrl = payload.youtubeId;
-                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } });
-                }
-            }
         }
 
         function applyStatelessDrawSegment(s) {
