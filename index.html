@@ -428,11 +428,11 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.02</span>
+        Versión: <span id="appVersionDisplay">1.03</span>
     </div>
 
     <script>
-        let appVersion = "1.02";
+        let appVersion = "1.03";
         let teacherName = "Docente";
         let currentRole = 'teacher';
         let roomCode = '';
@@ -468,6 +468,7 @@
         let teacherYTPlayer = null;
         let studentYTPlayer = null;
         let currentYoutubeUrl = '';
+        let ytSyncInterval = null;
 
         let canvas, ctx;
         let isDrawing = false;
@@ -733,14 +734,37 @@
                     events: { 'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); } }
                 });
             }
+            startYTSync();
+        }
+
+        function startYTSync() {
+            if (ytSyncInterval) clearInterval(ytSyncInterval);
+            ytSyncInterval = setInterval(() => {
+                if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
+                    broadcastToAllStudents('YT_SYNC', { state: teacherYTPlayer.getPlayerState(), time: teacherYTPlayer.getCurrentTime() });
+                } else if (stageMode !== 'youtube') {
+                    clearInterval(ytSyncInterval);
+                }
+            }, 1000);
         }
 
         function applyYoutubeSync(payload) {
-            if (!studentYTPlayer || typeof studentYTPlayer.seekTo !== 'function') return;
+            if (!studentYTPlayer || typeof studentYTPlayer.getPlayerState !== 'function') return;
             try {
-                if (payload.state === 1) { studentYTPlayer.seekTo(payload.time, true); studentYTPlayer.playVideo(); } 
-                else if (payload.state === 2) { studentYTPlayer.pauseVideo(); studentYTPlayer.seekTo(payload.time, true); } 
-                else if (payload.state === 0) { studentYTPlayer.stopVideo(); }
+                const currentState = studentYTPlayer.getPlayerState();
+                const currentTime = studentYTPlayer.getCurrentTime();
+
+                if (payload.state === 1) { 
+                    if (currentState !== 1) studentYTPlayer.playVideo();
+                    if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
+                } 
+                else if (payload.state === 2) { 
+                    if (currentState !== 2) studentYTPlayer.pauseVideo(); 
+                    if (Math.abs(currentTime - payload.time) > 1) studentYTPlayer.seekTo(payload.time, true); 
+                } 
+                else if (payload.state === 0) { 
+                    if (currentState !== 0) studentYTPlayer.stopVideo(); 
+                }
             } catch(e) {}
         }
 
@@ -981,8 +1005,15 @@
             else if (payload.mode === 'ppt') { img.src = payload.pptSlideUrl; img.classList.remove('hidden'); }
             else if (payload.mode === 'youtube') {
                 ytWrap.classList.remove('hidden');
-                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') { studentYTPlayer.loadVideoById(payload.youtubeId); } 
-                else { studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } }); }
+                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
+                    if (currentYoutubeUrl !== payload.youtubeId) {
+                        studentYTPlayer.loadVideoById(payload.youtubeId);
+                        currentYoutubeUrl = payload.youtubeId;
+                    }
+                } else {
+                    currentYoutubeUrl = payload.youtubeId;
+                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } });
+                }
             }
         }
 
@@ -1000,31 +1031,74 @@
             else { wrap.classList.replace('bg-white', 'bg-slate-950'); c.style.backgroundColor = 'transparent'; }
         }
 
-        async function studentToggleCam() {
-            const selfVideo = document.getElementById('studentSelfVideo'); const btn = document.getElementById('studentCamBtn');
-            if (!isStudentCamActive) {
-                try {
-                    studentLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isStudentMicActive });
-                    selfVideo.srcObject = studentLocalStream; selfVideo.classList.remove('hidden');
-                    btn.classList.replace('bg-slate-800', 'bg-emerald-600'); btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
-                    isStudentCamActive = true;
-                    if (peerInstance) { const cleanRoom = getCleanRoomId(); peerInstance.call(`${cleanRoom}-host`, studentLocalStream); }
-                    showToast('Cámara compartida con el profesor', 'success');
-                } catch(e) { showToast('No se pudo activar', 'error'); }
-            } else {
-                if (studentLocalStream) studentLocalStream.getVideoTracks().forEach(t => t.stop());
+        async function updateStudentMedia() {
+            if (studentLocalStream) {
+                studentLocalStream.getTracks().forEach(t => t.stop());
+                studentLocalStream = null;
+            }
+            const selfVideo = document.getElementById('studentSelfVideo');
+            
+            if (!isStudentCamActive && !isStudentMicActive) {
                 selfVideo.classList.add('hidden');
-                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
-                isStudentCamActive = false;
+                return;
+            }
+
+            try {
+                studentLocalStream = await navigator.mediaDevices.getUserMedia({
+                    video: isStudentCamActive,
+                    audio: isStudentMicActive
+                });
+                selfVideo.srcObject = studentLocalStream;
+                if (isStudentCamActive) selfVideo.classList.remove('hidden');
+                else selfVideo.classList.add('hidden');
+
+                if (peerInstance) {
+                    const cleanRoom = getCleanRoomId();
+                    peerInstance.call(`${cleanRoom}-host`, studentLocalStream);
+                }
+            } catch(e) {
+                showToast('Permisos de cámara/micrófono denegados', 'error');
+                if (isStudentCamActive) {
+                    isStudentCamActive = false;
+                    const btn = document.getElementById('studentCamBtn');
+                    btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+                    btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
+                }
+                if (isStudentMicActive) {
+                    isStudentMicActive = false;
+                    const btn = document.getElementById('studentMicBtn');
+                    btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+                    btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`;
+                }
             }
         }
 
-        function studentToggleMic() {
+        async function studentToggleCam() {
+            const btn = document.getElementById('studentCamBtn');
+            isStudentCamActive = !isStudentCamActive;
+            if (isStudentCamActive) {
+                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
+                btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
+            } else {
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); 
+                btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
+            }
+            await updateStudentMedia();
+            if (isStudentCamActive) showToast('Cámara compartida con el profesor', 'success');
+        }
+
+        async function studentToggleMic() {
             const btn = document.getElementById('studentMicBtn');
             isStudentMicActive = !isStudentMicActive;
-            if (studentLocalStream) studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
-            if (isStudentMicActive) { btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; btn.classList.replace('bg-slate-800', 'bg-emerald-600'); } 
-            else { btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; btn.classList.replace('bg-emerald-600', 'bg-slate-800'); }
+            if (isStudentMicActive) { 
+                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; 
+                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
+            } else { 
+                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; 
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); 
+            }
+            await updateStudentMedia();
+            if (isStudentMicActive) showToast('Micrófono activado', 'success');
         }
 
         function studentRaiseHand() {
