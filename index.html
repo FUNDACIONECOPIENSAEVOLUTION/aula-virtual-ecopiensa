@@ -697,18 +697,20 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.17</span>
+        Versión: <span id="appVersionDisplay">1.18</span>
     </div>
 
     <script>
         /*
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Version 1.17: Corregido el problema de visualización del video del docente 
-         *              manteniendo el canvas de rayado transparente.
+         * Version 1.18: Corregida la visualización del video del docente en el estudiante.
+         *              - Se fuerza la aplicación del modo al recibir el stream.
+         *              - Se almacena el modo actual en el estudiante.
+         *              - Se asegura que el video se muestre y reproduzca.
          * ============================================================================
          */
-        let appVersion = "1.17"; 
+        let appVersion = "1.18"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -733,6 +735,9 @@
         let isStudentCamActive = false;
         let isStudentMicActive = false;
         let isHandRaised = false;
+
+        // Modo actual en el estudiante (para usarlo al recibir el stream)
+        let currentStudentStageMode = 'none';
 
         let audioMixerCtx = null;
         let audioMixerDest = null;
@@ -912,15 +917,19 @@
                         });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
+                    // Escuchar llamadas entrantes del docente
                     peerInstance.on('call', (call) => {
                         call.answer(); 
                         call.on('stream', (remoteTeacherStream) => {
                             const stdVideo = document.getElementById('studentReceivedVideo');
                             if (stdVideo && remoteTeacherStream) { 
                                 stdVideo.srcObject = remoteTeacherStream; 
-                                stdVideo.play().catch(e=>{});
-                                // Asegurar que el video se muestre
+                                // Forzar la aplicación del modo actual para mostrar el video
                                 stdVideo.classList.remove('hidden');
+                                stdVideo.play().catch(e=>console.warn('Error al reproducir video del docente:', e));
+                                // Aplicar el modo que tengamos almacenado para asegurar que se muestre
+                                applyStageMode({ mode: currentStudentStageMode });
+                                console.log('Stream de docente recibido y asignado.');
                             }
                         });
                     });
@@ -971,7 +980,11 @@
             } else if (currentRole === 'student') {
                 if (type === 'TEACHER_ADMITTED' && (payload.studentId === currentStudentId || payload.studentId === 'ALL')) onStudentAdmittedByTeacher();
                 else if (type === 'FULL_STATE_SYNC') applyFullSync(payload);
-                else if (type === 'STAGE_MODE_CHANGE') applyStageMode(payload);
+                else if (type === 'STAGE_MODE_CHANGE') {
+                    // Almacenar el modo actual
+                    currentStudentStageMode = payload.mode;
+                    applyStageMode(payload);
+                }
                 else if (type === 'CANVAS_DRAW') applyStatelessDrawSegment(payload.stroke);
                 else if (type === 'CANVAS_CLEAR') mirrorCanvasClear();
                 else if (type === 'CANVAS_BG_TOGGLE') applyWhiteboardBg(payload.isWhite);
@@ -1206,6 +1219,9 @@
         }
 
         function applyStageMode(payload) {
+            // Almacenar el modo actual
+            if (payload.mode) currentStudentStageMode = payload.mode;
+
             const ph = document.getElementById('studentStreamPlaceholder');
             const vid = document.getElementById('studentReceivedVideo');
             const img = document.getElementById('studentSlideImage');
@@ -1219,7 +1235,10 @@
             }
             else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
                 vid.classList.remove('hidden'); 
-                if (vid.srcObject) vid.play().catch(e=>{}); 
+                // Si el srcObject ya está asignado, reproducir
+                if (vid.srcObject) {
+                    vid.play().catch(e=>console.warn('Error al reproducir video en applyStageMode:', e));
+                }
             }
             else if (payload.mode === 'ppt') { 
                 img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
@@ -1414,12 +1433,10 @@
             isWhiteBackground = !isWhiteBackground;
             const vp = document.getElementById('teacherViewportFrame');
             if (isWhiteBackground) {
-                // Solo cambiamos el fondo del contenedor, el canvas permanece transparente
                 vp.classList.replace('bg-slate-950', 'bg-white');
             } else {
                 vp.classList.replace('bg-white', 'bg-slate-950');
             }
-            // El canvas no debe cambiar su fondo, siempre transparente
             broadcastToAllStudents('CANVAS_BG_TOGGLE', { isWhite: isWhiteBackground });
         }
 
@@ -1489,7 +1506,10 @@
         }
 
         function applyFullSync(payload) {
-            applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
+            // Almacenar el modo
+            if (payload.mode) currentStudentStageMode = payload.mode;
+            applyStageMode(payload); 
+            applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
             const c = document.getElementById('studentCanvasMirror'); 
             if(c) {
@@ -1518,13 +1538,11 @@
 
         function applyWhiteboardBg(isWhite) {
             const wrap = document.getElementById('studentStreamWrapper');
-            // Solo cambiamos el fondo del contenedor, no el canvas
             if(isWhite) {
                 wrap.classList.replace('bg-slate-950', 'bg-white');
             } else {
                 wrap.classList.replace('bg-white', 'bg-slate-950');
             }
-            // El canvas se mantiene transparente
         }
 
         async function updateStudentMedia() {
