@@ -1,4 +1,4 @@
-e<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
@@ -220,15 +220,16 @@ e<!DOCTYPE html>
                 </div>
 
                 <div id="studentStreamWrapper" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Presentación">
+                    <!-- Z-INDEX 10: El video recibido del docente -->
+                    <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-10" autoplay playsinline></video>
+                    <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-10" src="" alt="Presentación">
                     
-                    <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
+                    <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-10 iframe-container">
                         <div id="studentYoutubePlayer"></div>
                     </div>
 
-                    <!-- Overlay para desbloquear video si el navegador aplica política de Autoplay -->
-                    <div id="studentPlayOverlay" onclick="enableStudentAudioVideo()" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex flex-col items-center justify-center cursor-pointer text-center p-6">
+                    <!-- Z-INDEX 40: Overlay de activación si el navegador bloquea Autoplay -->
+                    <div id="studentPlayOverlay" onclick="enableStudentAudioVideo()" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-40 flex flex-col items-center justify-center cursor-pointer text-center p-6">
                         <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mb-3 text-2xl border border-emerald-500/30 animate-bounce">
                             <i class="fas fa-play"></i>
                         </div>
@@ -239,11 +240,13 @@ e<!DOCTYPE html>
                         </button>
                     </div>
                     
-                    <!-- Capa Transparente de Rayado del Estudiante -->
-                    <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none" style="background-color:transparent !important;"></canvas>
+                    <!-- Z-INDEX 20: Capa Transparente de Rayado del Estudiante (por encima del video) -->
+                    <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-20 pointer-events-none" style="background-color:transparent !important;"></canvas>
                     
-                    <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
+                    <!-- Z-INDEX 30: Minifoto de cámara propia del estudiante -->
+                    <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-30 shadow-lg" autoplay playsinline muted></video>
 
+                    <!-- Z-INDEX 0: Placeholder mientras conecta -->
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0">
                         <i class="fas fa-chalkboard text-6xl text-slate-700 mb-4 animate-pulse"></i>
                         <h3 class="text-white font-bold text-xl">Conectado correctamente</h3>
@@ -749,23 +752,23 @@ e<!DOCTYPE html>
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.19</span>
+        Versión: <span id="appVersionDisplay">1.20</span>
     </div>
 
     <script>
         /*
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Versión 1.19:
-         * 1. Solucionado el streaming de video WebRTC agregando STUN Servers de Google.
-         * 2. Incorporado campo de Grado/Curso al solicitar ingreso de estudiante.
-         * 3. Sistema de Heartbeat (presencia real) en Asistencia: Detecta conectados reales.
-         * 4. Registro completo: Grado, Fecha/Hora Ingreso, Fecha/Hora Salida, Duración exacta.
-         * 5. Agregado botón para eliminar alumnos del historial de asistencia.
-         * 6. Filtro dinámico de asistencia por Grado.
+         * Versión 1.20:
+         * 1. Solución al problema de visualización de video del docente en estudiantes:
+         *    - Solicitud automática de permisos al dar clic en "Solicitar Acceso" (desbloquea Autoplay).
+         *    - Ajuste de jerarquía Z-Index (Video z-10, Canvas transparente z-20, Placeholder z-0).
+         *    - Autoplay resiliente con fallback mediante superposición de activación.
+         * 2. Sincronización del nombre del docente en el Header superior del estudiante.
+         * 3. Registro de asistencia completo: Grado, hora/fecha ingreso y salida, duración real.
          * ============================================================================
          */
-        let appVersion = "1.19"; 
+        let appVersion = "1.20"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -856,6 +859,7 @@ e<!DOCTYPE html>
             if (roleParam === 'student') {
                 currentRole = 'student';
                 teacherName = tnameParam ? decodeURIComponent(tnameParam) : 'Tu Profesor';
+                document.getElementById('headerTeacherName').textContent = teacherName;
                 document.getElementById('studentFormTeacherName').textContent = teacherName;
                 document.getElementById('studentContainerView').classList.remove('hidden');
                 
@@ -1365,10 +1369,14 @@ e<!DOCTYPE html>
             else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
                 vid.classList.remove('hidden'); 
                 if (vid.srcObject) {
-                    vid.play().catch(e => {
-                        const overlay = document.getElementById('studentPlayOverlay');
-                        if (overlay) overlay.classList.remove('hidden');
-                    }); 
+                    ph.classList.add('hidden');
+                    const playPromise = vid.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            const overlay = document.getElementById('studentPlayOverlay');
+                            if (overlay) overlay.classList.remove('hidden');
+                        });
+                    }
                 } else {
                     ph.classList.remove('hidden');
                     const h3 = ph.querySelector('h3');
@@ -1945,13 +1953,24 @@ e<!DOCTYPE html>
             }, 500);
         }
 
-        function requestEntryAsStudent() {
+        async function requestEntryAsStudent() {
             const name = document.getElementById('studentInputName').value.trim();
             const grade = document.getElementById('studentInputGrade').value;
 
             if (!name) { showToast('Escribe tu nombre completo', 'warning'); return; }
             if (!grade) { showToast('Selecciona tu grado o curso', 'warning'); return; }
             
+            // Solicitar permisos de audio y video al presionar "Solicitar Acceso"
+            // Esto sirve como gesto del usuario para autorizar la reproducción automática (Autoplay) de audio y video en móviles.
+            try {
+                const dummyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }).catch(() => null);
+                if (dummyStream) {
+                    dummyStream.getTracks().forEach(t => t.stop()); // Liberar la prueba
+                }
+            } catch(e) {
+                console.warn("Permisos iniciales omitidos:", e);
+            }
+
             currentStudentGrade = grade;
             localStorage.setItem(`pombo_std_name_${roomCode}`, name);
             localStorage.setItem(`pombo_std_grade_${roomCode}`, grade);
