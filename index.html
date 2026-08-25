@@ -205,13 +205,15 @@
                         <div id="studentYoutubePlayer"></div>
                     </div>
                     
+                    <!-- Capa Transparente de Rayado del Estudiante -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
+                    
                     <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
 
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0">
                         <i class="fas fa-chalkboard text-6xl text-slate-700 mb-4 animate-pulse"></i>
                         <h3 class="text-white font-bold text-xl">Conectado correctamente</h3>
-                        <p class="text-sm text-slate-400 mt-2 max-w-sm mx-auto">Espera a que el profesor inicie su cámara, comparta pantalla, video o quiz.</p>
+                        <p class="text-sm text-slate-400 mt-2 max-w-sm mx-auto">Espera a que el profesor inicie su cámara, comparta pantalla o un video.</p>
                     </div>
                 </div>
 
@@ -230,117 +232,6 @@
                         </button>
                         <button onclick="studentLeaveClass()" class="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/30 text-sm font-bold px-5 py-2 rounded-xl transition">Salir</button>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- VISTA DOCENTE (TABS) -->
-
-        <!-- TAB 1: AULA CENTRAL / TRANSMISIÓN -->
-        <div id="tab-live" class="tab-content hidden animate-fade-in space-y-6">
-
-            <div id="teacherVideoStage" class="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative">
-                <div class="p-3.5 bg-slate-950 flex justify-between items-center text-white border-b border-slate-800 z-30">
-                    <div class="flex items-center gap-3">
-                        <span class="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md">
-                            <i class="fas fa-broadcast-tower animate-pulse"></i> TRANSMITIENDO
-                        </span>
-                        <h2 class="font-outfit font-bold text-sm sm:text-base text-slate-200" id="teacherStageTitle">Pizarra Interactiva</h2>
-                    </div>
-                </div>
-
-                <div id="teacherViewportFrame" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
-                    <div id="videoOffPlaceholder" class="text-center p-8 z-0">
-                        <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-5 shadow-inner">
-                            <i class="fas fa-photo-video text-4xl"></i>
-                        </div>
-                        <h3 class="text-2xl font-outfit font-bold text-white mb-2">Escenario Central</h3>
-                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Usa los controles de abajo para proyectar tu cámara, pantalla, un archivo PDF o tus evaluaciones.</p>
-                    </div>
-
-                    <video id="webcamVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
-                    <video id="screenShareVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
-                    <img id="teacherSlideViewer" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Diapositiva">
-                    
-                    <div id="teacherYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
-                        <div id="teacherYoutubePlayer"></div>
-                    </div>
-                    
-                    <video id="pinnedStudentVideo" class="absolute inset-0 w-full h-full object-contain hidden z-10 bg-slate-900 border-4 border-pombo-500" autoplay playsinline></video>
-                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active"></canvas>
-
-                    <!-- CONTROLES FLOTANTES PPT -->
-                    <div id="pptSlideControls" class="hidden absolute top-4 left-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-2xl">
-                        <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-left"></i></button>
-                        <span id="pptSlideCounter" class="text-xs text-amber-400 font-bold px-2">1 / 1</span>
-                        <button onclick="nextPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-right"></i></button>
-                        <span class="text-slate-600">|</span>
-                        <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-times"></i> Cerrar</button>
-                    </div>
-
-                    <div id="ytControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
-                        <button onclick="closeYoutubeVideo()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>
-                    </div>
-
-                    <div id="pinControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
-                        <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Dejar de Fijar</button>
-                    </div>
-                </div>
-
-                <div id="drawingToolbar" class="bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
-                    <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
-                        <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                            <button onclick="togglePointerMode()" id="tool-pointer" class="tool-btn p-2 rounded-lg text-amber-400 hover:bg-slate-800 text-xs font-bold flex items-center gap-1.5 border border-amber-500/30">
-                                <i class="fas fa-mouse-pointer"></i> <span class="hidden sm:inline">Puntero Clic</span>
-                            </button>
-                            <div class="w-px h-6 bg-slate-700 mx-1"></div>
-                            <button onclick="setTool('pen')" id="tool-pen" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1 font-bold">
-                                <i class="fas fa-pencil-alt"></i> <span class="hidden sm:inline">Rayar</span>
-                            </button>
-                            <button onclick="setTool('highlighter')" id="tool-highlighter" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"><i class="fas fa-highlighter"></i></button>
-                            <button onclick="setTool('eraser')" id="tool-eraser" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1"><i class="fas fa-eraser"></i></button>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
-                                <button onclick="setColor('#ef4444')" class="w-6 h-6 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
-                                <button onclick="setColor('#f59e0b')" class="w-6 h-6 rounded-full bg-amber-500 hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
-                                <button onclick="setColor('#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
-                                <button onclick="setColor('#3b82f6')" class="w-6 h-6 rounded-full bg-blue-500 hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
-                                <button onclick="setColor('#ffffff')" class="w-6 h-6 rounded-full bg-white hover:scale-110 transition ring-2 ring-white/20 shadow-sm"></button>
-                            </div>
-                            <div class="hidden sm:flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-700">
-                                <input type="range" min="2" max="30" value="5" onchange="setLineWidth(this.value)" class="w-24 accent-pombo-500 cursor-pointer">
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="clearCanvas()" class="bg-slate-700 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm"><i class="fas fa-trash-alt"></i> Borrar Todo</button>
-                            <button onclick="toggleCanvasGrid()" id="btnWhiteboardGrid" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition shadow-sm"><i class="fas fa-square"></i> Pizarra Blanca</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-slate-950 p-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button id="btnToggleCam" onclick="toggleCameraStream()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold flex items-center gap-2 transition shadow border border-slate-700"><i class="fas fa-video-slash text-red-400"></i> <span class="hidden sm:inline">Cámara</span></button>
-                        <button id="btnToggleMic" onclick="toggleMic()" class="w-12 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm flex items-center justify-center transition shadow"><i class="fas fa-microphone"></i></button>
-                        <button id="btnShareScreen" onclick="toggleScreenShare()" class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700"><i class="fas fa-desktop text-pombo-400"></i> <span class="hidden sm:inline">Compartir Pantalla</span></button>
-                        <label class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700 cursor-pointer">
-                            <i class="fas fa-file-pdf text-amber-400"></i> <span class="hidden md:inline">PDF / PowerPoint</span>
-                            <input type="file" accept="image/*,.pdf,.pptx,.ppt" multiple onchange="handleFileUploadFlow(event)" class="hidden">
-                        </label>
-                    </div>
-                    <button onclick="stopAllStreams()" class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg transition"><i class="fas fa-power-off"></i> Finalizar Clase</button>
-                </div>
-            </div>
-
-            <!-- Panel de Estudiantes en Vivo -->
-            <div class="mt-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
-                <div class="flex justify-between items-center mb-3">
-                    <h3 class="text-slate-800 text-sm font-bold flex items-center gap-2"><i class="fas fa-users text-pombo-500"></i> Cámaras de los Estudiantes</h3>
-                    <span class="text-xs text-slate-500">Clic para fijar y transmitir al escenario central</span>
-                </div>
-                <div id="realStudentMiniatures" class="flex gap-3 overflow-x-auto pb-2 min-h-[100px] items-center">
-                    <div class="text-slate-400 text-xs w-full text-center">Esperando conexiones de los estudiantes...</div>
                 </div>
             </div>
         </div>
@@ -687,18 +578,19 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.13</span>
+        Versión: <span id="appVersionDisplay">1.14</span>
     </div>
 
     <script>
         /*
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Actualizado a v1.13 para solucionar la notificación de autorización del 
-         * estudiante al ingresar a la clase (función sendSignalToSpecificStudent).
+         * Actualizado a v1.14 para solucionar la transmisión completa de video,
+         * imágenes PDF, YouTube y rayados en la pantalla del estudiante, además de
+         * implementar el orden aleatorio de respuestas por estudiante.
          * ============================================================================
          */
-        let appVersion = "1.13"; 
+        let appVersion = "1.14"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -854,7 +746,7 @@
 
         function initCloudSignaling() {
             const cleanRoom = getCleanRoomId();
-            if (window.self !== window.top) { console.log("Modo Preview Canvas: WebRTC en pausa."); return; }
+            if (window.self !== window.top) { console.log("Modo Preview Canvas: WebRTC en pausa."); }
 
             if (currentRole === 'teacher') {
                 try {
@@ -887,6 +779,7 @@
                         const conn = peerInstance.connect(`${cleanRoom}-host`);
                         conn.on('open', () => { 
                             teacherDataConnection = conn; 
+                            sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
                         });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
@@ -936,7 +829,7 @@
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name);
-                else if (type === 'REQUEST_FULL_STATE') { sendFullStateToStudent(); setTimeout(() => { pushTeacherStreamToStudents(); }, 500); }
+                else if (type === 'REQUEST_FULL_STATE') { sendFullStateToStudent(connection); setTimeout(() => { pushTeacherStreamToStudents(); }, 500); }
                 else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
                 else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
                 else if (type === 'CHAT_MESSAGE') { appendChatMessage(payload.senderName, payload.role, payload.text); broadcastToAllStudents('CHAT_MESSAGE', payload); }
@@ -1223,114 +1116,7 @@
                     currentYoutubeUrl = payload.youtubeId;
                 }
             }
-        }
-
-        async function toggleCameraStream() {
-            const btnCam = document.getElementById('btnToggleCam');
-            const camVid = document.getElementById('webcamVideo');
-            if (!isCameraActive) {
-                try {
-                    localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                    localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
-                    camVid.srcObject = localMediaStream;
-                    btnCam.classList.replace('bg-slate-800', 'bg-emerald-600');
-                    isCameraActive = true;
-                    setStageMode('webcam');
-                    pushTeacherStreamToStudents();
-                    showToast('Cámara encendida', 'success');
-                } catch(err) { showToast('Acceso a cámara denegado', 'error'); }
-            } else {
-                if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
-                btnCam.classList.replace('bg-emerald-600', 'bg-slate-800');
-                isCameraActive = false;
-                setStageMode(isScreenSharing ? 'screen' : 'none');
-                pushTeacherStreamToStudents();
-            }
-        }
-
-        function toggleMic() {
-            isMicActive = !isMicActive;
-            if (localMediaStream) localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
-            const btn = document.getElementById('btnToggleMic');
-            if (isMicActive) { btn.innerHTML = `<i class="fas fa-microphone"></i>`; btn.classList.replace('bg-red-600', 'bg-emerald-600'); } 
-            else { btn.innerHTML = `<i class="fas fa-microphone-slash text-white"></i>`; btn.classList.replace('bg-emerald-600', 'bg-red-600'); }
-        }
-
-        async function toggleScreenShare() {
-            const scrVid = document.getElementById('screenShareVideo');
-            const btnScr = document.getElementById('btnShareScreen');
-            if (!isScreenSharing) {
-                try {
-                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-                    scrVid.srcObject = screenShareStream;
-                    isScreenSharing = true;
-                    btnScr.classList.replace('bg-slate-800', 'bg-emerald-600');
-                    setStageMode('screen');
-                    pushTeacherStreamToStudents();
-                    showToast('Pantalla compartida', 'success');
-                    
-                    screenShareStream.getVideoTracks()[0].onended = () => {
-                        isScreenSharing = false;
-                        screenShareStream = null; 
-                        btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
-                        setStageMode(isCameraActive ? 'webcam' : 'none');
-                        pushTeacherStreamToStudents();
-                    };
-                } catch(err) {
-                    showToast('Permiso de pantalla cancelado o denegado', 'error');
-                }
-            } else {
-                if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
-                screenShareStream = null; 
-                isScreenSharing = false;
-                btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
-                setStageMode(isCameraActive ? 'webcam' : 'none');
-                pushTeacherStreamToStudents();
-            }
-        }
-
-        function handleFileUploadFlow(event) {
-            const files = Array.from(event.target.files);
-            if (!files || files.length === 0) return;
-            if (files[0].name.endsWith('.pptx') || files[0].name.endsWith('.ppt')) {
-                document.getElementById('pptxWarningModal').classList.remove('hidden'); event.target.value = ''; 
-            } else { processValidUpload(files); }
-        }
-        function closePptxWarning() { document.getElementById('pptxWarningModal').classList.add('hidden'); }
-
-        async function processValidUpload(files) {
-            showToast('Procesando...', 'info');
-            let newSlides = [];
-            for (const file of files) {
-                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                    try {
-                        const fileArrayBuffer = await file.arrayBuffer();
-                        const pdfDoc = await pdfjsLib.getDocument({ data: fileArrayBuffer }).promise;
-                        for (let i = 1; i <= pdfDoc.numPages; i++) {
-                            const page = await pdfDoc.getPage(i);
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const tempCanvas = document.createElement('canvas');
-                            tempCanvas.width = viewport.width; tempCanvas.height = viewport.height;
-                            await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
-                            newSlides.push(tempCanvas.toDataURL('image/jpeg', 0.85));
-                        }
-                    } catch(err) { showToast('Error al leer PDF.', 'error'); }
-                } else if (file.type.startsWith('image/')) {
-                    const dataUrl = await new Promise((r) => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
-                    newSlides.push(dataUrl);
-                }
-            }
-            if (newSlides.length > 0) {
-                pptSlides = newSlides; currentPptIndex = 0; clearCanvas(); setStageMode('ppt');
-                document.getElementById('pptSlideCounter').textContent = `1 / ${pptSlides.length}`;
-            }
-        }
-        function prevPptSlide() { if(currentPptIndex>0) { currentPptIndex--; updatePptDisplay(); } }
-        function nextPptSlide() { if(currentPptIndex<pptSlides.length-1) { currentPptIndex++; updatePptDisplay(); } }
-        function updatePptDisplay() {
-            document.getElementById('teacherSlideViewer').src = pptSlides[currentPptIndex];
-            document.getElementById('pptSlideCounter').textContent = `${currentPptIndex + 1} / ${pptSlides.length}`;
-            clearCanvas(); broadcastStageMode();
+            setTimeout(resizeCanvas, 150);
         }
 
         function initCanvas() {
@@ -1349,11 +1135,21 @@
         }
 
         function resizeCanvas() {
-            if (!canvas) return;
-            const rect = canvas.parentElement.getBoundingClientRect();
-            if(rect.width===0) return;
-            canvas.width = rect.width; canvas.height = rect.height;
-            redrawAllStrokes(canvas, drawingStrokes);
+            if (currentRole === 'teacher') {
+                if (!canvas) return;
+                const rect = canvas.parentElement.getBoundingClientRect();
+                if(rect.width===0) return;
+                canvas.width = rect.width; canvas.height = rect.height;
+                redrawAllStrokes(canvas, drawingStrokes);
+            } else {
+                const stdCanvas = document.getElementById('studentCanvasMirror');
+                if (!stdCanvas) return;
+                const rect = stdCanvas.parentElement.getBoundingClientRect();
+                if (rect.width > 0) {
+                    stdCanvas.width = rect.width; stdCanvas.height = rect.height;
+                    redrawAllStrokes(stdCanvas, drawingStrokes);
+                }
+            }
         }
 
         function togglePointerMode() {
@@ -1402,7 +1198,9 @@
             const normX = coords.x / canvas.width; const normY = coords.y / canvas.height;
             renderLineSegment(ctx, canvas.width, canvas.height, lastNormX, lastNormY, normX, normY, currentTool, currentColor, currentLineWidth);
             activeStroke.points.push({ x: normX, y: normY });
-            broadcastToAllStudents('CANVAS_DRAW', { stroke: { fromX: lastNormX, fromY: lastNormY, toX: normX, toY: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
+            
+            const strokeSegment = { fromX: lastNormX, fromY: lastNormY, toX: normX, toY: normY, tool: currentTool, color: currentColor, width: currentLineWidth };
+            broadcastToAllStudents('CANVAS_DRAW', { stroke: strokeSegment });
             lastNormX = normX; lastNormY = normY;
         }
 
@@ -1421,7 +1219,11 @@
             const targetCtx = targetCanvas.getContext('2d'); if(!targetCtx) return;
             targetCtx.clearRect(0,0, targetCanvas.width, targetCanvas.height);
             strokes.forEach(s => {
-                if(s.points.length > 1) { for(let i=1; i<s.points.length; i++) { renderLineSegment(targetCtx, targetCanvas.width, targetCanvas.height, s.points[i-1].x, s.points[i-1].y, s.points[i].x, s.points[i].y, s.tool, s.color, s.width); } }
+                if(s.points && s.points.length > 1) { 
+                    for(let i=1; i<s.points.length; i++) { 
+                        renderLineSegment(targetCtx, targetCanvas.width, targetCanvas.height, s.points[i-1].x, s.points[i-1].y, s.points[i].x, s.points[i].y, s.tool, s.color, s.width); 
+                    } 
+                }
             });
         }
 
@@ -1447,298 +1249,38 @@
         function applyFullSync(payload) {
             applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
-            const c = document.getElementById('studentCanvasMirror'); if(c) redrawAllStrokes(c, drawingStrokes);
+            const c = document.getElementById('studentCanvasMirror'); 
+            if(c) {
+                const rect = c.parentElement.getBoundingClientRect();
+                if (rect.width > 0) { c.width = rect.width; c.height = rect.height; }
+                redrawAllStrokes(c, drawingStrokes);
+            }
             if (payload.activeQuiz) { handleStudentReceivedQuizStart(payload.activeQuiz); }
         }
 
         function applyStatelessDrawSegment(s) {
             const stdCanvas = document.getElementById('studentCanvasMirror'); if (!stdCanvas) return;
             renderLineSegment(stdCanvas.getContext('2d'), stdCanvas.width, stdCanvas.height, s.fromX, s.fromY, s.toX, s.toY, s.tool, s.color, s.width);
+            
+            // Reconstruir objeto de trazo para persisitr si el estudiante redimensiona
+            if (!activeStroke || activeStroke.tool !== s.tool || activeStroke.color !== s.color) {
+                activeStroke = { tool: s.tool, color: s.color, width: s.width, points: [{ x: s.fromX, y: s.fromY }] };
+                drawingStrokes.push(activeStroke);
+            }
+            activeStroke.points.push({ x: s.toX, y: s.toY });
         }
+
         function mirrorCanvasClear() {
             const stdCanvas = document.getElementById('studentCanvasMirror');
-            if (stdCanvas) stdCanvas.getContext('2d').clearRect(0,0,stdCanvas.width,stdCanvas.height); drawingStrokes = [];
+            if (stdCanvas) stdCanvas.getContext('2d').clearRect(0,0,stdCanvas.width,stdCanvas.height); drawingStrokes = []; activeStroke = null;
         }
+
         function applyWhiteboardBg(isWhite) {
             const wrap = document.getElementById('studentStreamWrapper'); const c = document.getElementById('studentCanvasMirror');
             if(isWhite) { wrap.classList.replace('bg-slate-950', 'bg-white'); c.style.backgroundColor = 'white'; }
             else { wrap.classList.replace('bg-white', 'bg-slate-950'); c.style.backgroundColor = 'transparent'; }
         }
 
-        async function updateStudentMedia() {
-            if (studentLocalStream) {
-                studentLocalStream.getTracks().forEach(t => t.stop());
-                studentLocalStream = null;
-            }
-            const selfVideo = document.getElementById('studentSelfVideo');
-            
-            if (!isStudentCamActive && !isStudentMicActive) {
-                selfVideo.classList.add('hidden');
-                return;
-            }
-
-            try {
-                studentLocalStream = await navigator.mediaDevices.getUserMedia({
-                    video: isStudentCamActive,
-                    audio: isStudentMicActive
-                });
-                selfVideo.srcObject = studentLocalStream;
-                if (isStudentCamActive) selfVideo.classList.remove('hidden');
-                else selfVideo.classList.add('hidden');
-
-                if (peerInstance) {
-                    const cleanRoom = getCleanRoomId();
-                    peerInstance.call(`${cleanRoom}-host`, studentLocalStream);
-                }
-            } catch(e) {
-                showToast('Permisos de cámara/micrófono denegados', 'error');
-                if (isStudentCamActive) {
-                    isStudentCamActive = false;
-                    const btn = document.getElementById('studentCamBtn');
-                    btn.classList.replace('bg-emerald-600', 'bg-slate-800');
-                    btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
-                }
-                if (isStudentMicActive) {
-                    isStudentMicActive = false;
-                    const btn = document.getElementById('studentMicBtn');
-                    btn.classList.replace('bg-emerald-600', 'bg-slate-800');
-                    btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`;
-                }
-            }
-        }
-
-        async function studentToggleCam() {
-            const btn = document.getElementById('studentCamBtn');
-            isStudentCamActive = !isStudentCamActive;
-            if (isStudentCamActive) {
-                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
-                btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
-            } else {
-                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); 
-                btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
-            }
-            await updateStudentMedia();
-            if (isStudentCamActive) showToast('Cámara compartida con el profesor', 'success');
-        }
-
-        async function studentToggleMic() {
-            const btn = document.getElementById('studentMicBtn');
-            isStudentMicActive = !isStudentMicActive;
-            if (isStudentMicActive) { 
-                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; 
-                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
-            } else { 
-                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; 
-                btn.classList.replace('bg-emerald-600', 'bg-slate-800'); 
-            }
-            await updateStudentMedia();
-            if (isStudentMicActive) showToast('Micrófono activado', 'success');
-        }
-
-        function studentRaiseHand() {
-            isHandRaised = !isHandRaised;
-            const btn = document.getElementById('studentHandBtn');
-            const name = document.getElementById('studentInputName').value || 'Estudiante';
-            if (isHandRaised) {
-                btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; 
-                btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Mano Levantada</span>`;
-                sendSignalToTeacher('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
-                showToast('Mano levantada.', 'info');
-            } else {
-                btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; 
-                btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar Mano</span>`;
-                sendSignalToTeacher('STUDENT_LOWER_HAND', { studentId: currentStudentId });
-            }
-        }
-        
-        function studentLeaveClass() {
-            localStorage.removeItem(`pombo_std_id_${roomCode}`);
-            localStorage.removeItem(`pombo_std_name_${roomCode}`);
-            window.location.reload();
-        }
-
-        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
-            const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
-            const student = realAdmittedStudents.find(s => s.id === studentId);
-            const studentName = student ? student.name : 'Estudiante';
-            const container = document.getElementById('realStudentMiniatures');
-            if (!container) return;
-            
-            if(container.innerHTML.includes("Esperando")) container.innerHTML = '';
-
-            let existing = document.getElementById(`std-video-${studentId}`);
-            if (!existing) {
-                const wrapper = document.createElement('div');
-                wrapper.id = `std-wrapper-${studentId}`;
-                wrapper.className = "w-40 h-24 bg-slate-900 rounded-xl border-2 border-slate-700 relative overflow-hidden shadow-lg animate-fade-in shrink-0 cursor-pointer hover:border-pombo-500 transition";
-                wrapper.onclick = () => pinStudentLocally(studentId, studentName);
-                wrapper.innerHTML = `<video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video><div class="absolute bottom-1 left-1 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-white font-bold truncate max-w-[90%]"><i class="fas fa-video text-emerald-400"></i> ${studentName}</div>`;
-                container.appendChild(wrapper);
-                existing = document.getElementById(`std-video-${studentId}`);
-            }
-            if (existing) { existing.srcObject = remoteStudentStream; }
-        }
-
-        function pinStudentLocally(studentId, studentName) {
-            const videoElem = document.getElementById(`std-video-${studentId}`);
-            if (!videoElem || !videoElem.srcObject) return;
-            const pinnedVid = document.getElementById('pinnedStudentVideo');
-            pinnedVid.srcObject = videoElem.srcObject;
-            setStageMode('student_pin');
-            document.getElementById('teacherStageTitle').innerHTML = `<i class="fas fa-user-check text-emerald-400"></i> Viendo a: ${studentName}`;
-            pushTeacherStreamToStudents(); 
-        }
-
-        function handleTeacherReceivedRaiseHand(studentId, studentName) {
-            const list = document.getElementById('handQueueList');
-            const emptyMsg = document.getElementById('emptyHandsMsg');
-            if (emptyMsg) emptyMsg.remove();
-            
-            const countElem = document.getElementById('handCount');
-            if (countElem) countElem.textContent = parseInt(countElem.textContent || 0) + 1;
-            
-            const li = document.createElement('li');
-            li.setAttribute('data-student-id', studentId);
-            li.className = 'p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs animate-fade-in';
-            li.innerHTML = `<span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${studentName}</span><button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Atendida</button>`;
-            list.appendChild(li);
-            
-            playChime(); showToast(`✋ ¡${studentName} levantó la mano!`, 'warning');
-            const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.remove('hidden');
-        }
-
-        function handleTeacherReceivedLowerHand(studentId) {
-            const list = document.getElementById('handQueueList'); if (!list) return;
-            const items = list.querySelectorAll('li');
-            items.forEach(item => { if (item.getAttribute('data-student-id') === studentId) item.remove(); });
-            const countElem = document.getElementById('handCount');
-            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
-        }
-
-        function lowerHand(btn) { btn.closest('li').remove(); const countElem = document.getElementById('handCount'); if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1); }
-
-        function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const msg = input.value.trim();
-            if (!msg) return;
-            const sender = currentRole === 'teacher' ? teacherName : (document.getElementById('studentInputName').value || 'Estudiante');
-            const roleStr = currentRole === 'teacher' ? 'Docente' : 'Estudiante';
-            appendChatMessage(sender, roleStr, msg);
-            const payload = { senderName: sender, role: roleStr, text: msg };
-            if (currentRole === 'teacher') broadcastToAllStudents('CHAT_MESSAGE', payload);
-            else sendSignalToTeacher('CHAT_MESSAGE', payload);
-            input.value = '';
-        }
-
-        function appendChatMessage(name, role, text) {
-            const chatBox = document.getElementById('chatMessages');
-            if (!chatBox) return;
-            const div = document.createElement('div');
-            div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
-            div.innerHTML = `<div class="w-7 h-7 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">${name.charAt(0).toUpperCase()}</div><div><strong class="text-slate-800 block">${name} <span class="text-[9px] text-slate-400 font-normal">(${role})</span></strong> <span class="text-slate-600">${text}</span></div>`;
-            chatBox.appendChild(div); chatBox.scrollTop = chatBox.scrollHeight;
-            if(currentRole === 'teacher') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.remove('hidden'); }
-        }
-
-        function getRoomState() { try { const r = localStorage.getItem(`pombo_state_${roomCode}`); return r?JSON.parse(r):{w:[],a:[]}; } catch(e){return {w:[],a:[]};} }
-        function saveRoomState(s) { try { localStorage.setItem(`pombo_state_${roomCode}`, JSON.stringify(s)); } catch(e){} }
-
-        function startStatePolling() {
-            pollingInterval = setInterval(() => {
-                const s = getRoomState();
-                if(currentRole==='teacher') {
-                    let changed = false;
-                    s.w.forEach(st => { if(!realWaitingStudents.some(w=>w.id===st.id)&&!realAdmittedStudents.some(a=>a.id===st.id)){ realWaitingStudents.push(st); changed=true; playChime(); } });
-                    if(changed) renderWaitingLists();
-                } else if (currentRole === 'student' && currentStudentId) {
-                    if (s.a && s.a.some(a => a.id === currentStudentId)) {
-                        const classBox = document.getElementById('studentClassroomBox');
-                        if (classBox && classBox.classList.contains('hidden')) {
-                            onStudentAdmittedByTeacher();
-                        }
-                    }
-                }
-            }, 400);
-        }
-
-        function requestEntryAsStudent() {
-            const name = document.getElementById('studentInputName').value.trim();
-            if (!name) { showToast('Escribe tu nombre', 'warning'); return; }
-            
-            document.getElementById('studentWaitingAlert').classList.remove('hidden');
-            document.getElementById('studentWaitingAlert').innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i> Esperando autorización del profesor...';
-            
-            const req = { id: currentStudentId, name, time: new Date().toLocaleTimeString() };
-            
-            const state = getRoomState();
-            state.a = state.a.filter(a => a.id !== currentStudentId);
-            if (!state.w.some(w => w.id === currentStudentId)) {
-                state.w.push(req);
-            }
-            saveRoomState(state);
-            
-            sendSignalToTeacher('STUDENT_JOIN_REQUEST', req);
-            showToast('Solicitud enviada al docente', 'info');
-        }
-
-        function handleIncomingStudentRequest(id, name) {
-            realAdmittedStudents = realAdmittedStudents.filter(s => s.id !== id);
-            
-            if(!realWaitingStudents.some(s=>s.id===id)){
-                const state = getRoomState();
-                if (!state.w.some(w => w.id === id)) {
-                    state.w.push({id, name, time: new Date().toLocaleTimeString()});
-                    saveRoomState(state);
-                }
-                realWaitingStudents.push({id, name, time: new Date().toLocaleTimeString()});
-                renderWaitingLists(); playChime();
-                
-                const btnWaiting = document.getElementById('teacherNavWaitingBtn');
-                if (btnWaiting) {
-                    btnWaiting.classList.add('animate-bounce');
-                    setTimeout(() => btnWaiting.classList.remove('animate-bounce'), 3000);
-                }
-            }
-        }
-
-        function renderWaitingLists() {
-            const count = realWaitingStudents.length;
-            document.getElementById('navWaitingCountBadge').textContent = count;
-            document.getElementById('modalWaitingCount').textContent = count;
-            const cont = document.getElementById('modalWaitingList');
-            if(cont) {
-                cont.innerHTML = realWaitingStudents.map(s => `
-                    <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between shadow-sm">
-                        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center">${s.name.charAt(0).toUpperCase()}</div><div><h4 class="font-bold text-slate-800">${s.name}</h4><span class="text-xs text-slate-400">${s.time}</span></div></div>
-                        <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-lg"><i class="fas fa-check"></i> Admitir</button>
-                    </div>
-                `).join('') || '<p class="text-center py-6 text-slate-400">Sala vacía.</p>';
-            }
-        }
-
-        function admitStudent(id) {
-            const st = realWaitingStudents.find(s=>s.id===id); if(!st) return;
-            realWaitingStudents = realWaitingStudents.filter(s=>s.id!==id);
-            st.joinedAt = new Date().toLocaleTimeString();
-            if (!realAdmittedStudents.some(a => a.id === id)) {
-                realAdmittedStudents.push(st);
-            }
-            
-            const state = getRoomState();
-            state.w = state.w.filter(w=>w.id!==id);
-            if (!state.a.some(a => a.id === id)) {
-                state.a.push(st);
-            }
-            saveRoomState(state);
-            
-            renderWaitingLists(); renderRealAttendanceTable();
-            sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-            setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1000); 
-            showToast(`Estudiante ${st.name} admitido`, 'success');
-        }
-        
-        function admitAllWaitingStudents() { const c=[...realWaitingStudents]; c.forEach(s=>admitStudent(s.id)); closeWaitingRoomModal(); }
-        
         function onStudentAdmittedByTeacher() {
             const formBox = document.getElementById('studentFormBox');
             const classBox = document.getElementById('studentClassroomBox');
@@ -1750,19 +1292,415 @@
 
             showToast('¡Has ingresado a la clase!', 'success');
             sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
-            setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 300);
+            setTimeout(()=>{ window.dispatchEvent(new Event('resize')); resizeCanvas(); }, 300);
         }
 
-        function renderRealAttendanceTable() {
-            const tb = document.getElementById('attendanceTableBody'); if(!tb) return;
-            tb.innerHTML = realAdmittedStudents.map(s=>`<tr><td class="py-4 px-5 font-semibold">${s.name}</td><td class="py-4 px-5 text-slate-500 text-xs">${s.joinedAt}</td><td class="py-4 px-5"><span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">En Aula</span></td></tr>`).join('') || `<tr><td colspan="3" class="text-center py-8 text-slate-400">Nadie conectado.</td></tr>`;
-            document.getElementById('tabBadgeCount').textContent = realAdmittedStudents.length;
+        // Helper para aleatorizar arrays manteniendo índices o pares
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
         }
 
-        /* ============================================================================
-         * LÓGICA DEL CREADOR DE QUIZZES (DOCENTE)
-         * ============================================================================
-         */
+        function renderStudentQuestions(questions, container) {
+            container.innerHTML = questions.map((q, idx) => {
+                let optionsHtml = '';
+
+                if (q.type === 'multiple') {
+                    // Aleatorizar el orden de las respuestas para este estudiante manteniendo el índice original
+                    const mappedOptions = q.options.map((opt, origIdx) => ({ opt, origIdx }));
+                    const shuffledOptions = shuffleArray(mappedOptions);
+
+                    optionsHtml = `
+                        <div class="space-y-2 mt-3">
+                            ${shuffledOptions.map((item, i) => `
+                                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-pombo-50 cursor-pointer transition">
+                                    <input type="radio" name="std_ans_${q.id}" value="${item.origIdx}" onchange="saveStudentAnswer('${q.id}', ${item.origIdx})" class="w-4 h-4 text-pombo-600">
+                                    <span class="font-bold text-xs text-slate-700">${String.fromCharCode(65+i)}:</span>
+                                    <span class="text-xs text-slate-800">${item.opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'tf') {
+                    // Orden aleatorio para Verdadero/Falso en algunos estudiantes
+                    const tfChoices = Math.random() > 0.5 ? 
+                        [{ val: true, label: 'Verdadero', color: 'emerald' }, { val: false, label: 'Falso', color: 'red' }] :
+                        [{ val: false, label: 'Falso', color: 'red' }, { val: true, label: 'Verdadero', color: 'emerald' }];
+
+                    optionsHtml = `
+                        <div class="flex gap-3 mt-3">
+                            ${tfChoices.map(c => `
+                                <label class="flex-1 text-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-${c.color}-50 cursor-pointer font-bold text-xs text-${c.color}-700">
+                                    <input type="radio" name="std_ans_${q.id}" value="${c.val}" onchange="saveStudentAnswer('${q.id}', ${c.val})" class="mr-1"> ${c.label}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'fill') {
+                    optionsHtml = `
+                        <div class="mt-3">
+                            <input type="text" oninput="saveStudentAnswer('${q.id}', this.value)" placeholder="Escribe tu respuesta aquí..." class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
+                        </div>
+                    `;
+                } else if (q.type === 'match') {
+                    // Aleatorizar la columna derecha para la selección del estudiante
+                    const rightOptions = shuffleArray(q.pairs.map(p => p.right));
+
+                    optionsHtml = `
+                        <div class="mt-3 space-y-2">
+                            ${q.pairs.map((p) => `
+                                <div class="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                    <span class="font-bold text-slate-800 flex-1">${p.left}</span>
+                                    <i class="fas fa-arrows-alt-h text-slate-400"></i>
+                                    <select onchange="saveStudentMatchAnswer('${q.id}', '${p.left}', this.value)" class="flex-1 p-2 rounded-lg border border-slate-300 text-xs">
+                                        <option value="">Selecciona pareja...</option>
+                                        ${rightOptions.map(rOpt => `<option value="${rOpt}">${rOpt}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="p-4 sm:p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-pombo-100 text-pombo-700 text-xs font-black px-2.5 py-1 rounded-lg">Pregunta ${idx+1}</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-900 text-sm sm:text-base">${q.title}</h4>
+                        ${optionsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleStudentReceivedQuizStart(quizData) {
+            activeQuizState = quizData;
+            studentQuizAnswers = {};
+            studentHasSubmittedEarly = false;
+            
+            const noticeBar = document.getElementById('studentQuizNoticeBar');
+            if (noticeBar) noticeBar.classList.remove('hidden');
+            
+            playChime();
+            showToast('📋 ¡El docente ha iniciado un quiz en vivo!', 'warning');
+            openStudentQuizModal();
+        }
+
+        function openStudentQuizModal() {
+            if(!activeQuizState) return;
+            
+            document.getElementById('studentQuizModalTitle').textContent = activeQuizState.title;
+            const container = document.getElementById('studentQuizQuestionsContainer');
+            const resultBox = document.getElementById('studentQuizResultBox');
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
+            const btnClose = document.getElementById('btnCloseStudentQuizModal');
+
+            resultBox.classList.add('hidden');
+            
+            if (studentHasSubmittedEarly) {
+                container.classList.add('hidden');
+                waitingBox.classList.remove('hidden');
+                btnSubmit.classList.add('hidden');
+                btnClose.classList.remove('hidden');
+            } else {
+                container.classList.remove('hidden');
+                waitingBox.classList.add('hidden');
+                btnSubmit.classList.remove('hidden');
+                btnClose.classList.add('hidden');
+                renderStudentQuestions(activeQuizState.questions, container);
+            }
+
+            document.getElementById('studentQuizModal').classList.remove('hidden');
+            startStudentQuizTimer();
+        }
+
+        function closeStudentQuizModal() {
+            document.getElementById('studentQuizModal').classList.add('hidden');
+        }
+
+        function saveStudentAnswer(qId, val) {
+            studentQuizAnswers[qId] = val;
+        }
+
+        function saveStudentMatchAnswer(qId, leftItem, selectedRight) {
+            if(!studentQuizAnswers[qId]) studentQuizAnswers[qId] = {};
+            studentQuizAnswers[qId][leftItem] = selectedRight;
+        }
+
+        function startStudentQuizTimer() {
+            if (studentQuizTimerInterval) clearInterval(studentQuizTimerInterval);
+            
+            const totalDurationSec = activeQuizState.durationMinutes * 60;
+            const timerDisplay = document.getElementById('studentQuizTimerDisplay');
+            const countdownDisplay = document.getElementById('studentWaitingCountdown');
+
+            studentQuizTimerInterval = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - activeQuizState.startTime) / 1000);
+                const remainingSec = Math.max(0, totalDurationSec - elapsedSec);
+
+                const mins = Math.floor(remainingSec / 60);
+                const secs = remainingSec % 60;
+                const formatted = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+                if(timerDisplay) timerDisplay.textContent = formatted;
+                if(countdownDisplay) countdownDisplay.textContent = formatted;
+
+                if (remainingSec <= 0) {
+                    clearInterval(studentQuizTimerInterval);
+                    onQuizTimerExpired();
+                }
+            }, 1000);
+        }
+
+        function submitStudentQuizAnswers() {
+            if (studentHasSubmittedEarly) return;
+            studentHasSubmittedEarly = true;
+
+            const name = document.getElementById('studentInputName').value || 'Estudiante';
+            const submissionPayload = {
+                studentId: currentStudentId,
+                studentName: name,
+                quizId: activeQuizState.id,
+                quizTitle: activeQuizState.title,
+                answers: studentQuizAnswers,
+                submittedAt: new Date().toLocaleTimeString()
+            };
+
+            sendSignalToTeacher('QUIZ_SUBMIT', submissionPayload);
+
+            const container = document.getElementById('studentQuizQuestionsContainer');
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
+            const btnClose = document.getElementById('btnCloseStudentQuizModal');
+
+            container.classList.add('hidden');
+            waitingBox.classList.remove('hidden');
+            btnSubmit.classList.add('hidden');
+            btnClose.classList.remove('hidden');
+
+            showToast('✅ Cuestionario entregado. Esperando fin del tiempo oficial.', 'info');
+        }
+
+        function onQuizTimerExpired() {
+            if (!studentHasSubmittedEarly) {
+                submitStudentQuizAnswers();
+            }
+
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const resultBox = document.getElementById('studentQuizResultBox');
+            
+            if(waitingBox) waitingBox.classList.add('hidden');
+            if(resultBox) resultBox.classList.remove('hidden');
+
+            const scoreData = calculateQuizScore(activeQuizState.questions, studentQuizAnswers);
+            document.getElementById('studentFinalGradeDisplay').textContent = `${scoreData.grade.toFixed(1)} / 5.0`;
+            document.getElementById('studentFinalScoreDetail').textContent = `Aciertos: ${scoreData.correctCount} de ${scoreData.totalCount} preguntas (${scoreData.percentage}%)`;
+
+            showToast('⏰ El tiempo ha terminado. ¡Revisa tu calificación!', 'success');
+        }
+
+        function calculateQuizScore(questions, answers) {
+            let correctCount = 0;
+            const totalCount = questions.length;
+
+            questions.forEach(q => {
+                const userAns = answers[q.id];
+                if (q.type === 'multiple' || q.type === 'tf') {
+                    if (userAns !== undefined && userAns === q.correctAnswer) correctCount++;
+                } else if (q.type === 'fill') {
+                    if (userAns && typeof userAns === 'string' && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()) {
+                        correctCount++;
+                    }
+                } else if (q.type === 'match') {
+                    if (userAns && typeof userAns === 'object') {
+                        let matchesAll = true;
+                        q.pairs.forEach(p => {
+                            if (userAns[p.left] !== p.right) matchesAll = false;
+                        });
+                        if (matchesAll) correctCount++;
+                    }
+                }
+            });
+
+            const grade = totalCount > 0 ? (correctCount / totalCount) * 5.0 : 0;
+            const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+            return { correctCount, totalCount, grade, percentage };
+        }
+
+        function handleTeacherReceivedQuizSubmission(payload) {
+            const quiz = activeQuizState || currentTeacherQuiz;
+            const scoreData = calculateQuizScore(quiz.questions, payload.answers);
+
+            const record = {
+                id: 'grade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                studentId: payload.studentId,
+                studentName: payload.studentName,
+                quizTitle: payload.quizTitle || quiz.title,
+                score: scoreData.grade,
+                correctCount: scoreData.correctCount,
+                totalCount: scoreData.totalCount,
+                percentage: scoreData.percentage,
+                submittedAt: payload.submittedAt,
+                answers: payload.answers,
+                questions: quiz.questions
+            };
+
+            teacherSavedGrades.push(record);
+            saveGradesToStorage();
+            renderGradesTable();
+            
+            showToast(`⭐ Calificación recibida de: ${payload.studentName} (${scoreData.grade.toFixed(1)}/5.0)`, 'success');
+            playChime();
+        }
+
+        function renderGradesTable() {
+            const tbody = document.getElementById('gradesTableBody');
+            const countBadge = document.getElementById('gradesBadgeCount');
+            if(!tbody) return;
+
+            countBadge.textContent = teacherSavedGrades.length;
+
+            if (teacherSavedGrades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-slate-400">
+                            <i class="fas fa-clipboard-list text-3xl mb-2 text-slate-300 block"></i>
+                            Aún no se han recibido evaluaciones respondidas.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = teacherSavedGrades.map((g, idx) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="py-4 px-5 font-bold text-slate-800">${g.studentName}</td>
+                    <td class="py-4 px-5 text-slate-600 text-xs">${g.quizTitle}</td>
+                    <td class="py-4 px-5 text-center font-outfit font-black text-base ${g.score >= 3.0 ? 'text-emerald-600':'text-red-500'}">
+                        ${g.score.toFixed(1)}
+                    </td>
+                    <td class="py-4 px-5 text-center text-xs font-medium text-slate-500">
+                        ${g.correctCount} / ${g.totalCount} (${g.percentage}%)
+                    </td>
+                    <td class="py-4 px-5 text-xs text-slate-400 font-mono">${g.submittedAt}</td>
+                    <td class="py-4 px-5 text-center">
+                        <button onclick="viewGradeDetail(${idx})" class="bg-pombo-100 hover:bg-pombo-600 hover:text-white text-pombo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            <i class="fas fa-eye"></i> Ver Detalle
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewGradeDetail(index) {
+            const grade = teacherSavedGrades[index];
+            if(!grade) return;
+
+            document.getElementById('detailStudentName').textContent = `Estudiante: ${grade.studentName}`;
+            document.getElementById('detailQuizTitle').textContent = `${grade.quizTitle} • Nota: ${grade.score.toFixed(1)} / 5.0`;
+
+            const container = document.getElementById('detailAnswersContainer');
+            container.innerHTML = grade.questions.map((q, i) => {
+                const userAns = grade.answers[q.id];
+                let isCorrect = false;
+                let ansText = 'Sin responder';
+
+                if (q.type === 'multiple') {
+                    isCorrect = (userAns === q.correctAnswer);
+                    ansText = userAns !== undefined ? `Opción ${q.options[userAns]}` : 'Sin responder';
+                } else if (q.type === 'tf') {
+                    isCorrect = (userAns === q.correctAnswer);
+                    ansText = userAns !== undefined ? (userAns ? 'VERDADERO':'FALSO') : 'Sin responder';
+                } else if (q.type === 'fill') {
+                    isCorrect = (userAns && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
+                    ansText = userAns || 'Sin responder';
+                } else if (q.type === 'match') {
+                    ansText = JSON.stringify(userAns || {});
+                    isCorrect = true;
+                }
+
+                return `
+                    <div class="p-3.5 rounded-2xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/40':'border-red-200 bg-red-50/40'} text-xs">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-slate-800">Pregunta ${i+1}: ${q.title}</span>
+                            <span class="font-bold ${isCorrect ? 'text-emerald-700':'text-red-700'}">
+                                ${isCorrect ? 'Correcta ✓':'Incorrecta ✗'}
+                            </span>
+                        </div>
+                        <p class="text-slate-600">Respuesta dada: <strong class="text-slate-900">${ansText}</strong></p>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('gradeDetailModal').classList.remove('hidden');
+        }
+
+        function closeGradeDetailModal() {
+            document.getElementById('gradeDetailModal').classList.add('hidden');
+        }
+
+        function saveGradesToStorage() {
+            try { localStorage.setItem(`pombo_grades_${roomCode}`, JSON.stringify(teacherSavedGrades)); } catch(e){}
+        }
+
+        function loadSavedGradesFromStorage() {
+            try {
+                const data = localStorage.getItem(`pombo_grades_${roomCode}`);
+                if(data) teacherSavedGrades = JSON.parse(data);
+            } catch(e){}
+        }
+
+        function clearAllGrades() {
+            if (teacherSavedGrades.length === 0) return;
+            teacherSavedGrades = [];
+            saveGradesToStorage();
+            renderGradesTable();
+            showToast('Historial de notas borrado correctamente', 'info');
+        }
+
+        function exportGradesToCSV() {
+            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,Estudiante,Quiz,Nota (0-5),Aciertos,Total,Porcentaje,Hora\n";
+            teacherSavedGrades.forEach(g => {
+                csvContent += `"${g.studentName}","${g.quizTitle}",${g.score.toFixed(1)},${g.correctCount},${g.totalCount},${g.percentage}%,"${g.submittedAt}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Notas_Escuela_Rafael_Pombo_${roomCode}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function exportGradesToTXT() {
+            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
+            let txt = `====================================================\n`;
+            txt += `REPORTE DE EVALUACIONES Y QUIZZES - ESCUELA RAFAEL POMBO\n`;
+            txt += `Código de Aula: ${roomCode} | Docente: ${teacherName}\n`;
+            txt += `Fecha de Descarga: ${new Date().toLocaleString()}\n`;
+            txt += `====================================================\n\n`;
+
+            teacherSavedGrades.forEach((g, idx) => {
+                txt += `${idx+1}. ESTUDIANTE: ${g.studentName}\n`;
+                txt += `   Quiz: ${g.quizTitle}\n`;
+                txt += `   Calificación Final: ${g.score.toFixed(1)} / 5.0 (${g.percentage}%)\n`;
+                txt += `   Hora Entrega: ${g.submittedAt}\n`;
+                txt += `----------------------------------------------------\n`;
+            });
+
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Reporte_Respuestas_${roomCode}.txt`;
+            link.click();
+        }
 
         function renderTeacherQuestionsList() {
             const container = document.getElementById('teacherQuestionsList');
@@ -2001,409 +1939,6 @@
             broadcastToAllStudents('QUIZ_START', quizPayload);
             showToast('🚀 Quiz enviado exitosamente a todos los alumnos', 'success');
             playChime();
-        }
-
-        /* ============================================================================
-         * LÓGICA DEL ESTUDIANTE AL RECIBIR UN QUIZ EN VIVO
-         * ============================================================================
-         */
-
-        function handleStudentReceivedQuizStart(quizData) {
-            activeQuizState = quizData;
-            studentQuizAnswers = {};
-            studentHasSubmittedEarly = false;
-            
-            // Mostrar barra de aviso en la pantalla del alumno
-            const noticeBar = document.getElementById('studentQuizNoticeBar');
-            if (noticeBar) noticeBar.classList.remove('hidden');
-            
-            playChime();
-            showToast('📋 ¡El docente ha iniciado un quiz en vivo!', 'warning');
-            openStudentQuizModal();
-        }
-
-        function openStudentQuizModal() {
-            if(!activeQuizState) return;
-            
-            document.getElementById('studentQuizModalTitle').textContent = activeQuizState.title;
-            const container = document.getElementById('studentQuizQuestionsContainer');
-            const resultBox = document.getElementById('studentQuizResultBox');
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
-            const btnClose = document.getElementById('btnCloseStudentQuizModal');
-
-            resultBox.classList.add('hidden');
-            
-            if (studentHasSubmittedEarly) {
-                container.classList.add('hidden');
-                waitingBox.classList.remove('hidden');
-                btnSubmit.classList.add('hidden');
-                btnClose.classList.remove('hidden');
-            } else {
-                container.classList.remove('hidden');
-                waitingBox.classList.add('hidden');
-                btnSubmit.classList.remove('hidden');
-                btnClose.classList.add('hidden');
-                renderStudentQuestions(activeQuizState.questions, container);
-            }
-
-            document.getElementById('studentQuizModal').classList.remove('hidden');
-            startStudentQuizTimer();
-        }
-
-        function closeStudentQuizModal() {
-            document.getElementById('studentQuizModal').classList.add('hidden');
-        }
-
-        function renderStudentQuestions(questions, container) {
-            container.innerHTML = questions.map((q, idx) => {
-                let optionsHtml = '';
-
-                if (q.type === 'multiple') {
-                    optionsHtml = `
-                        <div class="space-y-2 mt-3">
-                            ${q.options.map((opt, i) => `
-                                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-pombo-50 cursor-pointer transition">
-                                    <input type="radio" name="std_ans_${q.id}" value="${i}" onchange="saveStudentAnswer('${q.id}', ${i})" class="w-4 h-4 text-pombo-600">
-                                    <span class="font-bold text-xs text-slate-700">${String.fromCharCode(65+i)}:</span>
-                                    <span class="text-xs text-slate-800">${opt}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    `;
-                } else if (q.type === 'tf') {
-                    optionsHtml = `
-                        <div class="flex gap-3 mt-3">
-                            <label class="flex-1 text-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-emerald-50 cursor-pointer font-bold text-xs text-emerald-700">
-                                <input type="radio" name="std_ans_${q.id}" value="true" onchange="saveStudentAnswer('${q.id}', true)" class="mr-1"> Verdadero
-                            </label>
-                            <label class="flex-1 text-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-red-50 cursor-pointer font-bold text-xs text-red-700">
-                                <input type="radio" name="std_ans_${q.id}" value="false" onchange="saveStudentAnswer('${q.id}', false)" class="mr-1"> Falso
-                            </label>
-                        </div>
-                    `;
-                } else if (q.type === 'fill') {
-                    optionsHtml = `
-                        <div class="mt-3">
-                            <input type="text" oninput="saveStudentAnswer('${q.id}', this.value)" placeholder="Escribe tu respuesta aquí..." class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
-                        </div>
-                    `;
-                } else if (q.type === 'match') {
-                    // Emparejamiento: Desplegables para seleccionar pareado
-                    optionsHtml = `
-                        <div class="mt-3 space-y-2">
-                            ${q.pairs.map((p, pIdx) => `
-                                <div class="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                                    <span class="font-bold text-slate-800 flex-1">${p.left}</span>
-                                    <i class="fas fa-arrows-alt-h text-slate-400"></i>
-                                    <select onchange="saveStudentMatchAnswer('${q.id}', '${p.left}', this.value)" class="flex-1 p-2 rounded-lg border border-slate-300 text-xs">
-                                        <option value="">Selecciona pareja...</option>
-                                        ${q.pairs.map(p2 => `<option value="${p2.right}">${p2.right}</option>`).join('')}
-                                    </select>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                }
-
-                return `
-                    <div class="p-4 sm:p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="bg-pombo-100 text-pombo-700 text-xs font-black px-2.5 py-1 rounded-lg">Pregunta ${idx+1}</span>
-                        </div>
-                        <h4 class="font-semibold text-slate-900 text-sm sm:text-base">${q.title}</h4>
-                        ${optionsHtml}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function saveStudentAnswer(qId, val) {
-            studentQuizAnswers[qId] = val;
-        }
-
-        function saveStudentMatchAnswer(qId, leftItem, selectedRight) {
-            if(!studentQuizAnswers[qId]) studentQuizAnswers[qId] = {};
-            studentQuizAnswers[qId][leftItem] = selectedRight;
-        }
-
-        function startStudentQuizTimer() {
-            if (studentQuizTimerInterval) clearInterval(studentQuizTimerInterval);
-            
-            const totalDurationSec = activeQuizState.durationMinutes * 60;
-            const timerDisplay = document.getElementById('studentQuizTimerDisplay');
-            const countdownDisplay = document.getElementById('studentWaitingCountdown');
-
-            studentQuizTimerInterval = setInterval(() => {
-                const elapsedSec = Math.floor((Date.now() - activeQuizState.startTime) / 1000);
-                const remainingSec = Math.max(0, totalDurationSec - elapsedSec);
-
-                const mins = Math.floor(remainingSec / 60);
-                const secs = remainingSec % 60;
-                const formatted = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-
-                if(timerDisplay) timerDisplay.textContent = formatted;
-                if(countdownDisplay) countdownDisplay.textContent = formatted;
-
-                if (remainingSec <= 0) {
-                    clearInterval(studentQuizTimerInterval);
-                    onQuizTimerExpired();
-                }
-            }, 1000);
-        }
-
-        function submitStudentQuizAnswers() {
-            if (studentHasSubmittedEarly) return;
-            studentHasSubmittedEarly = true;
-
-            const name = document.getElementById('studentInputName').value || 'Estudiante';
-            const submissionPayload = {
-                studentId: currentStudentId,
-                studentName: name,
-                quizId: activeQuizState.id,
-                quizTitle: activeQuizState.title,
-                answers: studentQuizAnswers,
-                submittedAt: new Date().toLocaleTimeString()
-            };
-
-            // Enviar respuesta al docente en tiempo real
-            sendSignalToTeacher('QUIZ_SUBMIT', submissionPayload);
-
-            // Transicionar vista del estudiante a pantalla de espera
-            const container = document.getElementById('studentQuizQuestionsContainer');
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
-            const btnClose = document.getElementById('btnCloseStudentQuizModal');
-
-            container.classList.add('hidden');
-            waitingBox.classList.remove('hidden');
-            btnSubmit.classList.add('hidden');
-            btnClose.classList.remove('hidden');
-
-            showToast('✅ Cuestionario entregado. Esperando fin del tiempo oficial.', 'info');
-        }
-
-        function onQuizTimerExpired() {
-            // Se cumplió el tiempo oficial configurado por el docente
-            if (!studentHasSubmittedEarly) {
-                submitStudentQuizAnswers();
-            }
-
-            // Calcular nota y revelar retroalimentación inmediatamente al estudiante
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const resultBox = document.getElementById('studentQuizResultBox');
-            
-            if(waitingBox) waitingBox.classList.add('hidden');
-            if(resultBox) resultBox.classList.remove('hidden');
-
-            const scoreData = calculateQuizScore(activeQuizState.questions, studentQuizAnswers);
-            document.getElementById('studentFinalGradeDisplay').textContent = `${scoreData.grade.toFixed(1)} / 5.0`;
-            document.getElementById('studentFinalScoreDetail').textContent = `Aciertos: ${scoreData.correctCount} de ${scoreData.totalCount} preguntas (${scoreData.percentage}%)`;
-
-            showToast('⏰ El tiempo ha terminado. ¡Revisa tu calificación!', 'success');
-        }
-
-        function calculateQuizScore(questions, answers) {
-            let correctCount = 0;
-            const totalCount = questions.length;
-
-            questions.forEach(q => {
-                const userAns = answers[q.id];
-                if (q.type === 'multiple' || q.type === 'tf') {
-                    if (userAns !== undefined && userAns === q.correctAnswer) correctCount++;
-                } else if (q.type === 'fill') {
-                    if (userAns && typeof userAns === 'string' && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()) {
-                        correctCount++;
-                    }
-                } else if (q.type === 'match') {
-                    if (userAns && typeof userAns === 'object') {
-                        let matchesAll = true;
-                        q.pairs.forEach(p => {
-                            if (userAns[p.left] !== p.right) matchesAll = false;
-                        });
-                        if (matchesAll) correctCount++;
-                    }
-                }
-            });
-
-            const grade = totalCount > 0 ? (correctCount / totalCount) * 5.0 : 0;
-            const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
-
-            return { correctCount, totalCount, grade, percentage };
-        }
-
-        /* ============================================================================
-         * GESTIÓN DE NOTAS Y CALIFICACIONES (DOCENTE)
-         * ============================================================================
-         */
-
-        function handleTeacherReceivedQuizSubmission(payload) {
-            // payload: { studentId, studentName, quizId, quizTitle, answers, submittedAt }
-            const quiz = activeQuizState || currentTeacherQuiz;
-            const scoreData = calculateQuizScore(quiz.questions, payload.answers);
-
-            const record = {
-                id: 'grade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                studentId: payload.studentId,
-                studentName: payload.studentName,
-                quizTitle: payload.quizTitle || quiz.title,
-                score: scoreData.grade,
-                correctCount: scoreData.correctCount,
-                totalCount: scoreData.totalCount,
-                percentage: scoreData.percentage,
-                submittedAt: payload.submittedAt,
-                answers: payload.answers,
-                questions: quiz.questions
-            };
-
-            teacherSavedGrades.push(record);
-            saveGradesToStorage();
-            renderGradesTable();
-            
-            showToast(`⭐ Calificación recibida de: ${payload.studentName} (${scoreData.grade.toFixed(1)}/5.0)`, 'success');
-            playChime();
-        }
-
-        function renderGradesTable() {
-            const tbody = document.getElementById('gradesTableBody');
-            const countBadge = document.getElementById('gradesBadgeCount');
-            if(!tbody) return;
-
-            countBadge.textContent = teacherSavedGrades.length;
-
-            if (teacherSavedGrades.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-10 text-slate-400">
-                            <i class="fas fa-clipboard-list text-3xl mb-2 text-slate-300 block"></i>
-                            Aún no se han recibido evaluaciones respondidas.
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            tbody.innerHTML = teacherSavedGrades.map((g, idx) => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="py-4 px-5 font-bold text-slate-800">${g.studentName}</td>
-                    <td class="py-4 px-5 text-slate-600 text-xs">${g.quizTitle}</td>
-                    <td class="py-4 px-5 text-center font-outfit font-black text-base ${g.score >= 3.0 ? 'text-emerald-600':'text-red-500'}">
-                        ${g.score.toFixed(1)}
-                    </td>
-                    <td class="py-4 px-5 text-center text-xs font-medium text-slate-500">
-                        ${g.correctCount} / ${g.totalCount} (${g.percentage}%)
-                    </td>
-                    <td class="py-4 px-5 text-xs text-slate-400 font-mono">${g.submittedAt}</td>
-                    <td class="py-4 px-5 text-center">
-                        <button onclick="viewGradeDetail(${idx})" class="bg-pombo-100 hover:bg-pombo-600 hover:text-white text-pombo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                            <i class="fas fa-eye"></i> Ver Detalle
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function viewGradeDetail(index) {
-            const grade = teacherSavedGrades[index];
-            if(!grade) return;
-
-            document.getElementById('detailStudentName').textContent = `Estudiante: ${grade.studentName}`;
-            document.getElementById('detailQuizTitle').textContent = `${grade.quizTitle} • Nota: ${grade.score.toFixed(1)} / 5.0`;
-
-            const container = document.getElementById('detailAnswersContainer');
-            container.innerHTML = grade.questions.map((q, i) => {
-                const userAns = grade.answers[q.id];
-                let isCorrect = false;
-                let ansText = 'Sin responder';
-
-                if (q.type === 'multiple') {
-                    isCorrect = (userAns === q.correctAnswer);
-                    ansText = userAns !== undefined ? `Opción ${String.fromCharCode(65+userAns)} (${q.options[userAns]})` : 'Sin responder';
-                } else if (q.type === 'tf') {
-                    isCorrect = (userAns === q.correctAnswer);
-                    ansText = userAns !== undefined ? (userAns ? 'VERDADERO':'FALSO') : 'Sin responder';
-                } else if (q.type === 'fill') {
-                    isCorrect = (userAns && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
-                    ansText = userAns || 'Sin responder';
-                } else if (q.type === 'match') {
-                    ansText = JSON.stringify(userAns || {});
-                    isCorrect = true; // simplificado visual
-                }
-
-                return `
-                    <div class="p-3.5 rounded-2xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/40':'border-red-200 bg-red-50/40'} text-xs">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-slate-800">Pregunta ${i+1}: ${q.title}</span>
-                            <span class="font-bold ${isCorrect ? 'text-emerald-700':'text-red-700'}">
-                                ${isCorrect ? 'Correcta ✓':'Incorrecta ✗'}
-                            </span>
-                        </div>
-                        <p class="text-slate-600">Respuesta dada: <strong class="text-slate-900">${ansText}</strong></p>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('gradeDetailModal').classList.remove('hidden');
-        }
-
-        function closeGradeDetailModal() {
-            document.getElementById('gradeDetailModal').classList.add('hidden');
-        }
-
-        function saveGradesToStorage() {
-            try { localStorage.setItem(`pombo_grades_${roomCode}`, JSON.stringify(teacherSavedGrades)); } catch(e){}
-        }
-
-        function loadSavedGradesFromStorage() {
-            try {
-                const data = localStorage.getItem(`pombo_grades_${roomCode}`);
-                if(data) teacherSavedGrades = JSON.parse(data);
-            } catch(e){}
-        }
-
-        function clearAllGrades() {
-            if (teacherSavedGrades.length === 0) return;
-            teacherSavedGrades = [];
-            saveGradesToStorage();
-            renderGradesTable();
-            showToast('Historial de notas borrado correctamente', 'info');
-        }
-
-        function exportGradesToCSV() {
-            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
-            let csvContent = "data:text/csv;charset=utf-8,Estudiante,Quiz,Nota (0-5),Aciertos,Total,Porcentaje,Hora\n";
-            teacherSavedGrades.forEach(g => {
-                csvContent += `"${g.studentName}","${g.quizTitle}",${g.score.toFixed(1)},${g.correctCount},${g.totalCount},${g.percentage}%,"${g.submittedAt}"\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Notas_Escuela_Rafael_Pombo_${roomCode}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        }
-
-        function exportGradesToTXT() {
-            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
-            let txt = `====================================================\n`;
-            txt += `REPORTE DE EVALUACIONES Y QUIZZES - ESCUELA RAFAEL POMBO\n`;
-            txt += `Código de Aula: ${roomCode} | Docente: ${teacherName}\n`;
-            txt += `Fecha de Descarga: ${new Date().toLocaleString()}\n`;
-            txt += `====================================================\n\n`;
-
-            teacherSavedGrades.forEach((g, idx) => {
-                txt += `${idx+1}. ESTUDIANTE: ${g.studentName}\n`;
-                txt += `   Quiz: ${g.quizTitle}\n`;
-                txt += `   Calificación Final: ${g.score.toFixed(1)} / 5.0 (${g.percentage}%)\n`;
-                txt += `   Hora Entrega: ${g.submittedAt}\n`;
-                txt += `----------------------------------------------------\n`;
-            });
-
-            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `Reporte_Respuestas_${roomCode}.txt`;
-            link.click();
         }
 
         function switchTab(tabId) {
