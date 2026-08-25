@@ -180,7 +180,7 @@
             </div>
 
             <!-- VISTA DE CLASE PARA ESTUDIANTE -->
-            <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative flex flex-col">
+            <div id="studentClassroomBox" class="hidden bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative flex flex-col" onclick="enableStudentAudioVideo()">
                 <div class="p-3.5 bg-slate-950 text-white flex justify-between items-center text-xs border-b border-slate-800 z-30 shadow-lg">
                     <span class="text-emerald-400 font-bold flex items-center gap-2">
                         <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span></span>
@@ -208,6 +208,18 @@
                     
                     <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
                         <div id="studentYoutubePlayer"></div>
+                    </div>
+
+                    <!-- Overlay para desbloquear video si el navegador aplica política de Autoplay -->
+                    <div id="studentPlayOverlay" onclick="enableStudentAudioVideo()" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex flex-col items-center justify-center cursor-pointer text-center p-6">
+                        <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mb-3 text-2xl border border-emerald-500/30 animate-bounce">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg mb-1">Transmisión en Vivo Disponible</h4>
+                        <p class="text-xs text-slate-300 mb-4 max-w-xs">Toca o haz clic aquí para activar el audio y video de la clase del docente.</p>
+                        <button class="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs px-6 py-3 rounded-xl shadow-lg transition">
+                            Activar Transmisión
+                        </button>
                     </div>
                     
                     <!-- Capa Transparente de Rayado del Estudiante -->
@@ -704,10 +716,8 @@
         /*
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Version 1.18: Corregida la visualización del video del docente en el estudiante.
-         *              - Se fuerza la aplicación del modo al recibir el stream.
-         *              - Se almacena el modo actual en el estudiante.
-         *              - Se asegura que el video se muestre y reproduzca.
+         * Versión 1.18: Corregido flujo automático de reconexión y streaming de video 
+         *               del docente a la vista del estudiante con soporte Autoplay.
          * ============================================================================
          */
         let appVersion = "1.18"; 
@@ -736,9 +746,6 @@
         let isStudentMicActive = false;
         let isHandRaised = false;
 
-        // Modo actual en el estudiante (para usarlo al recibir el stream)
-        let currentStudentStageMode = 'none';
-
         let audioMixerCtx = null;
         let audioMixerDest = null;
         let micSource = null;
@@ -766,6 +773,7 @@
         let realAdmittedStudents = [];
         let currentStudentId = null;
         let pollingInterval = null;
+        let studentStreamCheckInterval = null;
         let schedules = [];
 
         /* ============================================================================
@@ -817,6 +825,7 @@
                 initRealtimeChannel();
                 initCloudSignaling();
                 startStatePolling();
+                startStudentStreamCheckLoop();
                 initCanvas();
                 setupAutoResizeObservers();
             } else {
@@ -833,7 +842,6 @@
             
             if (!roomCode) roomCode = 'POMBO-' + Math.floor(1000 + Math.random() * 9000);
             
-            // Protección contra SecurityError en entornos de previsualización (Blob URLs / Sandbox)
             try {
                 if (!window.location.href.startsWith('blob:')) {
                     window.history.replaceState({}, '', `?room=${roomCode}`);
@@ -892,8 +900,8 @@
                             sendFullStateToStudent(conn); 
                             
                             const studentId = conn.peer.replace(`${cleanRoom}-`, '');
-                            if (realAdmittedStudents.some(s => s.id === studentId) && activeTeacherStream && activeTeacherStream.getTracks().length > 0) {
-                                setTimeout(() => { pushTeacherStreamToStudents(); }, 1000); 
+                            if (isCameraActive || isScreenSharing || stageMode === 'student_pin') {
+                                setTimeout(() => { pushTeacherStreamToStudents(studentId); }, 400); 
                             }
                         });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }, conn); });
@@ -917,24 +925,45 @@
                         });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
-                    // Escuchar llamadas entrantes del docente
                     peerInstance.on('call', (call) => {
                         call.answer(); 
                         call.on('stream', (remoteTeacherStream) => {
                             const stdVideo = document.getElementById('studentReceivedVideo');
+                            const placeholder = document.getElementById('studentStreamPlaceholder');
+                            const overlay = document.getElementById('studentPlayOverlay');
+                            
                             if (stdVideo && remoteTeacherStream) { 
                                 stdVideo.srcObject = remoteTeacherStream; 
-                                // Forzar la aplicación del modo actual para mostrar el video
                                 stdVideo.classList.remove('hidden');
-                                stdVideo.play().catch(e=>console.warn('Error al reproducir video del docente:', e));
-                                // Aplicar el modo que tengamos almacenado para asegurar que se muestre
-                                applyStageMode({ mode: currentStudentStageMode });
-                                console.log('Stream de docente recibido y asignado.');
+                                if (placeholder) placeholder.classList.add('hidden');
+                                
+                                const playPromise = stdVideo.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.then(() => {
+                                        if (overlay) overlay.classList.add('hidden');
+                                    }).catch(e => {
+                                        console.warn("Autoplay prevenido por el navegador:", e);
+                                        if (overlay) overlay.classList.remove('hidden');
+                                    });
+                                }
                             }
                         });
                     });
                 } catch(e) {}
             }
+        }
+
+        function enableStudentAudioVideo() {
+            const stdVideo = document.getElementById('studentReceivedVideo');
+            const overlay = document.getElementById('studentPlayOverlay');
+            if (stdVideo) {
+                stdVideo.play().then(() => {
+                    if (overlay) overlay.classList.add('hidden');
+                }).catch(err => {
+                    console.warn("No se pudo iniciar reproducción:", err);
+                });
+            }
+            if (overlay) overlay.classList.add('hidden');
         }
 
         function initRealtimeChannel() {
@@ -972,7 +1001,15 @@
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name);
-                else if (type === 'REQUEST_FULL_STATE') { sendFullStateToStudent(connection); setTimeout(() => { pushTeacherStreamToStudents(); }, 500); }
+                else if (type === 'REQUEST_FULL_STATE') { 
+                    sendFullStateToStudent(connection); 
+                    if (isCameraActive || isScreenSharing || stageMode === 'student_pin') {
+                        setTimeout(() => { pushTeacherStreamToStudents(payload.studentId); }, 400); 
+                    }
+                }
+                else if (type === 'REQUEST_STREAM') {
+                    pushTeacherStreamToStudents(payload ? payload.studentId : null);
+                }
                 else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
                 else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
                 else if (type === 'CHAT_MESSAGE') { appendChatMessage(payload.senderName, payload.role, payload.text); broadcastToAllStudents('CHAT_MESSAGE', payload); }
@@ -980,11 +1017,7 @@
             } else if (currentRole === 'student') {
                 if (type === 'TEACHER_ADMITTED' && (payload.studentId === currentStudentId || payload.studentId === 'ALL')) onStudentAdmittedByTeacher();
                 else if (type === 'FULL_STATE_SYNC') applyFullSync(payload);
-                else if (type === 'STAGE_MODE_CHANGE') {
-                    // Almacenar el modo actual
-                    currentStudentStageMode = payload.mode;
-                    applyStageMode(payload);
-                }
+                else if (type === 'STAGE_MODE_CHANGE') applyStageMode(payload);
                 else if (type === 'CANVAS_DRAW') applyStatelessDrawSegment(payload.stroke);
                 else if (type === 'CANVAS_CLEAR') mirrorCanvasClear();
                 else if (type === 'CANVAS_BG_TOGGLE') applyWhiteboardBg(payload.isWhite);
@@ -1022,38 +1055,47 @@
             return combinedStream;
         }
 
-        function pushTeacherStreamToStudents() {
+        function pushTeacherStreamToStudents(targetStudentId = null) {
             if (currentRole !== 'teacher' || !peerInstance) return;
             const stream = getMixedStream(localMediaStream, screenShareStream);
             activeTeacherStream = stream;
             
+            if (!stream || stream.getTracks().length === 0) return;
+
             const cleanRoom = getCleanRoomId();
-            realAdmittedStudents.forEach(student => {
-                const studentPeerId = `${cleanRoom}-${student.id}`;
+            const targetStudentIds = new Set();
+            
+            realAdmittedStudents.forEach(s => targetStudentIds.add(s.id));
+            Object.keys(activePeerConnections).forEach(peerId => {
+                const stdId = peerId.replace(`${cleanRoom}-`, '');
+                if (stdId && stdId !== 'host') targetStudentIds.add(stdId);
+            });
+
+            targetStudentIds.forEach(studentId => {
+                if (targetStudentId && studentId !== targetStudentId) return;
+                const studentPeerId = `${cleanRoom}-${studentId}`;
                 try {
-                    if (stream && stream.getTracks().length > 0) {
-                        let call = activeMediaCalls[student.id];
-                        if (call && call.peerConnection && call.peerConnection.signalingState !== 'closed') {
-                            const senders = call.peerConnection.getSenders();
-                            const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
-                            const newVideoTrack = stream.getVideoTracks()[0];
-                            if (senderVideo && newVideoTrack) {
-                                senderVideo.replaceTrack(newVideoTrack).catch(e => recreateCall(student.id, studentPeerId, stream));
-                            } else if (!senderVideo && newVideoTrack) {
-                                recreateCall(student.id, studentPeerId, stream);
-                            }
-                            const senderAudio = senders.find(s => s.track && s.track.kind === 'audio');
-                            const newAudioTrack = stream.getAudioTracks()[0];
-                            if (senderAudio && newAudioTrack) {
-                                senderAudio.replaceTrack(newAudioTrack).catch(e => {});
-                            }
-                        } else {
-                            recreateCall(student.id, studentPeerId, stream);
+                    let call = activeMediaCalls[studentId];
+                    if (call && call.peerConnection && call.peerConnection.signalingState !== 'closed') {
+                        const senders = call.peerConnection.getSenders();
+                        const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
+                        const newVideoTrack = stream.getVideoTracks()[0];
+                        if (senderVideo && newVideoTrack) {
+                            senderVideo.replaceTrack(newVideoTrack).catch(e => recreateCall(studentId, studentPeerId, stream));
+                        } else if (!senderVideo && newVideoTrack) {
+                            recreateCall(studentId, studentPeerId, stream);
+                        }
+                        const senderAudio = senders.find(s => s.track && s.track.kind === 'audio');
+                        const newAudioTrack = stream.getAudioTracks()[0];
+                        if (senderAudio && newAudioTrack) {
+                            senderAudio.replaceTrack(newAudioTrack).catch(e => {});
                         }
                     } else {
-                        if (activeMediaCalls[student.id]) activeMediaCalls[student.id].close();
+                        recreateCall(studentId, studentPeerId, stream);
                     }
-                } catch(err) {}
+                } catch(err) {
+                    console.error("Error al transmitir video al estudiante:", studentId, err);
+                }
             });
         }
         
@@ -1062,6 +1104,24 @@
             setTimeout(() => {
                 try { activeMediaCalls[studentId] = peerInstance.call(peerId, stream); } catch(e) {}
             }, 100);
+        }
+
+        function startStudentStreamCheckLoop() {
+            if (studentStreamCheckInterval) clearInterval(studentStreamCheckInterval);
+            studentStreamCheckInterval = setInterval(() => {
+                if (currentRole !== 'student') return;
+                const classBox = document.getElementById('studentClassroomBox');
+                if (classBox.classList.contains('hidden')) return;
+
+                const stdVideo = document.getElementById('studentReceivedVideo');
+                const streamActiveModes = ['webcam', 'screen', 'student_pin'];
+                
+                if (streamActiveModes.includes(stageMode)) {
+                    if (!stdVideo.srcObject || stdVideo.paused || stdVideo.ended || stdVideo.readyState === 0) {
+                        sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
+                    }
+                }
+            }, 3000);
         }
 
         function closeCurrentProjection() { 
@@ -1219,9 +1279,7 @@
         }
 
         function applyStageMode(payload) {
-            // Almacenar el modo actual
-            if (payload.mode) currentStudentStageMode = payload.mode;
-
+            stageMode = payload.mode;
             const ph = document.getElementById('studentStreamPlaceholder');
             const vid = document.getElementById('studentReceivedVideo');
             const img = document.getElementById('studentSlideImage');
@@ -1235,9 +1293,16 @@
             }
             else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
                 vid.classList.remove('hidden'); 
-                // Si el srcObject ya está asignado, reproducir
                 if (vid.srcObject) {
-                    vid.play().catch(e=>console.warn('Error al reproducir video en applyStageMode:', e));
+                    vid.play().catch(e => {
+                        const overlay = document.getElementById('studentPlayOverlay');
+                        if (overlay) overlay.classList.remove('hidden');
+                    }); 
+                } else {
+                    ph.classList.remove('hidden');
+                    const h3 = ph.querySelector('h3');
+                    if (h3) h3.textContent = "Cargando video del docente...";
+                    sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
                 }
             }
             else if (payload.mode === 'ppt') { 
@@ -1506,10 +1571,7 @@
         }
 
         function applyFullSync(payload) {
-            // Almacenar el modo
-            if (payload.mode) currentStudentStageMode = payload.mode;
-            applyStageMode(payload); 
-            applyWhiteboardBg(payload.isWhiteboard);
+            applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
             const c = document.getElementById('studentCanvasMirror'); 
             if(c) {
@@ -1811,7 +1873,7 @@
             
             renderWaitingLists(); renderRealAttendanceTable();
             sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-            setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1200); 
+            setTimeout(() => { pushTeacherStreamToStudents(id); sendFullStateToStudent(); }, 600); 
             showToast(`Estudiante ${st.name} admitido`, 'success');
         }
         
@@ -1828,6 +1890,7 @@
 
             showToast('¡Has ingresado a la clase!', 'success');
             sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
+            sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
             setTimeout(()=>{ window.dispatchEvent(new Event('resize')); resizeCanvas(); }, 300);
         }
 
