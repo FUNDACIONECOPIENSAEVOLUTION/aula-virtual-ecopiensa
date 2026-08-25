@@ -261,7 +261,7 @@
                     
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active"></canvas>
 
-                    <!-- CONTROLES FLOTANTES -->
+                    <!-- CONTROLES FLOTANTES PPT -->
                     <div id="pptSlideControls" class="hidden absolute top-4 left-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-2xl">
                         <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-chevron-left"></i></button>
                         <span id="pptSlideCounter" class="text-xs text-amber-400 font-bold px-2">1 / 1</span>
@@ -273,6 +273,11 @@
                     <!-- BOTÓN PARA CERRAR YOUTUBE -->
                     <div id="ytControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
                         <button onclick="closeYoutubeVideo()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>
+                    </div>
+
+                    <!-- BOTÓN PARA DEJAR DE FIJAR ESTUDIANTE (NUEVO) -->
+                    <div id="pinControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
+                        <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Dejar de Fijar</button>
                     </div>
                 </div>
 
@@ -327,7 +332,7 @@
             <div class="mt-4 bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-slate-800 text-sm font-bold flex items-center gap-2"><i class="fas fa-users text-pombo-500"></i> Cámaras de los Estudiantes</h3>
-                    <span class="text-xs text-slate-500">Clic para fijar en el escenario central</span>
+                    <span class="text-xs text-slate-500">Clic para fijar y transmitir al escenario central</span>
                 </div>
                 <div id="realStudentMiniatures" class="flex gap-3 overflow-x-auto pb-2 min-h-[100px] items-center">
                     <div class="text-slate-400 text-xs w-full text-center">Esperando conexiones de los estudiantes...</div>
@@ -436,7 +441,7 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.06</span>
+        Versión: <span id="appVersionDisplay">1.07</span>
     </div>
 
     <script>
@@ -449,7 +454,7 @@
          * Esta indicación debe perdurar siempre en futuras actualizaciones.
          * ============================================================================
          */
-        let appVersion = "1.06"; 
+        let appVersion = "1.07"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -523,23 +528,15 @@
                 document.getElementById('studentContainerView').classList.remove('hidden');
                 
                 // --- RECUPERACIÓN DE SESIÓN ESTUDIANTE (RECONEXIÓN AUTOMÁTICA) ---
-                const savedId = sessionStorage.getItem(`pombo_std_id_${roomCode}`);
-                const savedName = sessionStorage.getItem(`pombo_std_name_${roomCode}`);
+                // FIX v1.07: Usar localStorage para que resista cierres de pestaña y recargas
+                const savedId = localStorage.getItem(`pombo_std_id_${roomCode}`);
+                const savedName = localStorage.getItem(`pombo_std_name_${roomCode}`);
                 if (savedId && savedName) {
                     currentStudentId = savedId;
                     document.getElementById('studentInputName').value = savedName;
                     
-                    const state = getRoomState();
-                    if (state.a.some(st => st.id === currentStudentId)) {
-                        // El estudiante ya estaba admitido previamente
-                        document.getElementById('studentFormBox').classList.add('hidden');
-                        document.getElementById('studentClassroomBox').classList.remove('hidden');
-                        showToast('Sesión recuperada automáticamente', 'success');
-                        setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 500);
-                    } else if (state.w.some(st => st.id === currentStudentId)) {
-                        // El estudiante estaba esperando admisión
-                        document.getElementById('studentWaitingAlert').classList.remove('hidden');
-                    }
+                    document.getElementById('studentWaitingAlert').classList.remove('hidden');
+                    document.getElementById('studentWaitingAlert').innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i> Reconectando con el aula...';
                 }
                 
                 initRealtimeChannel();
@@ -575,6 +572,12 @@
             const shareUrl = `${window.location.origin}${window.location.pathname}?room=${roomCode}&role=student&tname=${encodeURIComponent(teacherName)}`;
             const shareUrlInput = document.getElementById('shareRoomUrl');
             if (shareUrlInput) shareUrlInput.value = shareUrl;
+
+            // FIX v1.07: Recuperar lista de admitidos por si el PROFESOR recarga la página por accidente
+            const state = getRoomState();
+            if (state && state.a && state.a.length > 0) {
+                realAdmittedStudents = state.a;
+            }
 
             initRealtimeChannel();
             initCloudSignaling();
@@ -625,7 +628,13 @@
                     peerInstance = new Peer(studentPeerId, { debug: 0 });
                     peerInstance.on('open', () => {
                         const conn = peerInstance.connect(`${cleanRoom}-host`);
-                        conn.on('open', () => { teacherDataConnection = conn; });
+                        conn.on('open', () => { 
+                            teacherDataConnection = conn; 
+                            // FIX v1.07: Auto-reconectar una vez que la conexión de datos se estableció
+                            const savedId = localStorage.getItem(`pombo_std_id_${roomCode}`);
+                            const savedName = localStorage.getItem(`pombo_std_name_${roomCode}`);
+                            if (savedId && savedName) { requestEntryAsStudent(true); }
+                        });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }); });
                     });
                     peerInstance.on('call', (call) => {
@@ -681,8 +690,17 @@
 
         function getMixedStream(camStream, screenStream) {
             let videoTrack = null;
-            if (screenStream && screenStream.getVideoTracks().length > 0) videoTrack = screenStream.getVideoTracks()[0];
-            else if (camStream && camStream.getVideoTracks().length > 0) videoTrack = camStream.getVideoTracks()[0];
+            
+            // FIX v1.07: Si se está fijando a un estudiante, usamos EL VIDEO DEL ESTUDIANTE como flujo principal a enviar
+            if (stageMode === 'student_pin') {
+                const pinnedVid = document.getElementById('pinnedStudentVideo');
+                if (pinnedVid && pinnedVid.srcObject && pinnedVid.srcObject.getVideoTracks().length > 0) {
+                    videoTrack = pinnedVid.srcObject.getVideoTracks()[0];
+                }
+            }
+            
+            if (!videoTrack && screenStream && screenStream.getVideoTracks().length > 0) videoTrack = screenStream.getVideoTracks()[0];
+            if (!videoTrack && camStream && camStream.getVideoTracks().length > 0) videoTrack = camStream.getVideoTracks()[0];
 
             if (!audioMixerCtx) {
                 try { audioMixerCtx = new (window.AudioContext || window.webkitAudioContext)(); audioMixerDest = audioMixerCtx.createMediaStreamDestination(); } 
@@ -697,7 +715,7 @@
 
             const combinedStream = new MediaStream();
             if (videoTrack) combinedStream.addTrack(videoTrack);
-            if (audioMixerDest.stream.getAudioTracks().length > 0) { audioMixerDest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t)); }
+            if (audioMixerDest && audioMixerDest.stream.getAudioTracks().length > 0) { audioMixerDest.stream.getAudioTracks().forEach(t => combinedStream.addTrack(t)); }
             return combinedStream;
         }
 
@@ -720,7 +738,9 @@
         }
 
         function closeCurrentProjection() { 
+            // FIX v1.07: Forzar actualización del stream hacia los estudiantes (ej. al dejar de fijar o cerrar PDF)
             setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); 
+            pushTeacherStreamToStudents();
         }
         
         function closeYoutubeVideo() {
@@ -729,6 +749,7 @@
             }
             currentYoutubeUrl = '';
             setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none'));
+            pushTeacherStreamToStudents();
         }
 
         function setStageMode(mode, extraData = null) {
@@ -740,6 +761,7 @@
             const pptControls = document.getElementById('pptSlideControls');
             const ytWrapper = document.getElementById('teacherYoutubeWrapper');
             const ytControls = document.getElementById('ytControls');
+            const pinControls = document.getElementById('pinControls'); // FIX v1.07
             const pinVid = document.getElementById('pinnedStudentVideo');
             const title = document.getElementById('teacherStageTitle');
 
@@ -748,7 +770,7 @@
                 try { teacherYTPlayer.pauseVideo(); } catch(e) {}
             }
 
-            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper, ytControls, pinVid].forEach(el => {
+            [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper, ytControls, pinVid, pinControls].forEach(el => {
                 if(el) el.classList.add('hidden');
             });
 
@@ -757,10 +779,10 @@
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
             } else if (mode === 'webcam') {
                 camVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
-                if (camVid.srcObject) camVid.play().catch(e=>{}); // Solución de pantalla negra al regresar a cámara
+                if (camVid.srcObject) camVid.play().catch(e=>{});
             } else if (mode === 'screen') {
                 scrVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-desktop text-pombo-400'></i> Pantalla Compartida";
-                if (scrVid.srcObject) scrVid.play().catch(e=>{}); // Solución de pantalla negra
+                if (scrVid.srcObject) scrVid.play().catch(e=>{});
             } else if (mode === 'ppt') {
                 pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
                 pptViewer.src = pptSlides[currentPptIndex]; title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación";
@@ -773,15 +795,19 @@
                 togglePointerMode(); 
             } else if (mode === 'student_pin') {
                 pinVid.classList.remove('hidden');
+                if (pinControls) pinControls.classList.remove('hidden');
                 if (pinVid.srcObject) pinVid.play().catch(e=>{});
             }
             
             if(mode !== 'youtube' && !isAnnotationActive) { togglePointerMode(); }
-            if(mode !== 'student_pin') broadcastStageMode();
+            broadcastStageMode();
         }
 
         function broadcastStageMode() {
-            broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
+            // FIX v1.07: Si el modo es student_pin, se emite "webcam" para que los estudiantes
+            // muestren el componente de video que ahora trae la cara del alumno fijado en lugar del docente.
+            const broadcastMode = (stageMode === 'student_pin') ? 'webcam' : stageMode;
+            broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: broadcastMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
         }
 
         function onYouTubeIframeAPIReady() { isYTAPIReady = true; }
@@ -885,7 +911,7 @@
             }
             else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
                 vid.classList.remove('hidden'); 
-                if (vid.srcObject) vid.play().catch(e=>{}); // Solución de pantalla negra estudiante
+                if (vid.srcObject) vid.play().catch(e=>{}); 
             }
             else if (payload.mode === 'ppt') { 
                 img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
@@ -962,7 +988,7 @@
                     
                     screenShareStream.getVideoTracks()[0].onended = () => {
                         isScreenSharing = false;
-                        screenShareStream = null; // SOLUCIÓN: Liberar la variable explícitamente para que la cámara retome
+                        screenShareStream = null; 
                         btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
                         setStageMode(isCameraActive ? 'webcam' : 'none');
                         pushTeacherStreamToStudents();
@@ -970,7 +996,7 @@
                 } catch(err) {}
             } else {
                 if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
-                screenShareStream = null; // SOLUCIÓN: Liberar al apagar el botón
+                screenShareStream = null; 
                 isScreenSharing = false;
                 btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
                 setStageMode(isCameraActive ? 'webcam' : 'none');
@@ -1268,6 +1294,9 @@
             pinnedVid.srcObject = videoElem.srcObject;
             setStageMode('student_pin');
             document.getElementById('teacherStageTitle').innerHTML = `<i class="fas fa-user-check text-emerald-400"></i> Viendo a: ${studentName}`;
+            
+            // FIX v1.07: Enviar el video de este alumno a TODA la clase
+            pushTeacherStreamToStudents(); 
         }
 
         function handleTeacherReceivedRaiseHand(studentId, studentName) {
@@ -1337,23 +1366,52 @@
             }, 500);
         }
 
-        function requestEntryAsStudent() {
+        function requestEntryAsStudent(isAuto = false) {
             const name = document.getElementById('studentInputName').value.trim();
-            if (!name) { showToast('Escribe tu nombre', 'warning'); return; }
+            if (!name) { 
+                if(!isAuto) showToast('Escribe tu nombre', 'warning'); 
+                return; 
+            }
             currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
             
-            // GUARDAR DATOS DE SESIÓN AL SOLICITAR INGRESO
-            sessionStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
-            sessionStorage.setItem(`pombo_std_name_${roomCode}`, name);
+            // FIX v1.07: Guardar en localStorage para persistencia fuerte
+            localStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
+            localStorage.setItem(`pombo_std_name_${roomCode}`, name);
             
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
+            document.getElementById('studentWaitingAlert').innerHTML = '<i class="fas fa-spinner fa-spin text-xl"></i> Esperando autorización del profesor...';
+            
             const req = { id: currentStudentId, name, time: new Date().toLocaleTimeString() };
-            const s = getRoomState(); s.w.push(req); saveRoomState(s);
+            const s = getRoomState(); 
+            if (!s.w.some(w => w.id === currentStudentId) && !s.a.some(a => a.id === currentStudentId)) {
+                s.w.push(req); saveRoomState(s);
+            }
             sendSignalToTeacher('STUDENT_JOIN_REQUEST', req);
         }
 
         function handleIncomingStudentRequest(id, name) {
-            if(!realWaitingStudents.some(s=>s.id===id) && !realAdmittedStudents.some(s=>s.id===id)){
+            // FIX v1.07: Si el alumno recargó la pestaña, ya está en la lista de admitidos. Reenviar señal de admisión.
+            if(realAdmittedStudents.some(s=>s.id===id)){
+                broadcastToAllStudents('TEACHER_ADMITTED', { studentId: id });
+                return;
+            }
+
+            // FIX v1.07: Si el alumno entra desde OTRO dispositivo/navegador pero con el MISMO NOMBRE exacto, 
+            // asumimos que es una reconexión, actualizamos su ID en la base de datos y lo admitimos directo.
+            const existingAdmitted = realAdmittedStudents.find(s => s.name.toLowerCase() === name.toLowerCase());
+            if (existingAdmitted) {
+                existingAdmitted.id = id; 
+                
+                const state = getRoomState();
+                const stateStudent = state.a.find(s => s.name.toLowerCase() === name.toLowerCase());
+                if(stateStudent) { stateStudent.id = id; saveRoomState(state); }
+                
+                broadcastToAllStudents('TEACHER_ADMITTED', { studentId: id });
+                setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1500);
+                return;
+            }
+
+            if(!realWaitingStudents.some(s=>s.id===id)){
                 realWaitingStudents.push({id, name, time: new Date().toLocaleTimeString()});
                 renderWaitingLists(); playChime();
             }
@@ -1431,8 +1489,6 @@
         function stopAllStreams() {
             if(localMediaStream) localMediaStream.getTracks().forEach(t=>t.stop());
             if(screenShareStream) screenShareStream.getTracks().forEach(t=>t.stop());
-            localMediaStream = null;
-            screenShareStream = null;
             if(teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') teacherYTPlayer.stopVideo();
             setStageMode('none'); isCameraActive=false; isScreenSharing=false; clearCanvas();
             pushTeacherStreamToStudents();
