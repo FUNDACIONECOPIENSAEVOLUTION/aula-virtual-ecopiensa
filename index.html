@@ -439,7 +439,7 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.09</span>
+        Versión: <span id="appVersionDisplay">1.10</span>
     </div>
 
     <script>
@@ -447,12 +447,11 @@
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
          * Siempre se debe actualizar la variable `appVersion` sumando 0.01 
-         * (por ejemplo, de 1.08 a 1.09) por CADA VEZ que se corrija un error.
+         * (por ejemplo, de 1.09 a 1.10) por CADA VEZ que se corrija un error.
          * ============================================================================
          */
-        // FIX v1.09: Se revirtió la lógica de reconexión automática. Ahora TODO ingreso de estudiante, 
-        // sin importar el nombre o si ya estaba conectado antes, requiere aprobación explícita del docente.
-        let appVersion = "1.09"; 
+        // FIX v1.10: Se corrigió el bug de sincronización de IDs de conexión.
+        let appVersion = "1.10"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -530,6 +529,13 @@
                 const savedName = localStorage.getItem(`pombo_std_name_${roomCode}`);
                 if (savedName) {
                     document.getElementById('studentInputName').value = savedName;
+                }
+                
+                // FIX v1.10: Inicializar y preservar el ID del estudiante para que coincida con la videollamada
+                currentStudentId = localStorage.getItem(`pombo_std_id_${roomCode}`);
+                if (!currentStudentId) {
+                    currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
+                    localStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
                 }
                 
                 initRealtimeChannel();
@@ -1406,10 +1412,7 @@
                 return; 
             }
             
-            // FIX v1.09: Siempre generar un nuevo ID al solicitar acceso para forzar que sea un usuario "nuevo"
-            currentStudentId = 'std_' + Math.random().toString(36).substr(2, 9);
-            
-            localStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
+            // FIX v1.10: Se eliminó la regeneración de ID aquí para no romper la conexión de videollamada (WebRTC)
             localStorage.setItem(`pombo_std_name_${roomCode}`, name);
             
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
@@ -1420,8 +1423,15 @@
         }
 
         function handleIncomingStudentRequest(id, name) {
-            // FIX v1.09: Se eliminó la verificación automática por ID o Nombre.
-            // TODO estudiante que llega aquí va directo a la sala de espera.
+            // FIX v1.10: Si el estudiante recargó y pide ingreso de nuevo, lo removemos de los admitidos previamente
+            const wasAdmitted = realAdmittedStudents.some(s => s.id === id);
+            if (wasAdmitted) {
+                realAdmittedStudents = realAdmittedStudents.filter(s => s.id !== id);
+                const state = getRoomState();
+                state.a = state.a.filter(s => s.id !== id);
+                saveRoomState(state);
+                renderRealAttendanceTable();
+            }
             
             if(!realWaitingStudents.some(s=>s.id===id)){
                 // Agregar al estado local
