@@ -23,7 +23,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
     <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
 
         tailwind.config = {
             theme: {
@@ -124,7 +126,6 @@
 
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- STUDENT VIEW -->
         <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-3xl mx-auto">
             <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
                 <div class="w-20 h-20 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
@@ -194,7 +195,6 @@
             </div>
         </div>
 
-        <!-- TEACHER DASHBOARD -->
         <div id="tab-live" class="tab-content block animate-fade-in space-y-6">
 
             <div id="teacherWaitingRoomPanel" class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border-2 border-amber-400 rounded-2xl p-4 shadow-lg transition">
@@ -259,9 +259,43 @@
                     <video id="webcamVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline muted></video>
                     <video id="screenShareVideo" class="w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     <img id="teacherSlideViewer" class="w-full h-full object-contain hidden z-0" src="" alt="Diapositiva PowerPoint">
-                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-10 hidden canvas-disabled"></canvas>
+                    
+                    <!-- Transparent Interactive Canvas for Teacher Annotations -->
+                    <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active cursor-crosshair"></canvas>
 
-                    <div id="pptSlideControls" class="hidden absolute top-16 left-4 z-20 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-xl">
+                    <!-- Floating Quick Annotation Toolbar Overlay (Shown inside video stage) -->
+                    <div id="floatingScreenDrawBar" class="absolute top-16 right-4 z-30 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-2xl flex flex-wrap items-center gap-1.5 shadow-2xl">
+                        <button onclick="setTool('pen')" id="float-tool-pen" title="Lápiz Fino" class="float-tool-btn active-tool p-2 rounded-xl text-white bg-pombo-600 text-xs">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button onclick="setTool('brush')" id="float-tool-brush" title="Pincel" class="float-tool-btn p-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs">
+                            <i class="fas fa-paint-brush"></i>
+                        </button>
+                        <button onclick="setTool('highlighter')" id="float-tool-highlighter" title="Resaltador" class="float-tool-btn p-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs">
+                            <i class="fas fa-highlighter"></i>
+                        </button>
+                        <button onclick="setTool('eraser')" id="float-tool-eraser" title="Borrador" class="float-tool-btn p-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs">
+                            <i class="fas fa-eraser"></i>
+                        </button>
+
+                        <div class="h-5 w-[1px] bg-slate-700 mx-1"></div>
+
+                        <button onclick="setColor('#ef4444')" class="w-5 h-5 rounded-full bg-red-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                        <button onclick="setColor('#f59e0b')" class="w-5 h-5 rounded-full bg-amber-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                        <button onclick="setColor('#10b981')" class="w-5 h-5 rounded-full bg-emerald-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+                        <button onclick="setColor('#3b82f6')" class="w-5 h-5 rounded-full bg-blue-500 hover:scale-110 transition ring-2 ring-white/20"></button>
+
+                        <div class="h-5 w-[1px] bg-slate-700 mx-1"></div>
+
+                        <button onclick="clearCanvas()" title="Limpiar Rayado" class="p-2 rounded-xl text-red-400 hover:bg-red-500/20 text-xs">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                        <button onclick="toggleCanvasGrid()" title="Fondo Blanco" id="btnFloatWhiteboard" class="p-2 rounded-xl text-slate-300 hover:bg-slate-800 text-xs">
+                            <i class="fas fa-border-all"></i>
+                        </button>
+                    </div>
+
+                    <div id="pptSlideControls" class="hidden absolute top-16 left-4 z-30 bg-slate-900/90 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-xl">
                         <button onclick="prevPptSlide()" class="bg-slate-800 hover:bg-slate-700 text-white p-2 rounded-lg text-xs font-bold transition">
                             <i class="fas fa-chevron-left"></i>
                         </button>
@@ -279,10 +313,10 @@
                         </button>
                     </div>
 
-                    <div id="realStudentMiniatures" class="absolute bottom-16 right-4 z-20 flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
+                    <div id="realStudentMiniatures" class="absolute bottom-16 right-4 z-30 flex flex-col gap-2 max-h-60 overflow-y-auto"></div>
                 </div>
 
-                <div id="drawingToolbar" class="hidden bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
+                <div id="drawingToolbar" class="bg-slate-800/95 border-t border-slate-700 p-3 z-30 transition">
                     <div class="flex flex-wrap items-center justify-between gap-3 max-w-5xl mx-auto">
                         <div class="flex items-center gap-1.5 bg-slate-900/80 p-1.5 rounded-xl border border-slate-700">
                             <button onclick="setTool('pen')" id="tool-pen" class="tool-btn active-tool p-2 rounded-lg text-white bg-pombo-600 text-xs flex items-center gap-1">
@@ -293,9 +327,6 @@
                             </button>
                             <button onclick="setTool('highlighter')" id="tool-highlighter" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-highlighter"></i> <span class="hidden sm:inline">Resaltador</span>
-                            </button>
-                            <button onclick="setTool('arrow')" id="tool-arrow" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
-                                <i class="fas fa-long-arrow-alt-right"></i> <span class="hidden sm:inline">Flecha</span>
                             </button>
                             <button onclick="setTool('eraser')" id="tool-eraser" class="tool-btn p-2 rounded-lg text-slate-300 hover:bg-slate-800 text-xs flex items-center gap-1">
                                 <i class="fas fa-eraser"></i> <span class="hidden sm:inline">Borrador</span>
@@ -345,7 +376,7 @@
                         </button>
                         <button id="btnToggleBoard" onclick="toggleAnnotationBoard()" class="px-4 h-12 rounded-2xl bg-pombo-600 hover:bg-pombo-500 text-white font-semibold flex items-center gap-2 text-sm transition shadow">
                             <i class="fas fa-paint-brush"></i>
-                            <span id="boardBtnText">Activar Rayado / Tablero</span>
+                            <span id="boardBtnText">Modo Rayado Activo</span>
                         </button>
                     </div>
                     <div class="flex items-center gap-3">
@@ -578,7 +609,7 @@
         let isCameraActive = false;
         let isMicActive = true;
         let isScreenSharing = false;
-        let isAnnotationActive = false;
+        let isAnnotationActive = true; // Enabled by default so teacher can draw immediately over screen share
         let isStudentCamActive = false;
         let isStudentMicActive = false;
         let isHandRaised = false;
@@ -606,6 +637,8 @@
         let isWhiteBackground = false;
         let drawingStrokes = [];
         let activeStroke = null;
+        let lastNormX = 0;
+        let lastNormY = 0;
         let schedules = [];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -616,6 +649,7 @@
             initCanvas();
             renderRealAttendanceTable();
             renderSchedules();
+            setupAutoResizeObservers();
         });
 
         function detectRoleAndRoom() {
@@ -696,7 +730,10 @@
 
         function broadcastToAllStudents(type, payload) {
             Object.keys(activePeerConnections).forEach(peerId => {
-                try { const conn = activePeerConnections[peerId]; if (conn && conn.open) conn.send({ type, payload }); } catch(e) {}
+                try { 
+                    const conn = activePeerConnections[peerId]; 
+                    if (conn && conn.open) conn.send({ type, payload }); 
+                } catch(e) {}
             });
             sendSignal(type, payload);
         }
@@ -832,12 +869,27 @@
             `).join('');
         }
 
-        // ---------- STUDENT CANVAS SIZE FIX ----------
+        function setupAutoResizeObservers() {
+            try {
+                const teacherStage = document.getElementById('teacherViewportFrame');
+                if (teacherStage) {
+                    const teacherObserver = new ResizeObserver(() => resizeCanvas());
+                    teacherObserver.observe(teacherStage);
+                }
+
+                const studentStage = document.getElementById('studentStreamWrapper');
+                if (studentStage) {
+                    const studentObserver = new ResizeObserver(() => resizeStudentCanvas());
+                    studentObserver.observe(studentStage);
+                }
+            } catch(e) {}
+        }
+
         function ensureStudentCanvasSize() {
             const stdCanvas = document.getElementById('studentCanvasMirror');
             if (!stdCanvas) return;
             const rect = stdCanvas.parentElement.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
+            if (rect.width > 0 && rect.height > 0 && (stdCanvas.width !== rect.width || stdCanvas.height !== rect.height)) {
                 stdCanvas.width = rect.width;
                 stdCanvas.height = rect.height;
             }
@@ -847,36 +899,44 @@
             const stdCanvas = document.getElementById('studentCanvasMirror');
             if (!stdCanvas) return;
             ensureStudentCanvasSize();
-            // Redraw all strokes after resize
             redrawAllStrokesOnCanvas(stdCanvas, drawingStrokes);
         }
 
         function mirrorCanvasDraw(stroke) {
             const stdCanvas = document.getElementById('studentCanvasMirror');
             if (!stdCanvas) return;
-            ensureStudentCanvasSize(); // ensure size before drawing
+            ensureStudentCanvasSize();
             const stdCtx = stdCanvas.getContext('2d');
             if (!stdCtx) return;
 
             if (stroke.type === 'start') {
-                stdCtx.beginPath();
-                stdCtx.moveTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
+                return;
             } else if (stroke.type === 'draw') {
-                stdCtx.lineWidth = (stroke.width || 5);
+                stdCtx.beginPath();
+                stdCtx.lineWidth = stroke.width || 5;
                 stdCtx.lineCap = 'round';
                 stdCtx.lineJoin = 'round';
                 stdCtx.strokeStyle = stroke.color || '#ef4444';
+
                 if (stroke.tool === 'eraser') {
                     stdCtx.globalCompositeOperation = 'destination-out';
                     stdCtx.lineWidth = (stroke.width || 5) * 3;
                 } else if (stroke.tool === 'highlighter') {
                     stdCtx.globalCompositeOperation = 'source-over';
                     stdCtx.globalAlpha = 0.35;
+                    stdCtx.lineWidth = (stroke.width || 5) * 2.5;
                 } else {
                     stdCtx.globalCompositeOperation = 'source-over';
                     stdCtx.globalAlpha = 1.0;
                 }
-                stdCtx.lineTo(stroke.x * stdCanvas.width, stroke.y * stdCanvas.height);
+
+                const fromX = (stroke.fromX !== undefined ? stroke.fromX : stroke.x) * stdCanvas.width;
+                const fromY = (stroke.fromY !== undefined ? stroke.fromY : stroke.y) * stdCanvas.height;
+                const toX = (stroke.toX !== undefined ? stroke.toX : stroke.x) * stdCanvas.width;
+                const toY = (stroke.toY !== undefined ? stroke.toY : stroke.y) * stdCanvas.height;
+
+                stdCtx.moveTo(fromX, fromY);
+                stdCtx.lineTo(toX, toY);
                 stdCtx.stroke();
                 stdCtx.globalAlpha = 1.0;
                 stdCtx.globalCompositeOperation = 'source-over';
@@ -890,13 +950,14 @@
                 targetCanvas.width = rect.width;
                 targetCanvas.height = rect.height;
             } else {
-                return; // not ready
+                return;
             }
             const targetCtx = targetCanvas.getContext('2d');
             if (!targetCtx) return;
             targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+
             strokeArray.forEach(stroke => {
-                if (stroke.points && stroke.points.length > 0) {
+                if (stroke.points && stroke.points.length > 1) {
                     targetCtx.beginPath();
                     targetCtx.lineWidth = stroke.width || 5;
                     targetCtx.lineCap = 'round';
@@ -908,10 +969,12 @@
                     } else if (stroke.tool === 'highlighter') {
                         targetCtx.globalCompositeOperation = 'source-over';
                         targetCtx.globalAlpha = 0.35;
+                        targetCtx.lineWidth = (stroke.width || 5) * 2.5;
                     } else {
                         targetCtx.globalCompositeOperation = 'source-over';
                         targetCtx.globalAlpha = 1.0;
                     }
+
                     targetCtx.moveTo(stroke.points[0].x * targetCanvas.width, stroke.points[0].y * targetCanvas.height);
                     for (let i = 1; i < stroke.points.length; i++) {
                         targetCtx.lineTo(stroke.points[i].x * targetCanvas.width, stroke.points[i].y * targetCanvas.height);
@@ -938,6 +1001,7 @@
             const slideImg = document.getElementById('studentSlideImage');
             const canvas = document.getElementById('studentCanvasMirror');
             if (!wrapper) return;
+
             if (isWhite) {
                 wrapper.classList.remove('bg-slate-950');
                 wrapper.classList.add('bg-white');
@@ -956,11 +1020,9 @@
                     canvas.style.backgroundColor = 'transparent';
                 }
             }
-            // Ensure canvas size and redraw strokes after changing background
             ensureStudentCanvasSize();
             redrawAllStrokesOnCanvas(canvas, drawingStrokes);
         }
-        // ------------------------------------------------
 
         function toggleStudentFullscreen() {
             const container = document.getElementById('studentClassroomBox');
@@ -996,7 +1058,6 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('studentContainerView').classList.remove('hidden');
             window.addEventListener('resize', resizeStudentCanvas);
-            // Also ensure canvas is sized when visible later
             setTimeout(resizeStudentCanvas, 500);
         }
 
@@ -1015,7 +1076,12 @@
         function sendSignal(type, payload) {
             const data = { type, payload, timestamp: Date.now() };
             if (broadcastChannel) broadcastChannel.postMessage(data);
-            localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
+            try {
+                // Avoid heavy localStorage writes on continuous draw events
+                if (type !== 'CANVAS_DRAW') {
+                    localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data));
+                }
+            } catch(e) {}
         }
 
         function sendSignalToTeacher(type, payload) {
@@ -1170,7 +1236,6 @@
             document.getElementById('studentClassroomBox').classList.remove('hidden');
             const name = document.getElementById('studentInputName').value || 'Estudiante';
             document.getElementById('studentWelcomeBadge').textContent = `Bienvenido: ${name}`;
-            // Force canvas size and redraw all strokes
             setTimeout(() => {
                 resizeStudentCanvas();
                 const stdCanvas = document.getElementById('studentCanvasMirror');
@@ -1211,7 +1276,7 @@
                 pptViewer.classList.remove('hidden');
                 pptControls.classList.remove('hidden');
                 if (titleElem) titleElem.textContent = "Presentación PowerPoint - Escuela Rafael Pombo";
-                if (!isAnnotationActive) toggleAnnotationBoard();
+                ensureCanvasActive();
                 broadcastToAllStudents('POWERPOINT_SLIDE_CHANGE', { slideUrl: pptSlides[currentPptIndex] });
                 showToast('Proyectando Diapositiva PowerPoint a todos los estudiantes', 'success');
             } else {
@@ -1242,10 +1307,6 @@
             showToast('Procesando archivo de presentación...', 'info');
             let newSlides = [];
             for (const file of files) {
-                if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) {
-                    showToast('El formato PowerPoint (.pptx/.ppt) no es compatible directamente. Convierta a PDF o imágenes.', 'warning');
-                    continue;
-                }
                 if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
                     try {
                         const fileArrayBuffer = await file.arrayBuffer();
@@ -1266,7 +1327,7 @@
                     const dataUrl = await new Promise((resolve) => { const reader = new FileReader(); reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(file); });
                     newSlides.push(dataUrl);
                 } else {
-                    showToast(`Formato de "${file.name}" no soportado. Convierte a PDF o Imágenes.`, 'warning');
+                    showToast(`Formato de "${file.name}" no soportado directamente. Convierte a PDF o Imágenes.`, 'warning');
                 }
             }
             if (newSlides.length > 0) {
@@ -1311,6 +1372,7 @@
                     btnCam.innerHTML = `<i class="fas fa-video text-white"></i>`;
                     isCameraActive = true;
                     startCallTimer();
+                    ensureCanvasActive();
                     broadcastTeacherStreamToStudents();
                     showToast('Transmisión de cámara iniciada en vivo para todos los alumnos', 'success');
                 } catch(err) { showToast('No se pudo acceder a la cámara. Revisa los permisos.', 'error'); }
@@ -1325,8 +1387,6 @@
                 activeTeacherStream = isScreenSharing ? screenShareStream : null;
                 showToast('Transmisión de cámara finalizada', 'info');
             }
-            // Force canvas resize after changing stream
-            setTimeout(resizeCanvas, 100);
         }
 
         function toggleMic() {
@@ -1350,14 +1410,14 @@
                     webcamVideo.classList.add('hidden');
                     placeholder.classList.add('hidden');
                     isScreenSharing = true;
-                    if (!isAnnotationActive) toggleAnnotationBoard();
+
+                    // Automatically ensure rayado layer is active over screen share
+                    ensureCanvasActive();
                     broadcastTeacherStreamToStudents();
-                    showToast('Compartiendo pantalla con el lienzo transparente activo', 'success');
+                    showToast('Compartiendo pantalla. El tablero flotante de rayado transparente está activo sobre el video.', 'success');
                     screenShareStream.getVideoTracks()[0].onended = () => stopScreenShare();
                 } catch(err) { showToast('Se canceló el compartido de pantalla', 'info'); }
             } else { stopScreenShare(); }
-            // Force canvas resize after changing stream
-            setTimeout(resizeCanvas, 100);
         }
 
         function stopScreenShare() {
@@ -1370,7 +1430,6 @@
             else { placeholder.classList.remove('hidden'); activeTeacherStream = null; }
             isScreenSharing = false;
             showToast('Pantalla compartida finalizada', 'info');
-            setTimeout(resizeCanvas, 100);
         }
 
         async function studentToggleCam() {
@@ -1472,6 +1531,17 @@
             redrawAllStrokesOnCanvas(canvas, drawingStrokes);
         }
 
+        function ensureCanvasActive() {
+            isAnnotationActive = true;
+            if (canvas) {
+                canvas.classList.remove('hidden', 'canvas-disabled');
+                canvas.classList.add('canvas-active');
+            }
+            const boardBtnText = document.getElementById('boardBtnText');
+            if (boardBtnText) boardBtnText.textContent = 'Modo Rayado Activo';
+            resizeCanvas();
+        }
+
         function toggleAnnotationBoard() {
             const drawingToolbar = document.getElementById('drawingToolbar');
             const boardBtnText = document.getElementById('boardBtnText');
@@ -1479,47 +1549,60 @@
             if (isAnnotationActive) {
                 canvas.classList.remove('hidden', 'canvas-disabled');
                 canvas.classList.add('canvas-active');
-                drawingToolbar.classList.remove('hidden');
-                boardBtnText.textContent = 'Ocultar Tablero';
+                if (drawingToolbar) drawingToolbar.classList.remove('hidden');
+                if (boardBtnText) boardBtnText.textContent = 'Modo Rayado Activo';
                 setTimeout(resizeCanvas, 50);
-                showToast('Rayado transparente activado sobre la videollamada', 'success');
+                showToast('Rayado transparente activado sobre el mapa/video', 'success');
             } else {
-                canvas.classList.add('hidden', 'canvas-disabled');
+                canvas.classList.add('canvas-disabled');
                 canvas.classList.remove('canvas-active');
-                drawingToolbar.classList.add('hidden');
-                boardBtnText.textContent = 'Activar Rayado / Tablero';
+                if (boardBtnText) boardBtnText.textContent = 'Activar Rayado / Tablero';
+                showToast('Herramientas de rayado en pausa', 'info');
             }
         }
 
         function setTool(tool) {
             currentTool = tool;
-            document.querySelectorAll('.tool-btn').forEach(btn => {
+            ensureCanvasActive();
+
+            document.querySelectorAll('.tool-btn, .float-tool-btn').forEach(btn => {
                 btn.classList.remove('bg-pombo-600', 'text-white', 'active-tool');
                 btn.classList.add('text-slate-300');
             });
             const activeBtn = document.getElementById(`tool-${tool}`);
             if (activeBtn) { activeBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool'); activeBtn.classList.remove('text-slate-300'); }
+            const activeFloat = document.getElementById(`float-tool-${tool}`);
+            if (activeFloat) { activeFloat.classList.add('bg-pombo-600', 'text-white', 'active-tool'); activeFloat.classList.remove('text-slate-300'); }
         }
 
-        function setColor(hex) { currentColor = hex; document.getElementById('drawColor').value = hex; }
-        function setLineWidth(val) { currentLineWidth = val; }
+        function setColor(hex) { currentColor = hex; document.getElementById('drawColor').value = hex; ensureCanvasActive(); }
+        function setLineWidth(val) { currentLineWidth = val; ensureCanvasActive(); }
 
         function clearCanvas() {
-            if (ctx) { ctx.clearRect(0, 0, canvas.width, canvas.height); drawingStrokes = []; broadcastToAllStudents('CANVAS_CLEAR', {}); showToast('Lienzo limpiado', 'info'); }
+            if (ctx) { 
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                drawingStrokes = []; 
+                broadcastToAllStudents('CANVAS_CLEAR', {}); 
+                showToast('Lienzo limpiado', 'info'); 
+            }
         }
 
         function toggleCanvasGrid() {
             isWhiteBackground = !isWhiteBackground;
             const viewport = document.getElementById('teacherViewportFrame');
             const btn = document.getElementById('btnWhiteboardGrid');
+            const floatBtn = document.getElementById('btnFloatWhiteboard');
+
             if (isWhiteBackground) {
                 canvas.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
                 if (viewport) { viewport.classList.remove('bg-slate-950'); viewport.classList.add('bg-white'); }
                 if (btn) btn.classList.add('bg-emerald-600');
+                if (floatBtn) floatBtn.classList.add('bg-emerald-600');
             } else {
                 canvas.style.backgroundColor = 'transparent';
                 if (viewport) { viewport.classList.remove('bg-white'); viewport.classList.add('bg-slate-950'); }
                 if (btn) btn.classList.remove('bg-emerald-600');
+                if (floatBtn) floatBtn.classList.remove('bg-emerald-600');
             }
             broadcastToAllStudents('CANVAS_BG_TOGGLE', { isWhite: isWhiteBackground });
         }
@@ -1555,20 +1638,40 @@
             if (!isAnnotationActive) return;
             isDrawing = true;
             const coords = getCanvasCoords(e);
-            ctx.beginPath();
-            ctx.moveTo(coords.x, coords.y);
-            const normX = coords.x / canvas.width;
-            const normY = coords.y / canvas.height;
-            activeStroke = { tool: currentTool, color: currentColor, width: currentLineWidth, points: [{ x: normX, y: normY }] };
-            broadcastToAllStudents('CANVAS_DRAW', { stroke: { type: 'start', x: normX, y: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
+            
+            lastNormX = coords.x / canvas.width;
+            lastNormY = coords.y / canvas.height;
+
+            activeStroke = { 
+                tool: currentTool, 
+                color: currentColor, 
+                width: currentLineWidth, 
+                points: [{ x: lastNormX, y: lastNormY }] 
+            };
+
+            broadcastToAllStudents('CANVAS_DRAW', { 
+                stroke: { 
+                    type: 'start', 
+                    x: lastNormX, 
+                    y: lastNormY, 
+                    tool: currentTool, 
+                    color: currentColor, 
+                    width: currentLineWidth 
+                } 
+            });
         }
 
         function draw(e) {
             if (!isDrawing || !isAnnotationActive) return;
             const coords = getCanvasCoords(e);
+            const normX = coords.x / canvas.width;
+            const normY = coords.y / canvas.height;
+
+            ctx.beginPath();
             ctx.lineWidth = currentLineWidth;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
+
             if (currentTool === 'eraser') {
                 ctx.globalCompositeOperation = 'destination-out';
                 ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -1583,18 +1686,41 @@
                 ctx.strokeStyle = currentColor;
                 ctx.globalAlpha = 1.0;
             }
-            ctx.lineTo(coords.x, coords.y);
+
+            ctx.moveTo(lastNormX * canvas.width, lastNormY * canvas.height);
+            ctx.lineTo(normX * canvas.width, normY * canvas.height);
             ctx.stroke();
-            const normX = coords.x / canvas.width;
-            const normY = coords.y / canvas.height;
-            if (activeStroke) activeStroke.points.push({ x: normX, y: normY });
-            broadcastToAllStudents('CANVAS_DRAW', { stroke: { type: 'draw', x: normX, y: normY, tool: currentTool, color: currentColor, width: currentLineWidth } });
+
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
+
+            if (activeStroke) {
+                activeStroke.points.push({ x: normX, y: normY });
+            }
+
+            // Transmit stateless line segment with exact coordinates to all students
+            broadcastToAllStudents('CANVAS_DRAW', { 
+                stroke: { 
+                    type: 'draw', 
+                    fromX: lastNormX, 
+                    fromY: lastNormY, 
+                    toX: normX, 
+                    toY: normY, 
+                    tool: currentTool, 
+                    color: currentColor, 
+                    width: currentLineWidth 
+                } 
+            });
+
+            lastNormX = normX;
+            lastNormY = normY;
         }
 
         function stopDrawing() {
-            if (isDrawing && activeStroke) { drawingStrokes.push(activeStroke); activeStroke = null; }
+            if (isDrawing && activeStroke) { 
+                drawingStrokes.push(activeStroke); 
+                activeStroke = null; 
+            }
             isDrawing = false;
         }
 
