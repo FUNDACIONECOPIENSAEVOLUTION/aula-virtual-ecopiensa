@@ -1325,6 +1325,8 @@
                 activeTeacherStream = isScreenSharing ? screenShareStream : null;
                 showToast('Transmisión de cámara finalizada', 'info');
             }
+            // Force canvas resize after changing stream
+            setTimeout(resizeCanvas, 100);
         }
 
         function toggleMic() {
@@ -1354,6 +1356,8 @@
                     screenShareStream.getVideoTracks()[0].onended = () => stopScreenShare();
                 } catch(err) { showToast('Se canceló el compartido de pantalla', 'info'); }
             } else { stopScreenShare(); }
+            // Force canvas resize after changing stream
+            setTimeout(resizeCanvas, 100);
         }
 
         function stopScreenShare() {
@@ -1366,6 +1370,7 @@
             else { placeholder.classList.remove('hidden'); activeTeacherStream = null; }
             isScreenSharing = false;
             showToast('Pantalla compartida finalizada', 'info');
+            setTimeout(resizeCanvas, 100);
         }
 
         async function studentToggleCam() {
