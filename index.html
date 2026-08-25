@@ -687,17 +687,18 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.12</span>
+        Versión: <span id="appVersionDisplay">1.13</span>
     </div>
 
     <script>
         /*
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Actualizado a v1.12 por la incorporación del módulo interactivo de Quizzes.
+         * Actualizado a v1.13 para solucionar la notificación de autorización del 
+         * estudiante al ingresar a la clase (función sendSignalToSpecificStudent).
          * ============================================================================
          */
-        let appVersion = "1.12"; 
+        let appVersion = "1.13"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -914,6 +915,16 @@
             if (type !== 'CANVAS_DRAW' && type !== 'YT_SYNC') { try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {} }
         }
 
+        function sendSignalToSpecificStudent(studentId, type, payload) {
+            const cleanRoom = getCleanRoomId();
+            const peerId = `${cleanRoom}-${studentId}`;
+            const conn = activePeerConnections[peerId];
+            if (conn && conn.open) {
+                try { conn.send({ type, payload }); } catch(e){}
+            }
+            broadcastToAllStudents(type, payload);
+        }
+
         function sendSignalToTeacher(type, payload) {
             if (teacherDataConnection && teacherDataConnection.open) { try { teacherDataConnection.send({ type, payload }); } catch(e) {} }
             const data = { type, payload, timestamp: Date.now() };
@@ -925,12 +936,13 @@
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name);
+                else if (type === 'REQUEST_FULL_STATE') { sendFullStateToStudent(); setTimeout(() => { pushTeacherStreamToStudents(); }, 500); }
                 else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
                 else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
                 else if (type === 'CHAT_MESSAGE') { appendChatMessage(payload.senderName, payload.role, payload.text); broadcastToAllStudents('CHAT_MESSAGE', payload); }
                 else if (type === 'QUIZ_SUBMIT') handleTeacherReceivedQuizSubmission(payload);
             } else if (currentRole === 'student') {
-                if (type === 'TEACHER_ADMITTED' && payload.studentId === currentStudentId) onStudentAdmittedByTeacher();
+                if (type === 'TEACHER_ADMITTED' && (payload.studentId === currentStudentId || payload.studentId === 'ALL')) onStudentAdmittedByTeacher();
                 else if (type === 'FULL_STATE_SYNC') applyFullSync(payload);
                 else if (type === 'STAGE_MODE_CHANGE') applyStageMode(payload);
                 else if (type === 'CANVAS_DRAW') applyStatelessDrawSegment(payload.stroke);
@@ -1638,14 +1650,15 @@
                     let changed = false;
                     s.w.forEach(st => { if(!realWaitingStudents.some(w=>w.id===st.id)&&!realAdmittedStudents.some(a=>a.id===st.id)){ realWaitingStudents.push(st); changed=true; playChime(); } });
                     if(changed) renderWaitingLists();
-                } else if (currentStudentId) {
-                    if (s.a.some(a => a.id === currentStudentId)) {
-                        if (document.getElementById('studentClassroomBox').classList.contains('hidden')) {
+                } else if (currentRole === 'student' && currentStudentId) {
+                    if (s.a && s.a.some(a => a.id === currentStudentId)) {
+                        const classBox = document.getElementById('studentClassroomBox');
+                        if (classBox && classBox.classList.contains('hidden')) {
                             onStudentAdmittedByTeacher();
                         }
                     }
                 }
-            }, 500);
+            }, 400);
         }
 
         function requestEntryAsStudent() {
@@ -1707,7 +1720,9 @@
             const st = realWaitingStudents.find(s=>s.id===id); if(!st) return;
             realWaitingStudents = realWaitingStudents.filter(s=>s.id!==id);
             st.joinedAt = new Date().toLocaleTimeString();
-            realAdmittedStudents.push(st);
+            if (!realAdmittedStudents.some(a => a.id === id)) {
+                realAdmittedStudents.push(st);
+            }
             
             const state = getRoomState();
             state.w = state.w.filter(w=>w.id!==id);
@@ -1718,17 +1733,24 @@
             
             renderWaitingLists(); renderRealAttendanceTable();
             sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-            setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1500); 
+            setTimeout(() => { pushTeacherStreamToStudents(); sendFullStateToStudent(); }, 1000); 
             showToast(`Estudiante ${st.name} admitido`, 'success');
         }
         
         function admitAllWaitingStudents() { const c=[...realWaitingStudents]; c.forEach(s=>admitStudent(s.id)); closeWaitingRoomModal(); }
         
         function onStudentAdmittedByTeacher() {
-            document.getElementById('studentFormBox').classList.add('hidden');
-            document.getElementById('studentClassroomBox').classList.remove('hidden');
+            const formBox = document.getElementById('studentFormBox');
+            const classBox = document.getElementById('studentClassroomBox');
+            const waitingAlert = document.getElementById('studentWaitingAlert');
+
+            if (formBox) formBox.classList.add('hidden');
+            if (waitingAlert) waitingAlert.classList.add('hidden');
+            if (classBox) classBox.classList.remove('hidden');
+
             showToast('¡Has ingresado a la clase!', 'success');
-            setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 500);
+            sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
+            setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 300);
         }
 
         function renderRealAttendanceTable() {
