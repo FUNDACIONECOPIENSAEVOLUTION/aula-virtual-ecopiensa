@@ -182,7 +182,8 @@
                     </button>
                 </div>
 
-                <div id="studentStreamWrapper" class="relative w-full aspect-video min-h-[300px] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
+                <!-- CORRECCIÓN ALINEACIÓN: Eliminado min-h-[300px] para forzar 16:9 perfecto siempre -->
+                <div id="studentStreamWrapper" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Presentación">
                     
@@ -237,7 +238,8 @@
                     </div>
                 </div>
 
-                <div id="teacherViewportFrame" class="relative w-full aspect-video min-h-[360px] max-h-[70vh] bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
+                <!-- CORRECCIÓN ALINEACIÓN: Eliminado min-h-[360px] y max-h-[70vh] para forzar 16:9 estricto -->
+                <div id="teacherViewportFrame" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-5 shadow-inner">
                             <i class="fas fa-photo-video text-4xl"></i>
@@ -268,7 +270,7 @@
                         <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-times"></i> Cerrar</button>
                     </div>
 
-                    <!-- NUEVOS CONTROLES PARA YOUTUBE (CERRAR) -->
+                    <!-- BOTÓN PARA CERRAR YOUTUBE Y VOLVER A CÁMARA -->
                     <div id="ytControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
                         <button onclick="closeYoutubeVideo()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>
                     </div>
@@ -434,11 +436,11 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.04</span>
+        Versión: <span id="appVersionDisplay">1.05 (Fix Alineación y Pantalla Negra)</span>
     </div>
 
     <script>
-        let appVersion = "1.04 (Fix YouTube)";
+        let appVersion = "1.05 (Fix Alineación y Pantalla Negra)";
         let teacherName = "Docente";
         let currentRole = 'teacher';
         let roomCode = '';
@@ -475,7 +477,6 @@
         let studentYTPlayer = null;
         let currentYoutubeUrl = '';
         let ytSyncInterval = null;
-        let isYTAPIReady = false;
 
         let canvas, ctx;
         let isDrawing = false;
@@ -673,11 +674,8 @@
             });
         }
 
-        function closeCurrentProjection() { 
-            // Para PPTs
-            setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); 
-        }
-        
+        function closeCurrentProjection() { setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); }
+
         function closeYoutubeVideo() {
             if (teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') {
                 try { teacherYTPlayer.stopVideo(); } catch(e){}
@@ -698,7 +696,7 @@
             const pinVid = document.getElementById('pinnedStudentVideo');
             const title = document.getElementById('teacherStageTitle');
 
-            // --- FIX YOUTUBE: Asegurar que el video se pausa si cambiamos de vista (ej. mostrar cámara) ---
+            // Pausar video de youtube si salimos de su vista
             if (mode !== 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.pauseVideo === 'function') {
                 try { teacherYTPlayer.pauseVideo(); } catch(e) {}
             }
@@ -712,33 +710,36 @@
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
             } else if (mode === 'webcam') {
                 camVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
+                if (camVid.srcObject) camVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
             } else if (mode === 'screen') {
                 scrVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-desktop text-pombo-400'></i> Pantalla Compartida";
+                if (scrVid.srcObject) scrVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
             } else if (mode === 'ppt') {
                 pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
                 pptViewer.src = pptSlides[currentPptIndex]; title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación";
             } else if (mode === 'youtube') {
-                ytWrapper.classList.remove('hidden'); 
+                ytWrapper.classList.remove('hidden');
                 if (ytControls) ytControls.classList.remove('hidden');
                 initTeacherYoutube(extraData || currentYoutubeUrl);
                 title.innerHTML = "<i class='fab fa-youtube text-red-500'></i> Video de YouTube";
-                switchTab('live'); 
-                togglePointerMode(); // Activar puntero para poder pausar/reproducir
+                switchTab('live'); togglePointerMode(); 
             } else if (mode === 'student_pin') {
                 pinVid.classList.remove('hidden');
+                if (pinVid.srcObject) pinVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
             }
             
             if(mode !== 'youtube' && !isAnnotationActive) { togglePointerMode(); }
             if(mode !== 'student_pin') broadcastStageMode();
+
+            // Refrescar tamaño del canvas después de los cambios visuales
+            setTimeout(resizeCanvas, 150);
         }
 
         function broadcastStageMode() {
             broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
         }
 
-        function onYouTubeIframeAPIReady() {
-            isYTAPIReady = true;
-        }
+        function onYouTubeIframeAPIReady() {}
 
         function sendYouTubeToStage() {
             const input = document.getElementById('ytUrlInput').value.trim();
@@ -755,139 +756,47 @@
             } else { showToast('Enlace inválido', 'error'); }
         }
 
-        // --- FIX YOUTUBE: Lógica robusta de inicialización/reemplazo ---
         function initTeacherYoutube(videoId) {
-            if (!teacherYTPlayer) {
-                createTeacherYTPlayer(videoId);
-                return;
+            if (teacherYTPlayer && typeof teacherYTPlayer.loadVideoById === 'function') {
+                teacherYTPlayer.loadVideoById(videoId);
+            } else {
+                teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
+                    videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                    events: { 'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); } }
+                });
             }
-
-            try {
-                if (typeof teacherYTPlayer.loadVideoById === 'function') {
-                    // Detener el anterior para evitar conflictos de audio/sincronización
-                    teacherYTPlayer.stopVideo();
-                    // Pequeña pausa para asegurar que el estado se limpió antes de cargar el nuevo
-                    setTimeout(() => {
-                        teacherYTPlayer.loadVideoById(videoId);
-                        startYTSync();
-                    }, 150);
-                } else {
-                    throw new Error("API del reproductor no disponible");
-                }
-            } catch (err) {
-                console.warn("Fallo al reutilizar reproductor YT, reconstruyendo...", err);
-                try { teacherYTPlayer.destroy(); } catch(e){}
-                // Limpiar el contenedor y recrear el div base
-                document.getElementById('teacherYoutubeWrapper').innerHTML = '<div id="teacherYoutubePlayer"></div><button onclick="closeYoutubeVideo()" class="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xl transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>';
-                createTeacherYTPlayer(videoId);
-            }
-        }
-
-        function createTeacherYTPlayer(videoId) {
-            teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
-                videoId: videoId, 
-                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
-                events: { 
-                    'onReady': (e) => {
-                        startYTSync();
-                    },
-                    'onStateChange': (e) => { 
-                        // Enviar estado de pausa/play/seek al estudiante
-                        broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); 
-                    },
-                    'onError': (e) => {
-                        showToast('Error cargando video de YouTube', 'error');
-                    }
-                }
-            });
+            startYTSync();
         }
 
         function startYTSync() {
             if (ytSyncInterval) clearInterval(ytSyncInterval);
             ytSyncInterval = setInterval(() => {
-                // Solo forzar la sincronización continua si está reproduciendo activamente (estado 1)
-                // para no causar saltos constantes (seeks) en los estudiantes cuando está en pausa.
                 if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
-                    const state = teacherYTPlayer.getPlayerState();
-                    if (state === 1) { 
-                        broadcastToAllStudents('YT_SYNC', { state: state, time: teacherYTPlayer.getCurrentTime() });
-                    }
+                    broadcastToAllStudents('YT_SYNC', { state: teacherYTPlayer.getPlayerState(), time: teacherYTPlayer.getCurrentTime() });
                 } else if (stageMode !== 'youtube') {
                     clearInterval(ytSyncInterval);
                 }
-            }, 1500);
+            }, 1000);
         }
 
-        // --- FIX YOUTUBE ESTUDIANTE: Manejo más preciso del estado y pausas ---
         function applyYoutubeSync(payload) {
             if (!studentYTPlayer || typeof studentYTPlayer.getPlayerState !== 'function') return;
             try {
                 const currentState = studentYTPlayer.getPlayerState();
                 const currentTime = studentYTPlayer.getCurrentTime();
 
-                // 1 = Reproduciendo, 2 = Pausado, 0 = Terminado, 3 = Cargando
                 if (payload.state === 1) { 
-                    if (currentState !== 1 && currentState !== 3) studentYTPlayer.playVideo();
+                    if (currentState !== 1) studentYTPlayer.playVideo();
                     if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
                 } 
                 else if (payload.state === 2) { 
-                    if (currentState !== 2) {
-                        studentYTPlayer.pauseVideo(); 
-                        studentYTPlayer.seekTo(payload.time, true); // Asegurar que pausan en el mismo cuadro
-                    }
+                    if (currentState !== 2) studentYTPlayer.pauseVideo(); 
+                    if (Math.abs(currentTime - payload.time) > 1) studentYTPlayer.seekTo(payload.time, true); 
                 } 
                 else if (payload.state === 0) { 
                     if (currentState !== 0) studentYTPlayer.stopVideo(); 
                 }
             } catch(e) {}
-        }
-
-        function applyStageMode(payload) {
-            const ph = document.getElementById('studentStreamPlaceholder');
-            const vid = document.getElementById('studentReceivedVideo');
-            const img = document.getElementById('studentSlideImage');
-            const ytWrap = document.getElementById('studentYoutubeWrapper');
-            
-            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
-
-            if (payload.mode === 'none') { 
-                ph.classList.remove('hidden'); 
-                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') {
-                    try { studentYTPlayer.stopVideo(); } catch(e){}
-                }
-            }
-            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
-                vid.classList.remove('hidden'); 
-            }
-            else if (payload.mode === 'ppt') { 
-                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
-            }
-            else if (payload.mode === 'youtube') {
-                ytWrap.classList.remove('hidden');
-                
-                try {
-                    if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
-                        if (currentYoutubeUrl !== payload.youtubeId) {
-                            studentYTPlayer.loadVideoById(payload.youtubeId);
-                            currentYoutubeUrl = payload.youtubeId;
-                        }
-                    } else {
-                        currentYoutubeUrl = payload.youtubeId;
-                        studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
-                            videoId: payload.youtubeId, 
-                            playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
-                        });
-                    }
-                } catch(e) {
-                    // Recreación de emergencia lado estudiante si el objeto falló
-                    document.getElementById('studentYoutubeWrapper').innerHTML = '<div id="studentYoutubePlayer"></div>';
-                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
-                        videoId: payload.youtubeId, 
-                        playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
-                    });
-                    currentYoutubeUrl = payload.youtubeId;
-                }
-            }
         }
 
         async function toggleCameraStream() {
@@ -1109,6 +1018,42 @@
             applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
             const c = document.getElementById('studentCanvasMirror'); if(c) redrawAllStrokes(c, drawingStrokes);
+        }
+
+        function applyStageMode(payload) {
+            const ph = document.getElementById('studentStreamPlaceholder');
+            const vid = document.getElementById('studentReceivedVideo');
+            const img = document.getElementById('studentSlideImage');
+            const ytWrap = document.getElementById('studentYoutubeWrapper');
+            
+            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
+
+            if (payload.mode === 'none') { 
+                ph.classList.remove('hidden'); 
+                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
+            }
+            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
+                vid.classList.remove('hidden'); 
+                if (vid.srcObject) vid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra en estudiantes
+            }
+            else if (payload.mode === 'ppt') { 
+                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
+            }
+            else if (payload.mode === 'youtube') {
+                ytWrap.classList.remove('hidden');
+                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
+                    if (currentYoutubeUrl !== payload.youtubeId) {
+                        studentYTPlayer.loadVideoById(payload.youtubeId);
+                        currentYoutubeUrl = payload.youtubeId;
+                    }
+                } else {
+                    currentYoutubeUrl = payload.youtubeId;
+                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } });
+                }
+            }
+            
+            // Refrescar tamaño del canvas del estudiante después de los cambios
+            setTimeout(resizeCanvas, 150);
         }
 
         function applyStatelessDrawSegment(s) {
