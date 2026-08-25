@@ -159,7 +159,7 @@
                 <div class="space-y-4 text-left">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tu Nombre Completo</label>
-                        <input type="text" id="studentInputName" placeholder="Escribe tu nombre y apellido..." class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 focus:outline-none">
+                        <input type="text" id="studentInputName" placeholder="Escribe tu nombre y apellido..." class="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-pombo-500 focus:outline-none" onkeypress="if(event.key === 'Enter') requestEntryAsStudent()">
                     </div>
                     <button onclick="requestEntryAsStudent()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
                         <i class="fas fa-sign-in-alt"></i> Solicitar Acceso
@@ -182,7 +182,7 @@
                     </button>
                 </div>
 
-                <!-- CORRECCIÓN ALINEACIÓN: Eliminado min-h-[300px] para forzar 16:9 perfecto siempre -->
+                <!-- Fix Pizarra: Relación de aspecto 16:9 estricta, removido min-h-[300px] -->
                 <div id="studentStreamWrapper" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Presentación">
@@ -238,7 +238,7 @@
                     </div>
                 </div>
 
-                <!-- CORRECCIÓN ALINEACIÓN: Eliminado min-h-[360px] y max-h-[70vh] para forzar 16:9 estricto -->
+                <!-- Fix Pizarra: Relación de aspecto 16:9 estricta, removido min-h y max-h que causaban desfases -->
                 <div id="teacherViewportFrame" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-5 shadow-inner">
@@ -270,7 +270,7 @@
                         <button onclick="closeCurrentProjection()" class="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg text-xs font-bold transition"><i class="fas fa-times"></i> Cerrar</button>
                     </div>
 
-                    <!-- BOTÓN PARA CERRAR YOUTUBE Y VOLVER A CÁMARA -->
+                    <!-- BOTÓN PARA CERRAR YOUTUBE -->
                     <div id="ytControls" class="hidden absolute top-4 right-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center shadow-2xl">
                         <button onclick="closeYoutubeVideo()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>
                     </div>
@@ -436,11 +436,21 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.05 (Fix Alineación y Pantalla Negra)</span>
+        Versión: <span id="appVersionDisplay">1.06</span>
     </div>
 
     <script>
-        let appVersion = "1.05 (Fix Alineación y Pantalla Negra)";
+        /*
+         * ============================================================================
+         * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
+         * Siempre se debe actualizar la variable `appVersion` sumando 0.01 
+         * (por ejemplo, de 1.06 a 1.07) por CADA VEZ que se corrija un error, 
+         * se modifique la lógica o se agregue una nueva funcionalidad al código.
+         * Esta indicación debe perdurar siempre en futuras actualizaciones.
+         * ============================================================================
+         */
+        let appVersion = "1.06"; 
+
         let teacherName = "Docente";
         let currentRole = 'teacher';
         let roomCode = '';
@@ -477,6 +487,7 @@
         let studentYTPlayer = null;
         let currentYoutubeUrl = '';
         let ytSyncInterval = null;
+        let isYTAPIReady = false;
 
         let canvas, ctx;
         let isDrawing = false;
@@ -510,6 +521,26 @@
                 teacherName = tnameParam ? decodeURIComponent(tnameParam) : 'Tu Profesor';
                 document.getElementById('studentFormTeacherName').textContent = teacherName;
                 document.getElementById('studentContainerView').classList.remove('hidden');
+                
+                // --- RECUPERACIÓN DE SESIÓN ESTUDIANTE (RECONEXIÓN AUTOMÁTICA) ---
+                const savedId = sessionStorage.getItem(`pombo_std_id_${roomCode}`);
+                const savedName = sessionStorage.getItem(`pombo_std_name_${roomCode}`);
+                if (savedId && savedName) {
+                    currentStudentId = savedId;
+                    document.getElementById('studentInputName').value = savedName;
+                    
+                    const state = getRoomState();
+                    if (state.a.some(st => st.id === currentStudentId)) {
+                        // El estudiante ya estaba admitido previamente
+                        document.getElementById('studentFormBox').classList.add('hidden');
+                        document.getElementById('studentClassroomBox').classList.remove('hidden');
+                        showToast('Sesión recuperada automáticamente', 'success');
+                        setTimeout(()=>{ window.dispatchEvent(new Event('resize')); }, 500);
+                    } else if (state.w.some(st => st.id === currentStudentId)) {
+                        // El estudiante estaba esperando admisión
+                        document.getElementById('studentWaitingAlert').classList.remove('hidden');
+                    }
+                }
                 
                 initRealtimeChannel();
                 initCloudSignaling();
@@ -565,7 +596,21 @@
                     const teacherPeerId = `${cleanRoom}-host`;
                     peerInstance = new Peer(teacherPeerId, { debug: 0 });
                     peerInstance.on('connection', (conn) => {
-                        conn.on('open', () => { activePeerConnections[conn.peer] = conn; sendFullStateToStudent(conn); });
+                        conn.on('open', () => { 
+                            activePeerConnections[conn.peer] = conn; 
+                            sendFullStateToStudent(conn); 
+                            
+                            // RE-ENVIAR VIDEO SI UN ESTUDIANTE YA ADMITIDO SE RECONECTA TRAS RECARGAR
+                            const studentId = conn.peer.replace(`${cleanRoom}-`, '');
+                            if (realAdmittedStudents.some(s => s.id === studentId) && activeTeacherStream && activeTeacherStream.getTracks().length > 0) {
+                                setTimeout(() => {
+                                    try {
+                                        if (activeMediaCalls[studentId]) activeMediaCalls[studentId].close();
+                                        activeMediaCalls[studentId] = peerInstance.call(conn.peer, activeTeacherStream);
+                                    } catch(e){}
+                                }, 1000); 
+                            }
+                        });
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }, conn); });
                     });
                     peerInstance.on('call', (mediaCall) => { 
@@ -674,8 +719,10 @@
             });
         }
 
-        function closeCurrentProjection() { setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); }
-
+        function closeCurrentProjection() { 
+            setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none')); 
+        }
+        
         function closeYoutubeVideo() {
             if (teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') {
                 try { teacherYTPlayer.stopVideo(); } catch(e){}
@@ -696,7 +743,7 @@
             const pinVid = document.getElementById('pinnedStudentVideo');
             const title = document.getElementById('teacherStageTitle');
 
-            // Pausar video de youtube si salimos de su vista
+            // Pausar YouTube si se sale de la vista
             if (mode !== 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.pauseVideo === 'function') {
                 try { teacherYTPlayer.pauseVideo(); } catch(e) {}
             }
@@ -710,36 +757,34 @@
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
             } else if (mode === 'webcam') {
                 camVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
-                if (camVid.srcObject) camVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
+                if (camVid.srcObject) camVid.play().catch(e=>{}); // Solución de pantalla negra al regresar a cámara
             } else if (mode === 'screen') {
                 scrVid.classList.remove('hidden'); title.innerHTML = "<i class='fas fa-desktop text-pombo-400'></i> Pantalla Compartida";
-                if (scrVid.srcObject) scrVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
+                if (scrVid.srcObject) scrVid.play().catch(e=>{}); // Solución de pantalla negra
             } else if (mode === 'ppt') {
                 pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
                 pptViewer.src = pptSlides[currentPptIndex]; title.innerHTML = "<i class='fas fa-file-pdf text-amber-400'></i> Presentación";
             } else if (mode === 'youtube') {
-                ytWrapper.classList.remove('hidden');
+                ytWrapper.classList.remove('hidden'); 
                 if (ytControls) ytControls.classList.remove('hidden');
                 initTeacherYoutube(extraData || currentYoutubeUrl);
                 title.innerHTML = "<i class='fab fa-youtube text-red-500'></i> Video de YouTube";
-                switchTab('live'); togglePointerMode(); 
+                switchTab('live'); 
+                togglePointerMode(); 
             } else if (mode === 'student_pin') {
                 pinVid.classList.remove('hidden');
-                if (pinVid.srcObject) pinVid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra
+                if (pinVid.srcObject) pinVid.play().catch(e=>{});
             }
             
             if(mode !== 'youtube' && !isAnnotationActive) { togglePointerMode(); }
             if(mode !== 'student_pin') broadcastStageMode();
-
-            // Refrescar tamaño del canvas después de los cambios visuales
-            setTimeout(resizeCanvas, 150);
         }
 
         function broadcastStageMode() {
             broadcastToAllStudents('STAGE_MODE_CHANGE', { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex] || null, youtubeId: currentYoutubeUrl });
         }
 
-        function onYouTubeIframeAPIReady() {}
+        function onYouTubeIframeAPIReady() { isYTAPIReady = true; }
 
         function sendYouTubeToStage() {
             const input = document.getElementById('ytUrlInput').value.trim();
@@ -757,26 +802,51 @@
         }
 
         function initTeacherYoutube(videoId) {
-            if (teacherYTPlayer && typeof teacherYTPlayer.loadVideoById === 'function') {
-                teacherYTPlayer.loadVideoById(videoId);
-            } else {
-                teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
-                    videoId: videoId, playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
-                    events: { 'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); } }
-                });
+            if (!teacherYTPlayer) {
+                createTeacherYTPlayer(videoId);
+                return;
             }
-            startYTSync();
+            try {
+                if (typeof teacherYTPlayer.loadVideoById === 'function') {
+                    teacherYTPlayer.stopVideo();
+                    setTimeout(() => {
+                        teacherYTPlayer.loadVideoById(videoId);
+                        startYTSync();
+                    }, 150);
+                } else {
+                    throw new Error("API no lista");
+                }
+            } catch (err) {
+                try { teacherYTPlayer.destroy(); } catch(e){}
+                document.getElementById('teacherYoutubeWrapper').innerHTML = '<div id="teacherYoutubePlayer"></div><button onclick="closeYoutubeVideo()" class="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xl transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>';
+                createTeacherYTPlayer(videoId);
+            }
+        }
+
+        function createTeacherYTPlayer(videoId) {
+            teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
+                videoId: videoId, 
+                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                events: { 
+                    'onReady': (e) => { startYTSync(); },
+                    'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); },
+                    'onError': (e) => { showToast('Error cargando video de YouTube', 'error'); }
+                }
+            });
         }
 
         function startYTSync() {
             if (ytSyncInterval) clearInterval(ytSyncInterval);
             ytSyncInterval = setInterval(() => {
                 if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
-                    broadcastToAllStudents('YT_SYNC', { state: teacherYTPlayer.getPlayerState(), time: teacherYTPlayer.getCurrentTime() });
+                    const state = teacherYTPlayer.getPlayerState();
+                    if (state === 1) { 
+                        broadcastToAllStudents('YT_SYNC', { state: state, time: teacherYTPlayer.getCurrentTime() });
+                    }
                 } else if (stageMode !== 'youtube') {
                     clearInterval(ytSyncInterval);
                 }
-            }, 1000);
+            }, 1500);
         }
 
         function applyYoutubeSync(payload) {
@@ -786,17 +856,64 @@
                 const currentTime = studentYTPlayer.getCurrentTime();
 
                 if (payload.state === 1) { 
-                    if (currentState !== 1) studentYTPlayer.playVideo();
+                    if (currentState !== 1 && currentState !== 3) studentYTPlayer.playVideo();
                     if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
                 } 
                 else if (payload.state === 2) { 
-                    if (currentState !== 2) studentYTPlayer.pauseVideo(); 
-                    if (Math.abs(currentTime - payload.time) > 1) studentYTPlayer.seekTo(payload.time, true); 
+                    if (currentState !== 2) {
+                        studentYTPlayer.pauseVideo(); 
+                        studentYTPlayer.seekTo(payload.time, true); 
+                    }
                 } 
                 else if (payload.state === 0) { 
                     if (currentState !== 0) studentYTPlayer.stopVideo(); 
                 }
             } catch(e) {}
+        }
+
+        function applyStageMode(payload) {
+            const ph = document.getElementById('studentStreamPlaceholder');
+            const vid = document.getElementById('studentReceivedVideo');
+            const img = document.getElementById('studentSlideImage');
+            const ytWrap = document.getElementById('studentYoutubeWrapper');
+            
+            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
+
+            if (payload.mode === 'none') { 
+                ph.classList.remove('hidden'); 
+                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
+            }
+            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
+                vid.classList.remove('hidden'); 
+                if (vid.srcObject) vid.play().catch(e=>{}); // Solución de pantalla negra estudiante
+            }
+            else if (payload.mode === 'ppt') { 
+                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
+            }
+            else if (payload.mode === 'youtube') {
+                ytWrap.classList.remove('hidden');
+                try {
+                    if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
+                        if (currentYoutubeUrl !== payload.youtubeId) {
+                            studentYTPlayer.loadVideoById(payload.youtubeId);
+                            currentYoutubeUrl = payload.youtubeId;
+                        }
+                    } else {
+                        currentYoutubeUrl = payload.youtubeId;
+                        studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                            videoId: payload.youtubeId, 
+                            playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                        });
+                    }
+                } catch(e) {
+                    document.getElementById('studentYoutubeWrapper').innerHTML = '<div id="studentYoutubePlayer"></div>';
+                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                        videoId: payload.youtubeId, 
+                        playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                    });
+                    currentYoutubeUrl = payload.youtubeId;
+                }
+            }
         }
 
         async function toggleCameraStream() {
@@ -841,10 +958,11 @@
                     btnScr.classList.replace('bg-slate-800', 'bg-emerald-600');
                     setStageMode('screen');
                     pushTeacherStreamToStudents();
-                    showToast('Pantalla compartida con audio del sistema', 'success');
+                    showToast('Pantalla compartida', 'success');
                     
                     screenShareStream.getVideoTracks()[0].onended = () => {
                         isScreenSharing = false;
+                        screenShareStream = null; // SOLUCIÓN: Liberar la variable explícitamente para que la cámara retome
                         btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
                         setStageMode(isCameraActive ? 'webcam' : 'none');
                         pushTeacherStreamToStudents();
@@ -852,6 +970,7 @@
                 } catch(err) {}
             } else {
                 if (screenShareStream) screenShareStream.getTracks().forEach(t => t.stop());
+                screenShareStream = null; // SOLUCIÓN: Liberar al apagar el botón
                 isScreenSharing = false;
                 btnScr.classList.replace('bg-emerald-600', 'bg-slate-800');
                 setStageMode(isCameraActive ? 'webcam' : 'none');
@@ -1018,42 +1137,6 @@
             applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
             drawingStrokes = payload.strokes || [];
             const c = document.getElementById('studentCanvasMirror'); if(c) redrawAllStrokes(c, drawingStrokes);
-        }
-
-        function applyStageMode(payload) {
-            const ph = document.getElementById('studentStreamPlaceholder');
-            const vid = document.getElementById('studentReceivedVideo');
-            const img = document.getElementById('studentSlideImage');
-            const ytWrap = document.getElementById('studentYoutubeWrapper');
-            
-            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
-
-            if (payload.mode === 'none') { 
-                ph.classList.remove('hidden'); 
-                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
-            }
-            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
-                vid.classList.remove('hidden'); 
-                if (vid.srcObject) vid.play().catch(e=>{}); // CORRECCIÓN: Evitar pantalla negra en estudiantes
-            }
-            else if (payload.mode === 'ppt') { 
-                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
-            }
-            else if (payload.mode === 'youtube') {
-                ytWrap.classList.remove('hidden');
-                if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
-                    if (currentYoutubeUrl !== payload.youtubeId) {
-                        studentYTPlayer.loadVideoById(payload.youtubeId);
-                        currentYoutubeUrl = payload.youtubeId;
-                    }
-                } else {
-                    currentYoutubeUrl = payload.youtubeId;
-                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { videoId: payload.youtubeId, playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } });
-                }
-            }
-            
-            // Refrescar tamaño del canvas del estudiante después de los cambios
-            setTimeout(resizeCanvas, 150);
         }
 
         function applyStatelessDrawSegment(s) {
@@ -1258,6 +1341,11 @@
             const name = document.getElementById('studentInputName').value.trim();
             if (!name) { showToast('Escribe tu nombre', 'warning'); return; }
             currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
+            
+            // GUARDAR DATOS DE SESIÓN AL SOLICITAR INGRESO
+            sessionStorage.setItem(`pombo_std_id_${roomCode}`, currentStudentId);
+            sessionStorage.setItem(`pombo_std_name_${roomCode}`, name);
+            
             document.getElementById('studentWaitingAlert').classList.remove('hidden');
             const req = { id: currentStudentId, name, time: new Date().toLocaleTimeString() };
             const s = getRoomState(); s.w.push(req); saveRoomState(s);
@@ -1343,6 +1431,8 @@
         function stopAllStreams() {
             if(localMediaStream) localMediaStream.getTracks().forEach(t=>t.stop());
             if(screenShareStream) screenShareStream.getTracks().forEach(t=>t.stop());
+            localMediaStream = null;
+            screenShareStream = null;
             if(teacherYTPlayer && typeof teacherYTPlayer.stopVideo === 'function') teacherYTPlayer.stopVideo();
             setStageMode('none'); isCameraActive=false; isScreenSharing=false; clearCanvas();
             pushTeacherStreamToStudents();
