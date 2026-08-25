@@ -59,7 +59,7 @@
         
         /* Asegurar que los iframes cubran el contenedor */
         .iframe-container { position: relative; width: 100%; height: 100%; }
-        .iframe-container iframe { width: 100%; height: 100%; border: none; }
+        .iframe-container iframe { width: 100%; height: 100%; border: none; pointer-events: auto; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
@@ -98,13 +98,20 @@
             <!-- NAVEGACIÓN DOCENTE -->
             <nav id="teacherNavTabs" class="hidden flex space-x-1 sm:space-x-4 overflow-x-auto border-t border-slate-800 pt-2 pb-1">
                 <button onclick="switchTab('live')" id="tab-btn-live" class="tab-btn active px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 transition border-b-2 border-pombo-500 text-pombo-500 bg-slate-800/50">
-                    <i class="fas fa-video"></i> Aula Central y Tablero
+                    <i class="fas fa-video"></i> Aula Central
                 </button>
                 <button onclick="switchTab('media')" id="tab-btn-media" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
-                    <i class="fab fa-youtube text-red-500"></i> Compartir YouTube
+                    <i class="fab fa-youtube text-red-500"></i> YouTube
+                </button>
+                <button onclick="switchTab('schedule')" id="tab-btn-schedule" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-calendar-alt"></i> Programación
+                </button>
+                <button onclick="switchTab('chat')" id="tab-btn-chat" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
+                    <i class="fas fa-comments"></i> Chat / Manos
+                    <span id="handTabBadge" class="hidden w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping"></span>
                 </button>
                 <button onclick="switchTab('attendance')" id="tab-btn-attendance" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
-                    <i class="fas fa-users"></i> Alumnos (<span id="tabBadgeCount">0</span>)
+                    <i class="fas fa-users"></i> Asistencia (<span id="tabBadgeCount">0</span>)
                 </button>
             </nav>
         </div>
@@ -158,13 +165,18 @@
                     <!-- Capas de Medios (Sólo una visible a la vez) -->
                     <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-0" autoplay playsinline></video>
                     <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-0" src="" alt="Presentación">
-                    <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container pointer-events-none">
+                    
+                    <!-- CORRECCIÓN YOUTUBE: pointer-events-none eliminado para que el estudiante pueda dar Play -->
+                    <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-0 iframe-container">
                         <iframe id="studentYoutubePlayer" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                     </div>
                     
-                    <!-- Capa Transparente de Rayado (Recibe dibujos) -->
+                    <!-- Capa Transparente de Rayado (Recibe dibujos, pointer-events-none deja pasar clics a YouTube) -->
                     <canvas id="studentCanvasMirror" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
                     
+                    <!-- Miniatura del Propio Estudiante -->
+                    <video id="studentSelfVideo" class="absolute bottom-3 right-3 w-28 h-20 bg-slate-800 rounded-lg border-2 border-emerald-500 object-cover hidden z-20 shadow-lg" autoplay playsinline muted></video>
+
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0">
                         <i class="fas fa-chalkboard text-6xl text-slate-700 mb-4 animate-pulse"></i>
                         <h3 class="text-white font-bold text-xl">Conectado correctamente</h3>
@@ -172,8 +184,21 @@
                     </div>
                 </div>
 
-                <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-end gap-3 z-30">
-                    <button onclick="studentLeaveClass()" class="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/30 text-sm font-bold px-5 py-2.5 rounded-xl transition">Salir de Clase</button>
+                <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center gap-3 z-30 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <button id="studentCamBtn" onclick="studentToggleCam()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                            <i class="fas fa-video-slash text-red-400"></i> Mi Cámara
+                        </button>
+                        <button id="studentMicBtn" onclick="studentToggleMic()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition">
+                            <i class="fas fa-microphone-slash text-red-400"></i> Mi Micro
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="studentHandBtn" onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md">
+                            <i class="fas fa-hand-paper"></i> <span>Levantar Mano</span>
+                        </button>
+                        <button onclick="studentLeaveClass()" class="bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/30 text-sm font-bold px-5 py-2 rounded-xl transition">Salir</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -220,6 +245,9 @@
                     <!-- CAPA TRANSPARENTE MAGICA DE RAYADO (Z-Index 20) -->
                     <!-- Atrapa los clics cuando canvas-active, los ignora cuando canvas-disabled -->
                     <canvas id="annotationCanvas" class="absolute inset-0 w-full h-full z-20 canvas-active"></canvas>
+
+                    <!-- Miniaturas Flotantes (Cámaras de los estudiantes) -->
+                    <div id="realStudentMiniatures" class="absolute bottom-4 right-4 z-30 flex flex-col gap-2 max-h-60 overflow-y-auto pointer-events-auto pr-2"></div>
 
                     <!-- Panel Flotante PDF/PPT -->
                     <div id="pptSlideControls" class="hidden absolute top-4 left-4 z-30 bg-slate-900/95 backdrop-blur border border-slate-700 p-2 rounded-xl flex items-center gap-2 shadow-2xl">
@@ -289,7 +317,7 @@
                             <i class="fas fa-desktop text-pombo-400"></i> <span class="hidden sm:inline">Compartir Pantalla</span>
                         </button>
                         
-                        <!-- Botón para subir PDF/PowerPoint que activa input oculto -->
+                        <!-- Botón para subir PDF/PowerPoint -->
                         <label class="px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold flex items-center gap-2 text-sm transition shadow border border-slate-700 cursor-pointer">
                             <i class="fas fa-file-pdf text-amber-400"></i> <span class="hidden md:inline">PDF / PowerPoint</span>
                             <input type="file" accept="image/*,.pdf,.pptx,.ppt" multiple onchange="handleFileUploadFlow(event)" class="hidden">
@@ -315,10 +343,64 @@
                         <i class="fas fa-play"></i> Proyectar a la Clase
                     </button>
                 </div>
+                
+                <div class="mt-6 flex justify-center">
+                    <button onclick="stopYouTube()" class="bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold px-5 py-3 rounded-xl shadow transition flex items-center gap-2">
+                        <i class="fas fa-stop-circle"></i> Detener Video
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- TAB 3: ASISTENCIA -->
+        <!-- TAB 3: PROGRAMACIÓN DE CLASES -->
+        <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
+                    <div class="flex items-center gap-3 mb-6 pb-3 border-b border-slate-100">
+                        <div class="w-10 h-10 rounded-xl bg-pombo-100 text-pombo-600 flex items-center justify-center font-bold"><i class="fas fa-calendar-plus text-lg"></i></div>
+                        <div><h3 class="font-outfit font-bold text-lg text-slate-800">Programar Clase</h3></div>
+                    </div>
+                    <form id="scheduleForm" onsubmit="handleCreateSchedule(event)" class="space-y-4">
+                        <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tema</label><input type="text" id="schedTitle" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm"></div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Fecha</label><input type="date" id="schedDate" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></div>
+                            <div><label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hora</label><input type="time" id="schedTime" required class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></div>
+                        </div>
+                        <button type="submit" class="w-full bg-pombo-600 hover:bg-pombo-700 text-white font-semibold py-3 rounded-xl shadow-md transition">Guardar</button>
+                    </form>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-2">
+                    <h3 class="font-outfit font-bold text-lg text-slate-800 mb-4">Clases Programadas</h3>
+                    <div id="scheduleList" class="space-y-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: CHAT Y PARTICIPACIÓN -->
+        <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Zona Chat -->
+                <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[500px]">
+                    <div id="chatMessages" class="flex-grow p-4 overflow-y-auto space-y-3 bg-slate-50/50"></div>
+                    <div class="p-3 border-t border-slate-200 bg-white rounded-b-2xl flex gap-2">
+                        <input type="text" id="chatInput" onkeypress="if(event.key === 'Enter') sendChatMessage()" placeholder="Mensaje para toda la clase..." class="flex-grow px-4 py-2 rounded-xl border border-slate-300 text-sm">
+                        <button onclick="sendChatMessage()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-5 py-2 rounded-xl transition"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+                <!-- Zona Manos -->
+                <div class="bg-white p-5 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
+                    <h4 class="font-outfit font-bold text-slate-800 mb-3 flex items-center justify-between">
+                        <span class="flex items-center gap-2"><i class="fas fa-hand-paper text-amber-500"></i> Manos Levantadas</span>
+                        <span id="handCount" class="bg-amber-100 text-amber-700 text-xs px-2.5 py-0.5 rounded-full font-bold">0</span>
+                    </h4>
+                    <ul id="handQueueList" class="space-y-2 max-h-80 overflow-y-auto">
+                        <li id="emptyHandsMsg" class="text-xs text-slate-400 text-center py-4">No hay manos levantadas</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: ASISTENCIA -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-200">
                 <div class="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
@@ -396,20 +478,26 @@
         let activeMediaCalls = {};      
         let teacherDataConnection = null;
 
-        // Estructura Unificada de Modos del Escenario (Stage Mode)
+        // Modos del Escenario (Stage Mode)
         // Valores: 'none', 'webcam', 'screen', 'ppt', 'youtube'
         let stageMode = 'none'; 
         let isWhiteBackground = false;
 
-        // Media & Streams
+        // Media & Streams Docente
         let localMediaStream = null;
         let screenShareStream = null;
-        let activeTeacherStream = null; // Stream mixto final enviado a alumnos
+        let activeTeacherStream = null;
         let isCameraActive = false;
         let isMicActive = true;
         let isScreenSharing = false;
 
-        // Audio Mixer (Micrófono + Audio Sistema)
+        // Media & Streams Estudiante
+        let studentLocalStream = null;
+        let isStudentCamActive = false;
+        let isStudentMicActive = false;
+        let isHandRaised = false;
+
+        // Audio Mixer (Micrófono + Audio Sistema Docente)
         let audioMixerCtx = null;
         let audioMixerDest = null;
         let micSource = null;
@@ -428,16 +516,17 @@
         let currentTool = 'pen';
         let currentColor = '#ef4444';
         let currentLineWidth = 5;
-        let isAnnotationActive = true; // Por defecto modo rayado encendido
-        let drawingStrokes = []; // Historial guardado para sincronizar alumnos nuevos o redimensiones
+        let isAnnotationActive = true; 
+        let drawingStrokes = []; 
         let activeStroke = null;
         let lastNormX = 0, lastNormY = 0;
 
-        // Lista de Estudiantes
+        // Listas
         let realWaitingStudents = [];
         let realAdmittedStudents = [];
         let currentStudentId = null;
         let pollingInterval = null;
+        let schedules = [];
 
         // ==========================================
         // 2. INICIALIZACIÓN
@@ -477,20 +566,14 @@
         function getCleanRoomId() { return 'pombo-' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
         // ==========================================
-        // 3. WEBRTC Y SEÑALIZACIÓN (PEERJS + BROADCAST)
+        // 3. WEBRTC Y SEÑALIZACIÓN (PEERJS)
         // ==========================================
         function initCloudSignaling() {
             const cleanRoom = getCleanRoomId();
-            
-            // EL FIX PARA EL ERROR EN CANVAS:
-            // Jib App Canvas bloquea las peticiones de WebSockets (que PeerJS intenta usar por defecto) 
-            // lanzando un error "is not allowed in Canvas". Para prevenir que la consola se llene 
-            // de estos errores y la app se frene, pausamos WebRTC en el entorno de previsualización estricto.
-            // La Pizarra, Documentos y YouTube seguirán funcionando mediante `BroadcastChannel`.
             try {
                 if (window.self !== window.top) {
-                    console.log("Modo Preview Canvas Detectado: La señalización WebRTC está en pausa por seguridad del entorno. Las herramientas de Pizarra y Documentos utilizarán el canal de comunicación local.");
-                    return; // Saltamos la conexión para que no arroje el error rojo en la consola.
+                    console.log("Modo Preview Canvas: WebRTC en pausa. Pizarra por Canal Local.");
+                    return; 
                 }
             } catch(e) {}
 
@@ -507,8 +590,14 @@
                         conn.on('data', (data) => { if (data && data.type) handleSignalMessage({ data }, conn); });
                     });
                     
-                    peerInstance.on('call', (mediaCall) => { mediaCall.answer(); });
-                } catch(e) { console.warn("Aviso PeerJS Docente Controlado:", e); }
+                    peerInstance.on('call', (mediaCall) => { 
+                        // El profesor responde la llamada del estudiante (recibe video)
+                        mediaCall.answer(); 
+                        mediaCall.on('stream', (remoteStudentStream) => {
+                            handleIncomingStudentVideoStream(mediaCall.peer, remoteStudentStream);
+                        });
+                    });
+                } catch(e) {}
             } else {
                 try {
                     currentStudentId = currentStudentId || 'std_' + Math.random().toString(36).substr(2, 9);
@@ -522,6 +611,7 @@
                     });
                     
                     peerInstance.on('call', (call) => {
+                        // El estudiante responde la llamada del profesor
                         call.answer(); 
                         call.on('stream', (remoteTeacherStream) => {
                             const stdVideo = document.getElementById('studentReceivedVideo');
@@ -531,11 +621,11 @@
                             }
                         });
                     });
-                } catch(e) { console.warn("Aviso PeerJS Estudiante Controlado:", e); }
+                } catch(e) {}
             }
         }
 
-        // Híbrido: Pestañas locales (BroadcastChannel) + WebRTC
+        // Híbrido: Pestañas locales (BroadcastChannel)
         function initRealtimeChannel() {
             try { broadcastChannel = new BroadcastChannel(`pombo_channel_${roomCode}`); broadcastChannel.onmessage = (e) => handleSignalMessage(e); } catch(e) {}
             window.addEventListener('storage', (e) => {
@@ -565,6 +655,12 @@
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name, connection);
+                else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
+                else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
+                else if (type === 'CHAT_MESSAGE') {
+                    appendChatMessage(payload.senderName, payload.role, payload.text);
+                    broadcastToAllStudents('CHAT_MESSAGE', payload); // Retransmitir a otros
+                }
             } else if (currentRole === 'student') {
                 if (type === 'TEACHER_ADMITTED' && payload.studentId === currentStudentId) onStudentAdmittedByTeacher();
                 else if (type === 'FULL_STATE_SYNC') applyFullSync(payload);
@@ -572,6 +668,7 @@
                 else if (type === 'CANVAS_DRAW') applyStatelessDrawSegment(payload.stroke);
                 else if (type === 'CANVAS_CLEAR') mirrorCanvasClear();
                 else if (type === 'CANVAS_BG_TOGGLE') applyWhiteboardBg(payload.isWhite);
+                else if (type === 'CHAT_MESSAGE') appendChatMessage(payload.senderName, payload.role, payload.text);
             }
         }
 
@@ -580,7 +677,6 @@
         // ==========================================
         function getMixedStream(camStream, screenStream) {
             let videoTrack = null;
-            // Preferir el video de la pantalla si existe, sino el de la cámara
             if (screenStream && screenStream.getVideoTracks().length > 0) videoTrack = screenStream.getVideoTracks()[0];
             else if (camStream && camStream.getVideoTracks().length > 0) videoTrack = camStream.getVideoTracks()[0];
 
@@ -629,8 +725,26 @@
             });
         }
 
+        function handleIncomingStudentVideoStream(peerId, remoteStudentStream) {
+            const studentId = peerId.replace(`${getCleanRoomId()}-`, '');
+            const student = realAdmittedStudents.find(s => s.id === studentId);
+            const studentName = student ? student.name : 'Estudiante';
+            const container = document.getElementById('realStudentMiniatures');
+            if (!container) return;
+            let existing = document.getElementById(`std-video-${studentId}`);
+            if (!existing) {
+                const wrapper = document.createElement('div');
+                wrapper.id = `std-wrapper-${studentId}`;
+                wrapper.className = "w-32 h-20 bg-slate-900 rounded-xl border-2 border-emerald-500 relative overflow-hidden shadow-lg animate-fade-in shrink-0";
+                wrapper.innerHTML = `<video id="std-video-${studentId}" class="w-full h-full object-cover" autoplay playsinline></video><div class="absolute bottom-1 left-1 bg-slate-950/80 px-1.5 py-0.5 rounded text-[9px] text-white font-bold truncate max-w-[90%]"><i class="fas fa-video text-emerald-400"></i> ${studentName}</div>`;
+                container.appendChild(wrapper);
+                existing = document.getElementById(`std-video-${studentId}`);
+            }
+            if (existing) { existing.srcObject = remoteStudentStream; }
+        }
+
         // ==========================================
-        // 5. CONTROL MAESTRO DEL ESCENARIO (EL FIX)
+        // 5. CONTROL MAESTRO DEL ESCENARIO 
         // ==========================================
         function setStageMode(mode, extraData = null) {
             stageMode = mode;
@@ -643,13 +757,15 @@
             const ytPlayer = document.getElementById('teacherYoutubePlayer');
             const title = document.getElementById('teacherStageTitle');
 
-            // Ocultar todas las capas base
+            // Ocultar capas base
             [ph, camVid, scrVid, pptViewer, pptControls, ytWrapper].forEach(el => el.classList.add('hidden'));
+
+            // Si cambiamos de modo y NO es youtube, limpiamos el video para cortar el audio
+            if (mode !== 'youtube') ytPlayer.src = "";
 
             if (mode === 'none') {
                 ph.classList.remove('hidden');
                 title.innerHTML = "<i class='fas fa-chalkboard text-slate-400'></i> Pizarra en Blanco";
-                ytPlayer.src = "";
             } else if (mode === 'webcam') {
                 camVid.classList.remove('hidden');
                 title.innerHTML = "<i class='fas fa-video text-pombo-400'></i> Cámara del Profesor";
@@ -666,11 +782,10 @@
                 ytPlayer.src = extraData || currentYoutubeUrl;
                 title.innerHTML = "<i class='fab fa-youtube text-red-500'></i> Video de YouTube";
                 switchTab('live'); 
-                // Activar automáticamente modo puntero para que el profesor pueda dar Play
-                togglePointerMode(); 
+                togglePointerMode(); // Activar puntero para poder dar Play
             }
             
-            // Garantizar que la capa de canvas permanezca activa
+            // Reactivar lápiz por defecto (si no estamos en youtube y el puntero estaba activo)
             if(mode !== 'youtube' && !isAnnotationActive) { togglePointerMode(); }
             
             broadcastStageMode();
@@ -684,6 +799,13 @@
             });
         }
 
+        function stopYouTube() {
+            if(stageMode === 'youtube') {
+                setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none'));
+                showToast('Video de YouTube detenido. Regresando al escenario.', 'info');
+            }
+        }
+
         async function toggleCameraStream() {
             const btnCam = document.getElementById('btnToggleCam');
             const camVid = document.getElementById('webcamVideo');
@@ -695,7 +817,8 @@
                     btnCam.classList.replace('bg-slate-800', 'bg-emerald-600');
                     btnCam.innerHTML = `<i class="fas fa-video text-white"></i> <span class="hidden sm:inline">Cámara</span>`;
                     isCameraActive = true;
-                    if (stageMode === 'none') setStageMode('webcam');
+                    
+                    setStageMode('webcam'); // Fuerza el escenario a la cámara
                     pushTeacherStreamToStudents();
                     showToast('Cámara iniciada', 'success');
                 } catch(err) { showToast('Acceso a cámara denegado', 'error'); }
@@ -704,6 +827,7 @@
                 btnCam.classList.replace('bg-emerald-600', 'bg-slate-800');
                 btnCam.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> <span class="hidden sm:inline">Cámara</span>`;
                 isCameraActive = false;
+                
                 if (stageMode === 'webcam') setStageMode(isScreenSharing ? 'screen' : 'none');
                 pushTeacherStreamToStudents();
             }
@@ -732,7 +856,7 @@
                     isScreenSharing = true;
                     btnScr.classList.replace('bg-slate-800', 'bg-emerald-600');
                     
-                    setStageMode('screen');
+                    setStageMode('screen'); // Fuerza el escenario a la pantalla
                     pushTeacherStreamToStudents();
                     showToast('Pantalla compartida. Puedes rayar sobre ella.', 'success');
                     
@@ -753,12 +877,11 @@
         }
 
         // ==========================================
-        // 6. FLUJO PDF / POWERPOINT (Vía PDF.js)
+        // 6. FLUJO PDF / POWERPOINT 
         // ==========================================
         function handleFileUploadFlow(event) {
             const files = Array.from(event.target.files);
             if (!files || files.length === 0) return;
-            
             const file = files[0];
             if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) {
                 document.getElementById('pptxWarningModal').classList.remove('hidden');
@@ -770,7 +893,7 @@
         function closePptxWarning() { document.getElementById('pptxWarningModal').classList.add('hidden'); }
 
         async function processValidUpload(files) {
-            showToast('Procesando archivo para proyector...', 'info');
+            showToast('Procesando archivo...', 'info');
             let newSlides = [];
             for (const file of files) {
                 if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
@@ -785,7 +908,7 @@
                             await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
                             newSlides.push(tempCanvas.toDataURL('image/jpeg', 0.85));
                         }
-                    } catch(err) { showToast('Error al leer el PDF.', 'error'); }
+                    } catch(err) { showToast('Error al leer PDF.', 'error'); }
                 } else if (file.type.startsWith('image/')) {
                     const dataUrl = await new Promise((r) => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
                     newSlides.push(dataUrl);
@@ -820,6 +943,7 @@
             else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
             
             if (videoId) {
+                // Alumno ya no tiene pointer-events-none, por lo que el autoplay funcionará
                 currentYoutubeUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
                 clearCanvas();
                 setStageMode('youtube');
@@ -837,13 +961,11 @@
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
             
-            // Mouse
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             window.addEventListener('mouseup', stopDrawing);
             canvas.addEventListener('mouseleave', stopDrawing);
             
-            // Touch
             canvas.addEventListener('touchstart', (e)=>{ if(e.touches.length===1 && isAnnotationActive){ startDrawing(e.touches[0]); e.preventDefault(); } }, {passive:false});
             canvas.addEventListener('touchmove', (e)=>{ if(e.touches.length===1 && isAnnotationActive){ draw(e.touches[0]); e.preventDefault(); } }, {passive:false});
             window.addEventListener('touchend', stopDrawing);
@@ -861,18 +983,18 @@
         function togglePointerMode() {
             isAnnotationActive = false;
             canvas.classList.remove('canvas-active');
-            canvas.classList.add('canvas-disabled'); // Deja pasar los clics hacia el iframe/pantalla
+            canvas.classList.add('canvas-disabled'); // Deja pasar clics a YouTube / Pantalla Compartida
             
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('bg-pombo-600', 'text-white', 'active-tool'));
             const pBtn = document.getElementById('tool-pointer');
             if(pBtn) pBtn.classList.add('bg-pombo-600', 'text-white', 'active-tool');
-            showToast('Modo Puntero: Puedes hacer clic en los videos.', 'info');
+            showToast('Modo Puntero: Haz clic libremente en el video', 'info');
         }
 
         function setTool(tool) {
             isAnnotationActive = true;
             canvas.classList.remove('canvas-disabled');
-            canvas.classList.add('canvas-active'); // Atrapa los clics para rayar
+            canvas.classList.add('canvas-active');
             currentTool = tool;
             
             document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('bg-pombo-600', 'text-white', 'active-tool'));
@@ -961,7 +1083,7 @@
         }
 
         // ==========================================
-        // 9. RECEPTOR DEL ESTUDIANTE (CLIENTE)
+        // 9. RECEPTOR DEL ESTUDIANTE Y MEDIOS
         // ==========================================
         function setupAutoResizeObservers() {
             try {
@@ -1025,8 +1147,158 @@
             else { wrap.classList.replace('bg-white', 'bg-slate-950'); c.style.backgroundColor = 'transparent'; }
         }
 
+        // --- Cámara y Micro de Estudiante ---
+        async function studentToggleCam() {
+            const selfVideo = document.getElementById('studentSelfVideo');
+            const btn = document.getElementById('studentCamBtn');
+            if (!isStudentCamActive) {
+                try {
+                    studentLocalStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: isStudentMicActive });
+                    selfVideo.srcObject = studentLocalStream;
+                    selfVideo.classList.remove('hidden');
+                    btn.classList.replace('bg-slate-800', 'bg-emerald-600');
+                    btn.innerHTML = `<i class="fas fa-video text-white"></i> Mi Cámara`;
+                    isStudentCamActive = true;
+                    if (peerInstance) {
+                        const cleanRoom = getCleanRoomId();
+                        peerInstance.call(`${cleanRoom}-host`, studentLocalStream);
+                    }
+                    showToast('Tu cámara está compartida con el profesor', 'success');
+                } catch(e) { showToast('No se pudo activar la cámara', 'error'); }
+            } else {
+                if (studentLocalStream) studentLocalStream.getVideoTracks().forEach(t => t.stop());
+                selfVideo.classList.add('hidden');
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+                btn.innerHTML = `<i class="fas fa-video-slash text-red-400"></i> Mi Cámara`;
+                isStudentCamActive = false;
+            }
+        }
+
+        function studentToggleMic() {
+            const btn = document.getElementById('studentMicBtn');
+            isStudentMicActive = !isStudentMicActive;
+            if (studentLocalStream) studentLocalStream.getAudioTracks().forEach(t => t.enabled = isStudentMicActive);
+            if (isStudentMicActive) { 
+                btn.innerHTML = `<i class="fas fa-microphone text-emerald-400"></i> Mi Micro`; 
+                btn.classList.replace('bg-slate-800', 'bg-emerald-600'); 
+            } else { 
+                btn.innerHTML = `<i class="fas fa-microphone-slash text-red-400"></i> Mi Micro`; 
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+            }
+        }
+
         // ==========================================
-        // 10. SALA DE ESPERA Y ASISTENCIA
+        // 10. CHAT Y PARTICIPACIÓN
+        // ==========================================
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            const sender = currentRole === 'teacher' ? 'Prof. Fannor Andrade' : (document.getElementById('studentInputName').value || 'Estudiante');
+            const roleStr = currentRole === 'teacher' ? 'Docente' : 'Estudiante';
+            
+            appendChatMessage(sender, roleStr, msg);
+            
+            const payload = { senderName: sender, role: roleStr, text: msg };
+            if (currentRole === 'teacher') broadcastToAllStudents('CHAT_MESSAGE', payload);
+            else sendSignalToTeacher('CHAT_MESSAGE', payload);
+            
+            input.value = '';
+        }
+
+        function appendChatMessage(name, role, text) {
+            const chatBox = document.getElementById('chatMessages');
+            if (!chatBox) return;
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded-xl text-xs border border-slate-200 shadow-sm flex items-start gap-2.5 animate-fade-in';
+            div.innerHTML = `<div class="w-7 h-7 rounded-full ${role === 'Docente' ? 'bg-pombo-600' : 'bg-emerald-600'} text-white font-bold flex items-center justify-center text-[10px] shrink-0">${name.charAt(0).toUpperCase()}</div><div><strong class="text-slate-800 block">${name} <span class="text-[9px] text-slate-400 font-normal">(${role})</span></strong> <span class="text-slate-600">${text}</span></div>`;
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            if(currentRole === 'teacher') {
+                const handBadge = document.getElementById('handTabBadge');
+                if (handBadge) handBadge.classList.remove('hidden');
+            }
+        }
+
+        function studentRaiseHand() {
+            isHandRaised = !isHandRaised;
+            const btn = document.getElementById('studentHandBtn');
+            const name = document.getElementById('studentInputName').value || 'Estudiante';
+            if (isHandRaised) {
+                btn.className = "bg-amber-600 ring-2 ring-amber-300 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; 
+                btn.innerHTML = `<i class="fas fa-hand-paper text-white animate-bounce"></i> <span>Bajar Mano</span>`;
+                sendSignalToTeacher('STUDENT_RAISE_HAND', { studentId: currentStudentId, studentName: name });
+                showToast('Mano levantada.', 'info');
+            } else {
+                btn.className = "bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md"; 
+                btn.innerHTML = `<i class="fas fa-hand-paper"></i> <span>Levantar Mano</span>`;
+                sendSignalToTeacher('STUDENT_LOWER_HAND', { studentId: currentStudentId });
+            }
+        }
+
+        function handleTeacherReceivedRaiseHand(studentId, studentName) {
+            const list = document.getElementById('handQueueList');
+            const emptyMsg = document.getElementById('emptyHandsMsg');
+            if (emptyMsg) emptyMsg.remove();
+            
+            const countElem = document.getElementById('handCount');
+            if (countElem) countElem.textContent = parseInt(countElem.textContent || 0) + 1;
+            
+            const li = document.createElement('li');
+            li.setAttribute('data-student-id', studentId);
+            li.className = 'p-2.5 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between text-xs animate-fade-in';
+            li.innerHTML = `<span class="font-semibold text-slate-800"><i class="fas fa-hand-paper text-amber-500 mr-1"></i> ${studentName}</span><button onclick="lowerHand(this)" class="bg-white text-slate-600 hover:text-red-600 px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-sm">Atendida</button>`;
+            list.appendChild(li);
+            
+            playChime();
+            showToast(`✋ ¡${studentName} levantó la mano!`, 'warning');
+            const handBadge = document.getElementById('handTabBadge');
+            if (handBadge) handBadge.classList.remove('hidden');
+        }
+
+        function handleTeacherReceivedLowerHand(studentId) {
+            const list = document.getElementById('handQueueList');
+            if (!list) return;
+            const items = list.querySelectorAll('li');
+            items.forEach(item => { if (item.getAttribute('data-student-id') === studentId) item.remove(); });
+            const countElem = document.getElementById('handCount');
+            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1);
+        }
+
+        function lowerHand(btn) { 
+            btn.closest('li').remove(); 
+            const countElem = document.getElementById('handCount'); 
+            if (countElem) countElem.textContent = Math.max(0, parseInt(countElem.textContent) - 1); 
+        }
+
+        // ==========================================
+        // 11. PROGRAMACIÓN
+        // ==========================================
+        function handleCreateSchedule(e) {
+            e.preventDefault();
+            const title = document.getElementById('schedTitle').value.trim();
+            const date = document.getElementById('schedDate').value;
+            const time = document.getElementById('schedTime').value;
+            schedules.unshift({ title, date, time });
+            renderSchedules();
+            document.getElementById('scheduleForm').reset();
+            showToast('Clase programada', 'success');
+        }
+
+        function renderSchedules() {
+            const container = document.getElementById('scheduleList');
+            if (!container) return;
+            container.innerHTML = schedules.map(s => `
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between gap-4">
+                    <div><h4 class="font-outfit font-bold text-slate-800 text-sm">${s.title}</h4><span class="text-xs text-slate-400 font-mono">${s.date} • ${s.time}</span></div>
+                    <button onclick="openShareModal()" class="bg-pombo-600 text-white text-xs font-semibold px-3 py-2 rounded-xl transition">Compartir</button>
+                </div>
+            `).join('');
+        }
+
+        // ==========================================
+        // 12. SALA DE ESPERA Y ASISTENCIA
         // ==========================================
         function getRoomState() { try { const r = localStorage.getItem(`p_state_${roomCode}`); return r?JSON.parse(r):{w:[],a:[]}; } catch(e){return {w:[],a:[]};} }
         function saveRoomState(s) { try { localStorage.setItem(`p_state_${roomCode}`, JSON.stringify(s)); } catch(e){} }
@@ -1071,7 +1343,7 @@
             if(cont) {
                 cont.innerHTML = realWaitingStudents.map(s => `
                     <div class="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between shadow-sm">
-                        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center">${s.name.charAt(0)}</div><div><h4 class="font-bold text-slate-800">${s.name}</h4><span class="text-xs text-slate-400">${s.time}</span></div></div>
+                        <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-amber-500 text-white font-bold flex items-center justify-center">${s.name.charAt(0).toUpperCase()}</div><div><h4 class="font-bold text-slate-800">${s.name}</h4><span class="text-xs text-slate-400">${s.time}</span></div></div>
                         <button onclick="admitStudent('${s.id}')" class="bg-emerald-600 text-white text-sm font-bold px-4 py-2 rounded-lg"><i class="fas fa-check"></i> Admitir</button>
                     </div>
                 `).join('') || '<p class="text-center py-6 text-slate-400">Sala de espera vacía.</p>';
@@ -1108,7 +1380,7 @@
         }
 
         // ==========================================
-        // 11. UTILIDADES UI
+        // 13. UTILIDADES UI
         // ==========================================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
@@ -1116,6 +1388,8 @@
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-btn-${tabId}`).classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
             document.getElementById(`tab-btn-${tabId}`).classList.remove('text-slate-400');
+            
+            if (tabId === 'chat') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.add('hidden'); }
             if (tabId === 'live') { setTimeout(resizeCanvas, 100); }
         }
 
@@ -1142,6 +1416,7 @@
             if(screenShareStream) screenShareStream.getTracks().forEach(t=>t.stop());
             setStageMode('none'); isCameraActive=false; isScreenSharing=false; clearCanvas();
             pushTeacherStreamToStudents();
+            showToast('Clase Finalizada', 'info');
         }
 
         function openWaitingRoomModal(){ document.getElementById('waitingRoomModal').classList.remove('hidden'); renderWaitingLists(); }
