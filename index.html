@@ -1534,15 +1534,23 @@
             }
         }
 
+        function getSrsProtocol() {
+            if (window.location.protocol === 'https:' && srsHost !== 'localhost' && srsHost !== '127.0.0.1') {
+                return 'https';
+            }
+            return 'http';
+        }
+
         async function pushTeacherStreamToSRS() {
             if (currentRole !== 'teacher') return false;
             const stream = getMixedStream(localMediaStream, screenShareStream);
             if (!stream || stream.getTracks().length === 0) return false;
 
             const host = getSrsHost();
+            const proto = getSrsProtocol();
             const cleanRoom = getCleanRoomId();
             const streamName = `aula_${cleanRoom}`;
-            const whipUrl = `http://${host}:${srsPort}/rtc/v1/whip/?app=live&stream=${streamName}`;
+            const whipUrl = `${proto}://${host}:${srsPort}/rtc/v1/whip/?app=live&stream=${streamName}`;
 
             try {
                 if (srsPublisherPeerConnection) {
@@ -1589,9 +1597,10 @@
             const overlay = document.getElementById('studentPlayOverlay');
 
             const host = getSrsHost();
+            const proto = getSrsProtocol();
             const cleanRoom = getCleanRoomId();
             const streamName = `aula_${cleanRoom}`;
-            const whepUrl = `http://${host}:${srsPort}/rtc/v1/whep/?app=live&stream=${streamName}`;
+            const whepUrl = `${proto}://${host}:${srsPort}/rtc/v1/whep/?app=live&stream=${streamName}`;
 
             try {
                 if (srsPlayerPeerConnection) {
@@ -1644,6 +1653,49 @@
                 return false;
             }
         }
+
+        let srsHealthCheckInterval = null;
+
+        function startSrsHealthCheckLoop() {
+            if (srsHealthCheckInterval) clearInterval(srsHealthCheckInterval);
+            checkSrsServerHealth();
+            srsHealthCheckInterval = setInterval(checkSrsServerHealth, 4000);
+        }
+
+        async function checkSrsServerHealth() {
+            const host = getSrsHost();
+            const apiUrl = `http://${host}:${srsPort}/api/v1/versions`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+            try {
+                const res = await fetch(apiUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (res.ok) {
+                    const wasOffline = !isSrsActive;
+                    isSrsActive = true;
+                    updateSrsHeaderBadge(true, 'SRS SFU (En Línea)');
+                    if (wasOffline) {
+                        showToast('🟢 Servidor SRS activo y reconectado', 'success');
+                        if (currentRole === 'teacher' && (isCameraActive || isScreenSharing)) {
+                            pushTeacherStreamToSRS();
+                        } else if (currentRole === 'student') {
+                            subscribeStudentToSRS();
+                        }
+                    }
+                    return true;
+                }
+            } catch (e) {
+                clearTimeout(timeoutId);
+            }
+
+            isSrsActive = false;
+            updateSrsHeaderBadge(false, 'SRS Desconectado (P2P Respaldo)');
+            return false;
+        }
+
+        // Iniciar monitoreo continuo del servidor SRS
+        setTimeout(startSrsHealthCheckLoop, 1000);
 
         function pushTeacherStreamToStudents(targetStudentId = null) {
             if (currentRole !== 'teacher' || !peerInstance) return;
