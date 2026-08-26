@@ -109,6 +109,11 @@
                         <span id="recTimerDisplay">00:00</span>
                     </button>
 
+                    <button id="btnSrsHeaderBadge" onclick="openSrsConfigModal()" class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-2 rounded-xl flex items-center gap-2 border border-slate-700 transition">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" id="srsPingDot"></span>
+                        <span class="text-amber-400 font-bold hidden sm:inline">Servidor SRS:</span>
+                        <span id="srsHeaderBadge" class="text-emerald-400 font-bold">Verificando...</span>
+                    </button>
                     <button id="teacherShareLinkBtn" onclick="openShareModal()" class="bg-pombo-600 hover:bg-pombo-500 text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-md hover:shadow-lg transition hidden">
                         <i class="fas fa-share-alt"></i> Link Clase
                     </button>
@@ -1524,13 +1529,16 @@
 
         function updateSrsHeaderBadge(active, message = '') {
             const badge = document.getElementById('srsHeaderBadge');
+            const dot = document.getElementById('srsPingDot');
             if (!badge) return;
             if (active) {
-                badge.textContent = message || 'SRS SFU (Activo)';
+                badge.textContent = message || 'En Línea';
                 badge.className = 'text-emerald-400 font-bold';
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
             } else {
-                badge.textContent = message || 'P2P Respaldo';
+                badge.textContent = message || 'Desconectado (Respaldo P2P)';
                 badge.className = 'text-amber-400 font-bold';
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
             }
         }
 
