@@ -860,6 +860,59 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIGURACIÓN Y PRUEBA DEL SERVIDOR SRS -->
+    <div id="srsConfigModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                    <h3 class="font-outfit font-bold text-xl text-slate-800 flex items-center gap-2">
+                        <i class="fas fa-server text-pombo-600"></i> Servidor SRS WebRTC (SFU)
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Configura y prueba la conexión con el servidor de tu colegio/computador.</p>
+                </div>
+                <button onclick="closeSrsConfigModal()" class="text-slate-400 hover:text-slate-600 text-lg"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-4 text-xs text-slate-600">
+                <div>
+                    <label class="block font-bold text-slate-700 uppercase mb-1">IP Pública o Dominio del Servidor SRS</label>
+                    <input type="text" id="srsHostInput" placeholder="Ej: localhost, 190.x.x.x o servidor.com" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-pombo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase mb-1">Puerto API HTTP</label>
+                        <input type="text" id="srsPortInput" value="1985" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 uppercase mb-1">Protocolo</label>
+                        <select id="srsProtoSelect" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-bold bg-white">
+                            <option value="auto">Auto (Detectar por Página)</option>
+                            <option value="http">HTTP (Standard)</option>
+                            <option value="https">HTTPS (Seguro)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- RESULTADO DE LA PRUEBA EN VIVO -->
+                <div id="srsTestResultBox" class="hidden p-3.5 rounded-2xl border text-xs font-semibold"></div>
+
+                <div class="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-amber-900 text-[11px] space-y-1">
+                    <p class="font-bold flex items-center gap-1.5"><i class="fas fa-shield-alt text-amber-600"></i> ¿Usas GitHub Pages (HTTPS)?</p>
+                    <p>Si la página está en HTTPS y tu servidor en HTTP, haz clic en el candado 🔒 al lado de la dirección de internet -> <strong>Configuración del sitio</strong> -> <strong>Contenido no seguro</strong> -> <strong>Permitir</strong>.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                    <button onclick="testSrsConnectionUI()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2.5 rounded-xl shadow transition text-xs flex items-center gap-2">
+                        <i class="fas fa-bolt"></i> Probar Conexión Ahora
+                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="closeSrsConfigModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs">Cancelar</button>
+                        <button onclick="saveSrsConfigFromModal()" class="px-5 py-2.5 bg-pombo-600 hover:bg-pombo-500 text-white rounded-xl font-bold text-xs shadow">Guardar e Iniciar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
         Versión: <span id="appVersionDisplay">1.24</span>
@@ -979,6 +1032,12 @@
             roomCode = params.get('room') || '';
             const tnameParam = params.get('tname');
 
+            const srsHostParam = params.get('srshost');
+            if (srsHostParam) {
+                srsHost = decodeURIComponent(srsHostParam);
+                localStorage.setItem('pombo_srs_host', srsHost);
+            }
+
             if (roleParam === 'student') {
                 currentRole = 'student';
                 teacherName = tnameParam ? decodeURIComponent(tnameParam) : 'Tu Profesor';
@@ -1086,7 +1145,8 @@
             if (window.location.href.startsWith('blob:')) {
                 baseUrl = window.location.origin + '/';
             }
-            const shareUrl = `${baseUrl}?room=${roomCode}&role=student&tname=${encodeURIComponent(teacherName)}`;
+            const currentHost = getSrsHost();
+            const shareUrl = `${baseUrl}?room=${roomCode}&role=student&tname=${encodeURIComponent(teacherName)}&srshost=${encodeURIComponent(currentHost)}`;
             const shareUrlInput = document.getElementById('shareRoomUrl');
             if (shareUrlInput) shareUrlInput.value = shareUrl;
 
@@ -1525,6 +1585,55 @@
             showToast(`Configuración SRS guardada: ${srsHost}:${srsPort}`, 'success');
             if (currentRole === 'teacher') pushTeacherStreamToStudents();
             else if (currentRole === 'student') subscribeStudentToSRS();
+        }
+
+        async function testSrsConnectionUI() {
+            const hostInput = document.getElementById('srsHostInput')?.value.trim() || 'localhost';
+            const portInput = document.getElementById('srsPortInput')?.value.trim() || '1985';
+            const protoSelect = document.getElementById('srsProtoSelect')?.value || 'auto';
+            const resultBox = document.getElementById('srsTestResultBox');
+
+            if (resultBox) {
+                resultBox.classList.remove('hidden');
+                resultBox.className = 'p-3.5 rounded-2xl border border-blue-200 bg-blue-50 text-blue-800 text-xs font-semibold animate-pulse';
+                resultBox.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Probando conexión con el servidor SRS...';
+            }
+
+            let proto = protoSelect === 'auto' ? (window.location.protocol === 'https:' && hostInput !== 'localhost' && hostInput !== '127.0.0.1' ? 'https' : 'http') : protoSelect;
+            const testUrl = `${proto}://${hostInput}:${portInput}/api/v1/versions`;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const response = await fetch(testUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    const versionStr = data.data ? data.data.version : '5.0+';
+                    if (resultBox) {
+                        resultBox.className = 'p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-xs font-bold';
+                        resultBox.innerHTML = `<i class="fas fa-check-circle text-emerald-600 mr-1 text-sm"></i> ¡Conexión Exitosa con el Servidor SRS! (Versión ${versionStr}). El servidor está listo para WebRTC SFU.`;
+                    }
+                    updateSrsHeaderBadge(true, 'SRS SFU (En Línea)');
+                    showToast('🟢 Conectado con éxito al Servidor SRS', 'success');
+                    return true;
+                } else {
+                    throw new Error(`HTTP Error ${response.status}`);
+                }
+            } catch (err) {
+                let isMixedContent = window.location.protocol === 'https:' && proto === 'http';
+                if (resultBox) {
+                    resultBox.className = 'p-3.5 rounded-2xl border border-red-200 bg-red-50 text-red-900 text-xs font-semibold';
+                    if (isMixedContent) {
+                        resultBox.innerHTML = `<div class="space-y-1.5"><strong class="text-red-700 block text-sm"><i class="fas fa-exclamation-triangle mr-1"></i> Bloqueo de Seguridad (Mixed Content)</strong><p>La página está en HTTPS y el servidor SRS en HTTP. El navegador bloquea la conexión.</p><p class="text-[11px] text-slate-700 font-bold bg-white p-2 rounded-xl border border-red-200">📌 Solución rápida: Haz clic en el candado 🔒 al lado de la dirección de internet -> Configuración del sitio -> Contenido no seguro -> Selecciona <strong>Permitir</strong> y recarga.</p></div>`;
+                    } else {
+                        resultBox.innerHTML = `<div class="space-y-1"><strong class="text-red-700 block"><i class="fas fa-times-circle mr-1"></i> No se pudo conectar con ${testUrl}</strong><p class="text-slate-600 font-normal">Verifica que el Servidor SRS esté iniciado en tu equipo en el puerto 1985.</p></div>`;
+                    }
+                }
+                updateSrsHeaderBadge(false, 'SRS Desconectado (P2P Respaldo)');
+                return false;
+            }
         }
 
         function updateSrsHeaderBadge(active, message = '') {
