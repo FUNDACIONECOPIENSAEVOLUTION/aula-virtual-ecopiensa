@@ -874,7 +874,10 @@
             </div>
             <div class="space-y-4 text-xs text-slate-600">
                 <div>
-                    <label class="block font-bold text-slate-700 uppercase mb-1">IP Pública o Dominio del Servidor SRS</label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block font-bold text-slate-700 uppercase">IP Pública o Dominio del Servidor SRS</label>
+                        <button onclick="setSrsHostPreset('localhost')" class="text-[11px] font-bold text-pombo-600 hover:text-pombo-800 underline">📍 Usar Localhost (Mismo Equipo)</button>
+                    </div>
                     <input type="text" id="srsHostInput" placeholder="Ej: localhost, 190.x.x.x o servidor.com" class="w-full p-3 rounded-xl border border-slate-300 font-mono text-sm focus:ring-2 focus:ring-pombo-500">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -915,21 +918,26 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.5</span>
+        Versión: <span id="appVersionDisplay">1.26</span>
     </div>
 
     <script>
         /*
          * ============================================================================
-         * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
-         * Versión 1.5:
-         * 1. Restauración completa de auto-recuperación de stream al minimizar/volver (setupStreamRecoveryListeners & startStudentStreamCheckLoop).
-         * 2. Corrección total en pushTeacherStreamToStudents para emitir a admittedStudents + activePeerConnections.
-         * 3. Permisos explícitos de cámara/audio al solicitar acceso para evitar bloqueos de Autoplay.
-         * 4. Integración transparente del módulo de grabación sin interferir en los streams de video del estudiante.
+         * REGLA OBLIGATORIA DE VERSIONAMIENTO AUTOMÁTICO EN CADA MODIFICACIÓN:
+         * Cada vez que se realice cualquier cambio, corrección o mejora en este archivo (index.html),
+         * el número de versión (appVersion) DEBE incrementarse obligatoriamente (+0.01 / +0.1)
+         * y actualizarse en el elemento visual del pie de página (appVersionDisplay)
+         * para verificar empíricamente que el código corregido es el que se está ejecutando.
+         * 
+         * Versión 1.26:
+         * 1. Incremento oficial de versión a 1.26.
+         * 2. Implementación de Detección Automática Multiobjetivo de Servidor SRS (checkSrsServerHealth).
+         * 3. Al iniciar el servidor en el computador con el panel verde, la página en GitHub Pages
+         *    detecta el puerto 1985 automáticamente en segundo plano y activa la luz verde (SRS SFU En Línea) sin requerir ningún clic.
          * ============================================================================
          */
-        let appVersion = "1.24"; 
+        let appVersion = "1.26"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -1550,14 +1558,26 @@
             return combinedStream;
         }
 
-        let srsHost = localStorage.getItem('pombo_srs_host') || window.location.hostname || 'localhost';
+        let srsHost = localStorage.getItem('pombo_srs_host') || 'localhost';
+        if (srsHost.includes('github.io')) srsHost = 'localhost';
         let srsPort = localStorage.getItem('pombo_srs_port') || '1985';
         let srsPublisherPeerConnection = null;
         let srsPlayerPeerConnection = null;
         let isSrsActive = false;
 
         function getSrsHost() {
-            return srsHost || window.location.hostname || 'localhost';
+            if (!srsHost || srsHost.includes('github.io')) {
+                return 'localhost';
+            }
+            return srsHost;
+        }
+
+        function setSrsHostPreset(preset) {
+            const hostInput = document.getElementById('srsHostInput');
+            if (hostInput) {
+                hostInput.value = preset;
+                testSrsConnectionUI();
+            }
         }
 
         function openSrsConfigModal() {
@@ -1599,7 +1619,14 @@
                 resultBox.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Probando conexión con el servidor SRS...';
             }
 
-            let proto = protoSelect === 'auto' ? (window.location.protocol === 'https:' && hostInput !== 'localhost' && hostInput !== '127.0.0.1' ? 'https' : 'http') : protoSelect;
+            if (hostInput.includes('github.io')) {
+                if (resultBox) {
+                    resultBox.className = 'p-3.5 rounded-2xl border border-amber-300 bg-amber-50 text-amber-950 text-xs font-semibold';
+                    resultBox.innerHTML = `<div class="space-y-1.5"><strong class="text-amber-900 block text-sm"><i class="fas fa-info-circle mr-1 text-amber-600"></i> ${hostInput} es el Hosting de la Web</strong><p>GitHub Pages aloja solo la página web. Tu servidor de video SRS está corriendo en tu <strong>computador o IP de la escuela</strong>.</p><p class="text-[11px] text-slate-800 font-bold bg-white p-2.5 rounded-xl border border-amber-200">👉 Escribe <strong>localhost</strong> (si estás en el mismo equipo del servidor) o la <strong>IP Pública de tu colegio/casa</strong> (ej. 190.x.x.x).</p></div>`;
+                }
+                updateSrsHeaderBadge(false, 'SRS Desconectado (P2P Respaldo)');
+                return false;
+            }
             const testUrl = `${proto}://${hostInput}:${portInput}/api/v1/versions`;
 
             try {
@@ -1780,30 +1807,43 @@
         }
 
         async function checkSrsServerHealth() {
-            const host = getSrsHost();
-            const apiUrl = `http://${host}:${srsPort}/api/v1/versions`;
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const candidates = [
+                srsHost,
+                'localhost',
+                '127.0.0.1'
+            ].filter((h, index, self) => h && !h.includes('github.io') && self.indexOf(h) === index);
 
-            try {
-                const res = await fetch(apiUrl, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (res.ok) {
-                    const wasOffline = !isSrsActive;
-                    isSrsActive = true;
-                    updateSrsHeaderBadge(true, 'SRS SFU (En Línea)');
-                    if (wasOffline) {
-                        showToast('🟢 Servidor SRS activo y reconectado', 'success');
-                        if (currentRole === 'teacher' && (isCameraActive || isScreenSharing)) {
-                            pushTeacherStreamToSRS();
-                        } else if (currentRole === 'student') {
-                            subscribeStudentToSRS();
+            for (const hostCandidate of candidates) {
+                const proto = getSrsProtocol();
+                const apiUrl = `${proto}://${hostCandidate}:${srsPort}/api/v1/versions`;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+                try {
+                    const res = await fetch(apiUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+                    if (res.ok) {
+                        if (srsHost !== hostCandidate) {
+                            srsHost = hostCandidate;
+                            localStorage.setItem('pombo_srs_host', srsHost);
                         }
+                        const wasOffline = !isSrsActive;
+                        isSrsActive = true;
+                        updateSrsHeaderBadge(true, currentRole === 'teacher' ? 'SRS SFU (En Línea)' : 'SRS SFU (En vivo)');
+
+                        if (wasOffline) {
+                            showToast('🟢 Servidor SRS detectado automáticamente y conectado', 'success');
+                            if (currentRole === 'teacher' && (isCameraActive || isScreenSharing)) {
+                                pushTeacherStreamToSRS();
+                            } else if (currentRole === 'student') {
+                                subscribeStudentToSRS();
+                            }
+                        }
+                        return true;
                     }
-                    return true;
+                } catch (e) {
+                    clearTimeout(timeoutId);
                 }
-            } catch (e) {
-                clearTimeout(timeoutId);
             }
 
             isSrsActive = false;
@@ -3664,3 +3704,4 @@
     </script>
 </body>
 </html>
+
