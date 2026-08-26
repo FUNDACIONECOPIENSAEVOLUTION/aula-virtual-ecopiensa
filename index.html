@@ -93,19 +93,12 @@
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-2 sm:space-x-3">
-                    <!-- BOTÓN DE ESTADO SERVIDOR SRS / SFU LOCAL -->
-                    <button id="srsServerStatusBtn" onclick="openSRSModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-lg flex items-center gap-2 transition hover:scale-105 hidden">
-                        <span id="srsStatusDot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
-                        <span class="hidden md:inline">Servidor SRS</span>
-                    </button>
-
+                <div class="flex items-center space-x-3">
                     <button id="teacherNavWaitingBtn" onclick="openWaitingRoomModal()" class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-xs px-3.5 py-2 rounded-xl shadow-lg flex items-center gap-2 transition hover:scale-105 hidden">
                         <i class="fas fa-user-clock text-base"></i>
                         <span class="hidden sm:inline">Sala Espera</span>
                         <span id="navWaitingCountBadge" class="bg-slate-900 text-amber-400 text-xs font-black px-2 py-0.5 rounded-full">0</span>
                     </button>
-
                     <!-- BOTÓN Y BADGE DE GRABACIÓN DE CLASE -->
                     <button id="recClassBtn" onclick="openRecordModal()" class="bg-red-600 hover:bg-red-500 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition">
                         <i class="fas fa-record-vinyl text-white animate-pulse text-base"></i>
@@ -653,66 +646,6 @@
 
     </main>
 
-    <!-- MODAL CONFIGURACIÓN Y ACTIVACIÓN DEL SERVIDOR SRS / SFU -->
-    <div id="srsServerModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl flex flex-col border border-slate-100 my-auto">
-            <div class="flex justify-between items-center border-b pb-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-pombo-900 text-eco-500 flex items-center justify-center text-xl font-bold">
-                        <i class="fas fa-server"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-outfit font-bold text-xl text-slate-800">Servidor Multimedia SRS (Simple Realtime Server)</h3>
-                        <p class="text-xs text-slate-500">Distribuidor WebRTC / SFU para 20+ estudiantes</p>
-                    </div>
-                </div>
-                <button onclick="closeSRSModal()" class="text-slate-400 hover:text-slate-600 text-xl"><i class="fas fa-times"></i></button>
-            </div>
-
-            <div class="space-y-4 text-xs text-slate-700">
-                <div id="srsStatusBox" class="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <span id="srsModalStatusDot" class="w-3.5 h-3.5 rounded-full bg-amber-500 animate-pulse"></span>
-                        <div>
-                            <span class="font-bold text-slate-800 text-sm block" id="srsStatusTitle">Comprobando Servidor SRS Local...</span>
-                            <span class="text-slate-500" id="srsStatusSub">Verificando respuesta en http://localhost:1985</span>
-                        </div>
-                    </div>
-                    <button onclick="checkSRSStatus()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition">
-                        <i class="fas fa-sync-alt mr-1"></i> Verificar
-                    </button>
-                </div>
-
-                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-2">
-                        <i class="fas fa-terminal text-pombo-600"></i> ¿Cómo activar el Servidor en tu Computador?
-                    </h4>
-                    <p class="text-slate-600 leading-relaxed">
-                        Para que cada docente pueda transmitir a 20 o más estudiantes sin perder color ni resolución, su computador puede actuar como servidor streaming independiente ejecutando <strong>SRS (Simple Realtime Server)</strong> en 1 clic:
-                    </p>
-                    <div class="bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[11px] select-all overflow-x-auto shadow-inner">
-                        docker run --rm -p 1935:1935 -p 1985:1985 -p 8080:8080 -p 1990:1990/udp -p 8000:8000/udp ossrs/srs:5
-                    </div>
-                    <p class="text-[11px] text-slate-500 italic">
-                        * Si SRS está activo en el computador, la página enviará automáticamente 1 solo flujo de video al servidor SRS y este lo repartirá a todos los alumnos sin saturar el internet del profesor.
-                    </p>
-                </div>
-
-                <div>
-                    <label class="block font-bold text-slate-700 uppercase mb-1">URL / Endpoint del Servidor SRS (Opcional WHEP / WebRTC)</label>
-                    <input type="text" id="srsEndpointInput" value="http://localhost:1985/rtc/v1/whip/?app=live&stream=pombo" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono">
-                </div>
-            </div>
-
-            <div class="pt-6 mt-4 border-t border-slate-100 flex justify-end gap-2">
-                <button onclick="closeSRSModal()" class="bg-slate-100 text-slate-700 font-bold px-5 py-2.5 rounded-xl text-xs">Cerrar</button>
-                <button onclick="saveSRSConfig()" class="bg-pombo-600 hover:bg-pombo-500 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-md">
-                    Guardar y Activar Servidor
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL DE QUIZ PARA EL ESTUDIANTE -->
     <div id="studentQuizModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl flex flex-col max-h-[90vh] my-auto relative">
@@ -924,17 +857,21 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">1.25-SRS</span>
+        Versión: <span id="appVersionDisplay">1.24</span>
     </div>
 
     <script>
         /*
-         * Versión 1.25-SRS:
-         * - Integración de comprobador y panel SRS (Simple Realtime Server).
-         * - Optimizador dinamico de Bitrate WebRTC en llamadas P2P (maxBitrate adaptive) para evitar video negro/monocromo con 20 estudiantes.
-         * - Resolución optimizada de cámara a 640x360@20fps en modo docente para ahorrar ancho de banda.
+         * ============================================================================
+         * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
+         * Versión 1.24:
+         * 1. Restauración completa de auto-recuperación de stream al minimizar/volver (setupStreamRecoveryListeners & startStudentStreamCheckLoop).
+         * 2. Corrección total en pushTeacherStreamToStudents para emitir a admittedStudents + activePeerConnections.
+         * 3. Permisos explícitos de cámara/audio al solicitar acceso para evitar bloqueos de Autoplay.
+         * 4. Integración transparente del módulo de grabación sin interferir en los streams de video del estudiante.
+         * ============================================================================
          */
-        let appVersion = "1.25-SRS"; 
+        let appVersion = "1.24"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -944,10 +881,6 @@
         let activePeerConnections = {}; 
         let activeMediaCalls = {};      
         let teacherDataConnection = null;
-
-        // SERVIDOR SRS / SFU
-        let isSRSServerActive = false;
-        let srsEndpoint = localStorage.getItem('pombo_srs_endpoint') || 'http://localhost:1985/rtc/v1/whip/?app=live&stream=pombo';
 
         // GESTIÓN DE GRABACIÓN DE CLASE
         let mediaRecorder = null;
@@ -1069,6 +1002,7 @@
                 initCanvas();
                 setupAutoResizeObservers();
 
+                // AUTO-RECONEXIÓN AL REINGRESAR: Si ya estaba admitido previamente en el aula
                 const state = getRoomState();
                 if (state && state.a && state.a.some(a => a.id === currentStudentId)) {
                     setTimeout(() => {
@@ -1082,53 +1016,6 @@
                 document.getElementById('headerRoomCodeBadge').classList.add('hidden');
                 document.getElementById('headerTeacherName').textContent = 'Profesor';
             }
-        }
-
-        function openSRSModal() {
-            document.getElementById('srsEndpointInput').value = srsEndpoint;
-            document.getElementById('srsServerModal').classList.remove('hidden');
-            checkSRSStatus();
-        }
-
-        function closeSRSModal() {
-            document.getElementById('srsServerModal').classList.add('hidden');
-        }
-
-        async function checkSRSStatus() {
-            const dotHeader = document.getElementById('srsStatusDot');
-            const dotModal = document.getElementById('srsModalStatusDot');
-            const title = document.getElementById('srsStatusTitle');
-            const sub = document.getElementById('srsStatusSub');
-            
-            try {
-                // Verificación simple contra API de SRS en localhost:1985
-                const res = await fetch('http://localhost:1985/api/v1/versions', { method: 'GET', mode: 'cors' }).catch(() => null);
-                if (res && res.ok) {
-                    isSRSServerActive = true;
-                    if (dotHeader) dotHeader.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
-                    if (dotModal) dotModal.className = 'w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse';
-                    if (title) title.textContent = '🟢 Servidor SRS Activo (Modo SFU Ultra-Fluido)';
-                    if (sub) sub.textContent = 'Listo para distribuir la señal a 20+ estudiantes sin lag.';
-                } else {
-                    throw new Error("SRS no responde");
-                }
-            } catch (e) {
-                isSRSServerActive = false;
-                if (dotHeader) dotHeader.className = 'w-2.5 h-2.5 rounded-full bg-amber-400';
-                if (dotModal) dotModal.className = 'w-3.5 h-3.5 rounded-full bg-amber-500';
-                if (title) title.textContent = '🟠 Servidor SRS Inactivo / P2P Optimizado Activo';
-                if (sub) sub.textContent = 'Ejecuta el comando Docker abajo si deseas activar el motor SRS local.';
-            }
-        }
-
-        function saveSRSConfig() {
-            const val = document.getElementById('srsEndpointInput').value.trim();
-            if (val) {
-                srsEndpoint = val;
-                localStorage.setItem('pombo_srs_endpoint', val);
-            }
-            closeSRSModal();
-            showToast('Configuración del Servidor Guardada', 'success');
         }
 
         function setupStreamRecoveryListeners() {
@@ -1188,7 +1075,6 @@
             document.getElementById('teacherNavTabs').classList.remove('hidden');
             document.getElementById('teacherShareLinkBtn').classList.remove('hidden');
             document.getElementById('teacherNavWaitingBtn').classList.remove('hidden');
-            document.getElementById('srsServerStatusBtn').classList.remove('hidden');
             document.getElementById('tab-live').classList.remove('hidden');
             
             let baseUrl = window.location.origin + window.location.pathname;
@@ -1213,7 +1099,6 @@
             renderGradesTable();
             setupAutoResizeObservers();
             startTeacherAttendanceMonitor();
-            checkSRSStatus();
             showToast('Aula creada exitosamente', 'success');
         }
 
@@ -1600,25 +1485,164 @@
             return combinedStream;
         }
 
-        // OPTIMIZADOR DINÁMICO DE BITRATE WEBRTC PARA EVITAR VIDEO NEGRO / PÍXEL EN P2P
-        function optimizePeerBitrate(call) {
-            if (!call || !call.peerConnection) return;
+        let srsHost = localStorage.getItem('pombo_srs_host') || window.location.hostname || 'localhost';
+        let srsPort = localStorage.getItem('pombo_srs_port') || '1985';
+        let srsPublisherPeerConnection = null;
+        let srsPlayerPeerConnection = null;
+        let isSrsActive = false;
+
+        function getSrsHost() {
+            return srsHost || window.location.hostname || 'localhost';
+        }
+
+        function openSrsConfigModal() {
+            const hostInput = document.getElementById('srsHostInput');
+            const portInput = document.getElementById('srsPortInput');
+            if (hostInput) hostInput.value = srsHost;
+            if (portInput) portInput.value = srsPort;
+            const modal = document.getElementById('srsConfigModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSrsConfigModal() {
+            const modal = document.getElementById('srsConfigModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveSrsConfigFromModal() {
+            const hostInput = document.getElementById('srsHostInput');
+            const portInput = document.getElementById('srsPortInput');
+            srsHost = hostInput ? (hostInput.value.trim() || 'localhost') : 'localhost';
+            srsPort = portInput ? (portInput.value.trim() || '1985') : '1985';
+            localStorage.setItem('pombo_srs_host', srsHost);
+            localStorage.setItem('pombo_srs_port', srsPort);
+            closeSrsConfigModal();
+            showToast(`Configuración SRS guardada: ${srsHost}:${srsPort}`, 'success');
+            if (currentRole === 'teacher') pushTeacherStreamToStudents();
+            else if (currentRole === 'student') subscribeStudentToSRS();
+        }
+
+        function updateSrsHeaderBadge(active, message = '') {
+            const badge = document.getElementById('srsHeaderBadge');
+            if (!badge) return;
+            if (active) {
+                badge.textContent = message || 'SRS SFU (Activo)';
+                badge.className = 'text-emerald-400 font-bold';
+            } else {
+                badge.textContent = message || 'P2P Respaldo';
+                badge.className = 'text-amber-400 font-bold';
+            }
+        }
+
+        async function pushTeacherStreamToSRS() {
+            if (currentRole !== 'teacher') return false;
+            const stream = getMixedStream(localMediaStream, screenShareStream);
+            if (!stream || stream.getTracks().length === 0) return false;
+
+            const host = getSrsHost();
+            const cleanRoom = getCleanRoomId();
+            const streamName = `aula_${cleanRoom}`;
+            const whipUrl = `http://${host}:${srsPort}/rtc/v1/whip/?app=live&stream=${streamName}`;
+
             try {
-                const senders = call.peerConnection.getSenders();
-                const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-                if (videoSender && typeof videoSender.getParameters === 'function') {
-                    const params = videoSender.getParameters();
-                    if (!params.encodings || params.encodings.length === 0) {
-                        params.encodings = [{}];
-                    }
-                    // Ajustar maxBitrate adaptable (e.g. 250kbps por estudiante) para soportar 20 alumnos simultáneos en P2P
-                    const studentCount = Math.max(1, realAdmittedStudents.length);
-                    const targetBitrate = studentCount > 10 ? 200000 : (studentCount > 5 ? 300000 : 500000);
-                    params.encodings[0].maxBitrate = targetBitrate;
-                    params.encodings[0].maxFramerate = 20;
-                    videoSender.setParameters(params).catch(() => {});
+                if (srsPublisherPeerConnection) {
+                    try { srsPublisherPeerConnection.close(); } catch(e){}
+                    srsPublisherPeerConnection = null;
                 }
-            } catch(e) {}
+
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                srsPublisherPeerConnection = pc;
+
+                stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const response = await fetch(whipUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: offer.sdp
+                });
+
+                if (!response.ok) throw new Error(`SRS HTTP ${response.status}`);
+                const answerSdp = await response.text();
+                await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+                isSrsActive = true;
+                updateSrsHeaderBadge(true, 'SRS SFU (Transmitiendo)');
+                console.log("Stream publicado exitosamente en SRS SFU (WHIP):", streamName);
+                return true;
+            } catch (err) {
+                console.warn("Servidor SRS no alcanzado por WHIP. Usando P2P de respaldo:", err);
+                isSrsActive = false;
+                updateSrsHeaderBadge(false, 'P2P Respaldo');
+                return false;
+            }
+        }
+
+        async function subscribeStudentToSRS() {
+            if (currentRole !== 'student') return false;
+            const stdVideo = document.getElementById('studentReceivedVideo');
+            const placeholder = document.getElementById('studentStreamPlaceholder');
+            const overlay = document.getElementById('studentPlayOverlay');
+
+            const host = getSrsHost();
+            const cleanRoom = getCleanRoomId();
+            const streamName = `aula_${cleanRoom}`;
+            const whepUrl = `http://${host}:${srsPort}/rtc/v1/whep/?app=live&stream=${streamName}`;
+
+            try {
+                if (srsPlayerPeerConnection) {
+                    try { srsPlayerPeerConnection.close(); } catch(e){}
+                    srsPlayerPeerConnection = null;
+                }
+
+                const pc = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                srsPlayerPeerConnection = pc;
+
+                pc.addTransceiver('video', { direction: 'recvonly' });
+                pc.addTransceiver('audio', { direction: 'recvonly' });
+
+                pc.ontrack = (event) => {
+                    if (event.streams && event.streams[0] && stdVideo) {
+                        stdVideo.srcObject = event.streams[0];
+                        stdVideo.classList.remove('hidden');
+                        if (placeholder) placeholder.classList.add('hidden');
+                        stdVideo.play().then(() => {
+                            if (overlay) overlay.classList.add('hidden');
+                        }).catch(e => {
+                            if (overlay) overlay.classList.remove('hidden');
+                        });
+                    }
+                };
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const response = await fetch(whepUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/sdp' },
+                    body: offer.sdp
+                });
+
+                if (!response.ok) throw new Error(`SRS HTTP ${response.status}`);
+                const answerSdp = await response.text();
+                await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+
+                isSrsActive = true;
+                updateSrsHeaderBadge(true, 'SRS SFU (En vivo)');
+                console.log("Estudiante suscrito a SRS SFU (WHEP):", streamName);
+                return true;
+            } catch (err) {
+                console.warn("Servidor SRS no alcanzado por WHEP. Esperando P2P de respaldo:", err);
+                isSrsActive = false;
+                updateSrsHeaderBadge(false, 'P2P Respaldo');
+                return false;
+            }
         }
 
         function pushTeacherStreamToStudents(targetStudentId = null) {
@@ -1628,6 +1652,10 @@
             
             if (!stream || stream.getTracks().length === 0) return;
 
+            // Intentar publicar primero en el servidor SRS (SFU)
+            pushTeacherStreamToSRS();
+
+            // Mantenemos también la señalización P2P como mecanismo de respaldo
             const cleanRoom = getCleanRoomId();
             const targetStudentIds = new Set();
             
@@ -1647,7 +1675,7 @@
                         const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
                         const newVideoTrack = stream.getVideoTracks()[0];
                         if (senderVideo && newVideoTrack) {
-                            senderVideo.replaceTrack(newVideoTrack).then(() => optimizePeerBitrate(call)).catch(() => recreateCall(studentId, studentPeerId, stream));
+                            senderVideo.replaceTrack(newVideoTrack).catch(() => recreateCall(studentId, studentPeerId, stream));
                         } else if (!senderVideo && newVideoTrack) {
                             recreateCall(studentId, studentPeerId, stream);
                         }
@@ -1668,11 +1696,7 @@
         function recreateCall(studentId, peerId, stream) {
             if (activeMediaCalls[studentId]) activeMediaCalls[studentId].close();
             setTimeout(() => {
-                try { 
-                    const call = peerInstance.call(peerId, stream);
-                    activeMediaCalls[studentId] = call; 
-                    optimizePeerBitrate(call);
-                } catch(e) {}
+                try { activeMediaCalls[studentId] = peerInstance.call(peerId, stream); } catch(e) {}
             }, 100);
         }
 
@@ -1736,18 +1760,14 @@
             const camVid = document.getElementById('webcamVideo');
             if (!isCameraActive) {
                 try {
-                    // Resolución optimizada (640x360@20fps) para permitir fluidez perfecta con 20 estudiantes
-                    localMediaStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 20 } }, 
-                        audio: true 
-                    });
+                    localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                     localMediaStream.getAudioTracks().forEach(t => t.enabled = isMicActive);
                     camVid.srcObject = localMediaStream;
                     btnCam.classList.replace('bg-slate-800', 'bg-emerald-600');
                     isCameraActive = true;
                     setStageMode('webcam');
                     pushTeacherStreamToStudents();
-                    showToast('Cámara encendida (Optimizada para 20 alumnos)', 'success');
+                    showToast('Cámara encendida', 'success');
                 } catch(err) { showToast('Acceso a cámara denegado', 'error'); }
             } else {
                 if (localMediaStream) localMediaStream.getVideoTracks().forEach(t => t.stop());
@@ -1771,7 +1791,7 @@
             const btnScr = document.getElementById('btnShareScreen');
             if (!isScreenSharing) {
                 try {
-                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true });
+                    screenShareStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
                     scrVid.srcObject = screenShareStream;
                     isScreenSharing = true;
                     btnScr.classList.replace('bg-slate-800', 'bg-emerald-600');
@@ -2232,6 +2252,7 @@
             if (!name) { showToast('Escribe tu nombre', 'warning'); return; }
             if (!grade) { showToast('Selecciona tu grado o curso', 'warning'); return; }
 
+            // Solicitud implícita de permisos al presionar el botón de solicitud para desbloquear reproducción
             try {
                 const dummyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }).catch(() => null);
                 if (dummyStream) {
