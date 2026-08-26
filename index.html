@@ -247,7 +247,7 @@
 
                     <!-- CONTENEDOR ESCALABLE (ZOOM & PAN) -->
                     <div id="studentZoomTargetContainer" class="absolute inset-0 w-full h-full flex items-center justify-center origin-center transition-transform duration-75">
-                        <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-10" autoplay playsinline muted></video>
+                        <video id="studentReceivedVideo" class="absolute inset-0 w-full h-full object-contain hidden z-10" autoplay playsinline></video>
                         <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-10" src="" alt="Presentación">
                         
                         <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-10 iframe-container">
@@ -865,9 +865,10 @@
          * ============================================================================
          * REGLA ESTRICTA DE VERSIONAMIENTO PERMANENTE:
          * Versión 1.24:
-         * 1. Solicitud de permisos multimedia (Cámara/Micrófono) en solicitud del alumno.
-         * 2. Corrección del pipeline de transmisión de video WebRTC (Cámara Docente -> Estudiante).
-         * 3. Reconexión y recuperación automática de flujo de video al cambiar de pestaña.
+         * 1. Restauración completa de auto-recuperación de stream al minimizar/volver (setupStreamRecoveryListeners & startStudentStreamCheckLoop).
+         * 2. Corrección total en pushTeacherStreamToStudents para emitir a admittedStudents + activePeerConnections.
+         * 3. Permisos explícitos de cámara/audio al solicitar acceso para evitar bloqueos de Autoplay.
+         * 4. Integración transparente del módulo de grabación sin interferir en los streams de video del estudiante.
          * ============================================================================
          */
         let appVersion = "1.24"; 
@@ -880,7 +881,6 @@
         let activePeerConnections = {}; 
         let activeMediaCalls = {};      
         let teacherDataConnection = null;
-        let currentTeacherRemoteStream = null;
 
         // GESTIÓN DE GRABACIÓN DE CLASE
         let mediaRecorder = null;
@@ -941,8 +941,8 @@
         let currentStudentId = null;
         let currentStudentGrade = '';
         let pollingInterval = null;
-        let studentHeartbeatInterval = null;
         let studentStreamCheckInterval = null;
+        let studentHeartbeatInterval = null;
         let teacherAttendanceCheckInterval = null;
         let schedules = [];
 
@@ -964,6 +964,8 @@
             if (versionDisplay) versionDisplay.textContent = appVersion;
             detectRoleAndRoom();
             loadSavedGradesFromStorage();
+            setupStudentTouchAndZoomEvents();
+            setupStreamRecoveryListeners();
         });
 
         function detectRoleAndRoom() {
@@ -975,6 +977,7 @@
             if (roleParam === 'student') {
                 currentRole = 'student';
                 teacherName = tnameParam ? decodeURIComponent(tnameParam) : 'Tu Profesor';
+                document.getElementById('headerTeacherName').textContent = teacherName;
                 document.getElementById('studentFormTeacherName').textContent = teacherName;
                 document.getElementById('studentContainerView').classList.remove('hidden');
                 document.getElementById('teacherEntryView').classList.add('hidden');
@@ -994,11 +997,18 @@
                 initRealtimeChannel();
                 initCloudSignaling();
                 startStatePolling();
+                startStudentStreamCheckLoop();
+                startStudentHeartbeat();
                 initCanvas();
                 setupAutoResizeObservers();
-                setupStudentTouchAndZoomEvents();
-                startStudentHeartbeat();
-                startStudentStreamCheckLoop();
+
+                // AUTO-RECONEXIÓN AL REINGRESAR: Si ya estaba admitido previamente en el aula
+                const state = getRoomState();
+                if (state && state.a && state.a.some(a => a.id === currentStudentId)) {
+                    setTimeout(() => {
+                        onStudentAdmittedByTeacher();
+                    }, 400);
+                }
             } else {
                 currentRole = 'teacher';
                 document.getElementById('teacherEntryView').classList.remove('hidden');
@@ -1006,6 +1016,40 @@
                 document.getElementById('headerRoomCodeBadge').classList.add('hidden');
                 document.getElementById('headerTeacherName').textContent = 'Profesor';
             }
+        }
+
+        function setupStreamRecoveryListeners() {
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden && currentRole === 'student' && currentStudentId) {
+                    sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
+                    sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
+                }
+            });
+
+            window.addEventListener('focus', () => {
+                if (currentRole === 'student' && currentStudentId) {
+                    sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
+                    sendSignalToTeacher('REQUEST_FULL_STATE', { studentId: currentStudentId });
+                }
+            });
+        }
+
+        function startStudentStreamCheckLoop() {
+            if (studentStreamCheckInterval) clearInterval(studentStreamCheckInterval);
+            studentStreamCheckInterval = setInterval(() => {
+                if (currentRole !== 'student') return;
+                const classBox = document.getElementById('studentClassroomBox');
+                if (classBox.classList.contains('hidden')) return;
+
+                const stdVideo = document.getElementById('studentReceivedVideo');
+                const streamActiveModes = ['webcam', 'screen', 'student_pin'];
+                
+                if (streamActiveModes.includes(stageMode)) {
+                    if (!stdVideo.srcObject || stdVideo.paused || stdVideo.ended || stdVideo.readyState === 0) {
+                        sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
+                    }
+                }
+            }, 3000);
         }
 
         function startTeacherRoom() {
@@ -1107,19 +1151,7 @@
                     });
                 } else if (mode === 'stage') {
                     if (currentRole === 'teacher') {
-                        const mixedAudioStream = getMixedStream(localMediaStream, screenShareStream);
-                        const stageCanvas = document.getElementById('annotationCanvas');
-                        const canvasStream = stageCanvas ? stageCanvas.captureStream(30) : null;
-                        
-                        streamToRecord = new MediaStream();
-                        if (canvasStream && canvasStream.getVideoTracks().length > 0) {
-                            streamToRecord.addTrack(canvasStream.getVideoTracks()[0]);
-                        } else if (mixedAudioStream && mixedAudioStream.getVideoTracks().length > 0) {
-                            streamToRecord.addTrack(mixedAudioStream.getVideoTracks()[0]);
-                        }
-                        if (mixedAudioStream && mixedAudioStream.getAudioTracks().length > 0) {
-                            mixedAudioStream.getAudioTracks().forEach(t => streamToRecord.addTrack(t));
-                        }
+                        streamToRecord = getMixedStream(localMediaStream, screenShareStream);
                     } else {
                         const stdVid = document.getElementById('studentReceivedVideo');
                         if (stdVid && stdVid.srcObject) {
@@ -1321,21 +1353,12 @@
                     peerInstance.on('call', (call) => {
                         call.answer(); 
                         call.on('stream', (remoteTeacherStream) => {
-                            currentTeacherRemoteStream = remoteTeacherStream;
                             const stdVideo = document.getElementById('studentReceivedVideo');
                             const placeholder = document.getElementById('studentStreamPlaceholder');
                             const overlay = document.getElementById('studentPlayOverlay');
-                            const classBox = document.getElementById('studentClassroomBox');
                             
                             if (stdVideo && remoteTeacherStream) { 
                                 stdVideo.srcObject = remoteTeacherStream; 
-                                
-                                if (classBox.classList.contains('hidden')) {
-                                    stdVideo.muted = true;
-                                } else {
-                                    stdVideo.muted = false;
-                                }
-
                                 stdVideo.classList.remove('hidden');
                                 if (placeholder) placeholder.classList.add('hidden');
                                 
@@ -1359,11 +1382,11 @@
             const stdVideo = document.getElementById('studentReceivedVideo');
             const overlay = document.getElementById('studentPlayOverlay');
             if (stdVideo && stdVideo.srcObject) {
-                stdVideo.muted = false;
                 stdVideo.play().then(() => {
                     if (overlay) overlay.classList.add('hidden');
                 }).catch(e => console.warn(e));
             }
+            if (overlay) overlay.classList.add('hidden');
         }
 
         function initRealtimeChannel() {
@@ -1377,7 +1400,7 @@
             Object.keys(activePeerConnections).forEach(peerId => { try { const conn = activePeerConnections[peerId]; if (conn && conn.open) conn.send({ type, payload }); } catch(e) {} });
             const data = { type, payload, timestamp: Date.now() };
             if (broadcastChannel) broadcastChannel.postMessage(data);
-            if (type !== 'CANVAS_DRAW' && type !== 'YT_SYNC') { try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {} }
+            if (type !== 'CANVAS_DRAW' && type !== 'YT_SYNC' && type !== 'STUDENT_HEARTBEAT') { try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {} }
         }
 
         function sendSignalToSpecificStudent(studentId, type, payload) {
@@ -1394,15 +1417,22 @@
             if (teacherDataConnection && teacherDataConnection.open) { try { teacherDataConnection.send({ type, payload }); } catch(e) {} }
             const data = { type, payload, timestamp: Date.now() };
             if (broadcastChannel) broadcastChannel.postMessage(data);
-            try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {}
+            if (type !== 'STUDENT_HEARTBEAT') {
+                try { localStorage.setItem(`pombo_signal_${roomCode}`, JSON.stringify(data)); } catch(e) {}
+            }
         }
 
         function handleSignalMessage(event, connection = null) {
             const { type, payload } = event.data;
             if (currentRole === 'teacher') {
                 if (type === 'STUDENT_JOIN_REQUEST') handleIncomingStudentRequest(payload.id, payload.name, payload.grade);
-                else if (type === 'REQUEST_FULL_STATE') { sendFullStateToStudent(connection); setTimeout(() => { pushTeacherStreamToStudents(payload?.studentId); }, 500); }
-                else if (type === 'REQUEST_STREAM') pushTeacherStreamToStudents(payload?.studentId);
+                else if (type === 'REQUEST_FULL_STATE') { 
+                    sendFullStateToStudent(connection); 
+                    if (isCameraActive || isScreenSharing || stageMode === 'student_pin') {
+                        setTimeout(() => { pushTeacherStreamToStudents(payload ? payload.studentId : null); }, 400); 
+                    }
+                }
+                else if (type === 'REQUEST_STREAM') pushTeacherStreamToStudents(payload ? payload.studentId : null);
                 else if (type === 'STUDENT_RAISE_HAND') handleTeacherReceivedRaiseHand(payload.studentId, payload.studentName);
                 else if (type === 'STUDENT_LOWER_HAND') handleTeacherReceivedLowerHand(payload.studentId);
                 else if (type === 'STUDENT_HEARTBEAT') {
@@ -1460,28 +1490,42 @@
             const stream = getMixedStream(localMediaStream, screenShareStream);
             activeTeacherStream = stream;
             
-            const cleanRoom = getCleanRoomId();
-            const listToCall = targetStudentId ? realAdmittedStudents.filter(s => s.id === targetStudentId) : realAdmittedStudents;
+            if (!stream || stream.getTracks().length === 0) return;
 
-            listToCall.forEach(student => {
-                const studentPeerId = `${cleanRoom}-${student.id}`;
+            const cleanRoom = getCleanRoomId();
+            const targetStudentIds = new Set();
+            
+            realAdmittedStudents.forEach(s => targetStudentIds.add(s.id));
+            Object.keys(activePeerConnections).forEach(peerId => {
+                const stdId = peerId.replace(`${cleanRoom}-`, '');
+                if (stdId && stdId !== 'host') targetStudentIds.add(stdId);
+            });
+
+            targetStudentIds.forEach(studentId => {
+                if (targetStudentId && studentId !== targetStudentId) return;
+                const studentPeerId = `${cleanRoom}-${studentId}`;
                 try {
-                    if (stream && stream.getTracks().length > 0) {
-                        let call = activeMediaCalls[student.id];
-                        if (call && call.peerConnection && call.peerConnection.signalingState !== 'closed') {
-                            const senders = call.peerConnection.getSenders();
-                            const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
-                            const newVideoTrack = stream.getVideoTracks()[0];
-                            if (senderVideo && newVideoTrack) {
-                                senderVideo.replaceTrack(newVideoTrack).catch(() => recreateCall(student.id, studentPeerId, stream));
-                            } else if (!senderVideo && newVideoTrack) {
-                                recreateCall(student.id, studentPeerId, stream);
-                            }
-                        } else {
-                            recreateCall(student.id, studentPeerId, stream);
+                    let call = activeMediaCalls[studentId];
+                    if (call && call.peerConnection && call.peerConnection.signalingState !== 'closed') {
+                        const senders = call.peerConnection.getSenders();
+                        const senderVideo = senders.find(s => s.track && s.track.kind === 'video');
+                        const newVideoTrack = stream.getVideoTracks()[0];
+                        if (senderVideo && newVideoTrack) {
+                            senderVideo.replaceTrack(newVideoTrack).catch(() => recreateCall(studentId, studentPeerId, stream));
+                        } else if (!senderVideo && newVideoTrack) {
+                            recreateCall(studentId, studentPeerId, stream);
                         }
+                        const senderAudio = senders.find(s => s.track && s.track.kind === 'audio');
+                        const newAudioTrack = stream.getAudioTracks()[0];
+                        if (senderAudio && newAudioTrack) {
+                            senderAudio.replaceTrack(newAudioTrack).catch(() => {});
+                        }
+                    } else {
+                        recreateCall(studentId, studentPeerId, stream);
                     }
-                } catch(err) {}
+                } catch(err) {
+                    console.error("Error al transmitir video al estudiante:", studentId, err);
+                }
             });
         }
         
@@ -1721,7 +1765,10 @@
         }
 
         function changeStudentZoom(delta) {
-            studentZoomScale = Math.min(Math.max(0.5, studentZoomScale + delta), 4.0);
+            studentZoomScale = Math.min(Math.max(1.0, studentZoomScale + delta), 5.0);
+            if (studentZoomScale === 1.0) {
+                studentPanX = 0; studentPanY = 0;
+            }
             applyStudentZoomTransform();
         }
 
@@ -1735,11 +1782,20 @@
         function applyStudentZoomTransform() {
             const target = document.getElementById('studentZoomTargetContainer');
             const badge = document.getElementById('studentZoomLevelBadge');
+            const wrapper = document.getElementById('studentStreamWrapper');
+
+            const maxPan = 400 * (studentZoomScale - 1);
+            studentPanX = Math.min(Math.max(studentPanX, -maxPan), maxPan);
+            studentPanY = Math.min(Math.max(studentPanY, -maxPan), maxPan);
+
             if (target) {
-                target.style.transform = `translate(${studentPanX}px, ${studentPanY}px) scale(${studentZoomScale})`;
+                target.style.transform = `scale(${studentZoomScale}) translate(${studentPanX / studentZoomScale}px, ${studentPanY / studentZoomScale}px)`;
             }
             if (badge) {
                 badge.textContent = `${Math.round(studentZoomScale * 100)}%`;
+            }
+            if (wrapper) {
+                wrapper.style.cursor = studentZoomScale > 1.0 ? (isStudentPanning ? 'grabbing' : 'grab') : 'default';
             }
         }
 
@@ -1748,13 +1804,15 @@
             if (!wrapper) return;
 
             wrapper.addEventListener('wheel', (e) => {
+                if (currentRole !== 'student') return;
                 e.preventDefault();
-                const delta = e.deltaY < 0 ? 0.15 : -0.15;
+                const delta = e.deltaY < 0 ? 0.2 : -0.2;
                 changeStudentZoom(delta);
             }, { passive: false });
 
             wrapper.addEventListener('mousedown', (e) => {
-                if (studentZoomScale > 1.0) {
+                if (currentRole !== 'student') return;
+                if (studentZoomScale > 1.0 || e.button === 2) {
                     isStudentPanning = true;
                     startPanX = e.clientX - studentPanX;
                     startPanY = e.clientY - studentPanY;
@@ -1763,19 +1821,31 @@
             });
 
             window.addEventListener('mousemove', (e) => {
-                if (isStudentPanning) {
-                    studentPanX = e.clientX - startPanX;
-                    studentPanY = e.clientY - startPanY;
-                    applyStudentZoomTransform();
-                }
+                if (!isStudentPanning) return;
+                studentPanX = e.clientX - startPanX;
+                studentPanY = e.clientY - startPanY;
+                applyStudentZoomTransform();
             });
 
             window.addEventListener('mouseup', () => {
-                isStudentPanning = false;
-                if (wrapper) wrapper.style.cursor = 'default';
+                if (isStudentPanning) {
+                    isStudentPanning = false;
+                    if (wrapper) wrapper.style.cursor = studentZoomScale > 1.0 ? 'grab' : 'default';
+                }
+            });
+
+            wrapper.addEventListener('contextmenu', (e) => {
+                if (studentZoomScale > 1.0) e.preventDefault();
+            });
+
+            wrapper.addEventListener('dblclick', () => {
+                if (currentRole !== 'student') return;
+                if (studentZoomScale > 1.0) resetStudentZoom();
+                else changeStudentZoom(1.0);
             });
 
             wrapper.addEventListener('touchstart', (e) => {
+                if (currentRole !== 'student') return;
                 if (e.touches.length === 2) {
                     initialPinchDistance = Math.hypot(
                         e.touches[0].clientX - e.touches[1].clientX,
@@ -1790,13 +1860,14 @@
             }, { passive: true });
 
             wrapper.addEventListener('touchmove', (e) => {
+                if (currentRole !== 'student') return;
                 if (e.touches.length === 2 && initialPinchDistance) {
                     const currentDist = Math.hypot(
                         e.touches[0].clientX - e.touches[1].clientX,
                         e.touches[0].clientY - e.touches[1].clientY
                     );
                     const scaleFactor = currentDist / initialPinchDistance;
-                    studentZoomScale = Math.min(Math.max(0.5, initialPinchScale * scaleFactor), 4.0);
+                    studentZoomScale = Math.min(Math.max(1.0, initialPinchScale * scaleFactor), 5.0);
                     applyStudentZoomTransform();
                 } else if (e.touches.length === 1 && isStudentPanning) {
                     studentPanX = e.touches[0].clientX - startPanX;
@@ -1805,9 +1876,9 @@
                 }
             }, { passive: true });
 
-            wrapper.addEventListener('touchend', () => {
-                initialPinchDistance = null;
-                isStudentPanning = false;
+            wrapper.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) initialPinchDistance = null;
+                if (e.touches.length === 0) isStudentPanning = false;
             });
         }
 
@@ -2017,14 +2088,14 @@
             if (!name) { showToast('Escribe tu nombre', 'warning'); return; }
             if (!grade) { showToast('Selecciona tu grado o curso', 'warning'); return; }
 
-            // Solicitud explícita de permisos de cámara y micrófono para desbloquear políticas Autoplay del navegador
+            // Solicitud implícita de permisos al presionar el botón de solicitud para desbloquear reproducción
             try {
-                const streamTest = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }).catch(() => null);
-                if (streamTest) {
-                    streamTest.getTracks().forEach(track => track.stop()); // Liberar dispositivo de prueba
+                const dummyStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true }).catch(() => null);
+                if (dummyStream) {
+                    dummyStream.getTracks().forEach(t => t.stop());
                 }
             } catch(e) {
-                console.warn("Solicitud de permiso inicial no otorgada:", e);
+                console.warn("Permisos iniciales omitidos:", e);
             }
 
             currentStudentGrade = grade;
@@ -2120,7 +2191,7 @@
             
             renderWaitingLists(); renderRealAttendanceTable();
             sendSignalToSpecificStudent(id, 'TEACHER_ADMITTED', { studentId: id });
-            setTimeout(() => { pushTeacherStreamToStudents(id); sendFullStateToStudent(); }, 1200); 
+            setTimeout(() => { pushTeacherStreamToStudents(id); sendFullStateToStudent(); }, 600); 
             showToast(`Estudiante ${st.name} admitido`, 'success');
         }
 
@@ -2130,14 +2201,16 @@
             const formBox = document.getElementById('studentFormBox');
             const classBox = document.getElementById('studentClassroomBox');
             const waitingAlert = document.getElementById('studentWaitingAlert');
+            const stdVideo = document.getElementById('studentReceivedVideo');
 
             if (formBox) formBox.classList.add('hidden');
             if (waitingAlert) waitingAlert.classList.add('hidden');
             if (classBox) classBox.classList.remove('hidden');
 
-            const stdVideo = document.getElementById('studentReceivedVideo');
-            if (stdVideo) {
-                stdVideo.muted = false; // Desbloquear audio en el momento de admisión
+            if (stdVideo && stdVideo.srcObject) {
+                stdVideo.play().then(() => {
+                    document.getElementById('studentPlayOverlay')?.classList.add('hidden');
+                }).catch(err => console.warn(err));
             }
 
             showToast('¡Has ingresado a la clase!', 'success');
@@ -2156,40 +2229,6 @@
                     });
                 }
             }, 3000);
-        }
-
-        function startStudentStreamCheckLoop() {
-            if (studentStreamCheckInterval) clearInterval(studentStreamCheckInterval);
-            studentStreamCheckInterval = setInterval(() => {
-                if (currentRole !== 'student') return;
-                const classBox = document.getElementById('studentClassroomBox');
-                if (classBox && classBox.classList.contains('hidden')) return;
-
-                const stdVid = document.getElementById('studentReceivedVideo');
-                if (stageMode === 'webcam' || stageMode === 'screen') {
-                    if (!stdVid || !stdVid.srcObject || stdVid.paused || stdVid.ended || stdVid.readyState === 0) {
-                        sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
-                    }
-                }
-            }, 3000);
-        }
-
-        function sendFullStateToStudent(targetConnection) {
-            const payload = { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex], youtubeId: currentYoutubeUrl, isWhiteboard: isWhiteBackground, strokes: drawingStrokes, activeQuiz: activeQuizState };
-            if (targetConnection && targetConnection.open) targetConnection.send({ type: 'FULL_STATE_SYNC', payload });
-            else broadcastToAllStudents('FULL_STATE_SYNC', payload);
-        }
-
-        function applyFullSync(payload) {
-            applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
-            drawingStrokes = payload.strokes || [];
-            const c = document.getElementById('studentCanvasMirror'); 
-            if(c) {
-                const rect = c.parentElement.getBoundingClientRect();
-                if (rect.width > 0) { c.width = rect.width; c.height = rect.height; }
-                redrawAllStrokes(c, drawingStrokes);
-            }
-            if (payload.activeQuiz) { handleStudentReceivedQuizStart(payload.activeQuiz); }
         }
 
         function startTeacherAttendanceMonitor() {
@@ -2319,6 +2358,692 @@
                     }
                 }
             }, 500);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50'); b.classList.add('text-slate-400'); });
+            
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if(targetTab) targetTab.classList.remove('hidden');
+            
+            const targetBtn = document.getElementById(`tab-btn-${tabId}`);
+            if(targetBtn) {
+                targetBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
+                targetBtn.classList.remove('text-slate-400');
+            }
+            if (tabId === 'chat') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.add('hidden'); }
+            if (tabId === 'live') { setTimeout(resizeCanvas, 100); }
+        }
+
+        function showToast(msg, type='info') {
+            const c = document.getElementById('toastContainer');
+            if(!c) return;
+            const t = document.createElement('div');
+            t.className = `px-4 py-3 rounded-xl shadow-xl text-white text-xs font-bold flex items-center gap-2.5 animate-fade-in ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':type==='warning'?'bg-amber-600':'bg-pombo-600'}`;
+            t.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':'fa-info-circle'} text-lg"></i> <span>${msg}</span>`;
+            c.appendChild(t); setTimeout(() => t.remove(), 4000);
+        }
+
+        function playChime() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator(); const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+            } catch(e){}
+        }
+
+        function openWaitingRoomModal(){ document.getElementById('waitingRoomModal').classList.remove('hidden'); renderWaitingLists(); }
+        function closeWaitingRoomModal(){ document.getElementById('waitingRoomModal').classList.add('hidden'); }
+        function openShareModal(){ document.getElementById('shareModal').classList.remove('hidden'); }
+        function closeShareModal(){ document.getElementById('shareModal').classList.add('hidden'); }
+        function copyShareUrl(){ const input = document.getElementById('shareRoomUrl'); input.select(); document.execCommand('copy'); showToast('Link copiado', 'success'); }
+        function toggleStudentFullscreen() {
+            const container = document.getElementById('studentClassroomBox');
+            if (!document.fullscreenElement) { container.requestFullscreen && container.requestFullscreen(); } 
+            else { document.exitFullscreen && document.exitFullscreen(); }
+        }
+
+        function saveGradesToStorage() {
+            try { localStorage.setItem(`pombo_grades_${roomCode}`, JSON.stringify(teacherSavedGrades)); } catch(e){}
+        }
+
+        function loadSavedGradesFromStorage() {
+            try {
+                const data = localStorage.getItem(`pombo_grades_${roomCode}`);
+                if (data) teacherSavedGrades = JSON.parse(data);
+            } catch(e){}
+        }
+
+        function renderGradesTable() {
+            const tbody = document.getElementById('gradesTableBody');
+            const countBadge = document.getElementById('gradesBadgeCount');
+            if (!tbody) return;
+
+            if (countBadge) countBadge.textContent = teacherSavedGrades.length;
+
+            if (teacherSavedGrades.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-slate-400">
+                            <i class="fas fa-clipboard-list text-3xl mb-2 text-slate-300 block"></i>
+                            Aún no se han recibido evaluaciones respondidas.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = teacherSavedGrades.map((g, idx) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="py-4 px-5 font-bold text-slate-800">${g.studentName}</td>
+                    <td class="py-4 px-5 text-slate-600 text-xs">${g.quizTitle}</td>
+                    <td class="py-4 px-5 text-center font-outfit font-black text-base ${g.score >= 3.0 ? 'text-emerald-600':'text-red-500'}">
+                        ${g.score.toFixed(1)}
+                    </td>
+                    <td class="py-4 px-5 text-center text-xs font-medium text-slate-500">
+                        ${g.correctCount} / ${g.totalCount} (${g.percentage}%)
+                    </td>
+                    <td class="py-4 px-5 text-xs text-slate-400 font-mono">${g.submittedAt}</td>
+                    <td class="py-4 px-5 text-center">
+                        <button onclick="viewGradeDetail(${idx})" class="bg-pombo-100 hover:bg-pombo-600 hover:text-white text-pombo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                            <i class="fas fa-eye"></i> Ver Detalle
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function viewGradeDetail(index) {
+            const grade = teacherSavedGrades[index];
+            if (!grade) return;
+
+            const detailStudentName = document.getElementById('detailStudentName');
+            const detailQuizTitle = document.getElementById('detailQuizTitle');
+            if (detailStudentName) detailStudentName.textContent = `Estudiante: ${grade.studentName}`;
+            if (detailQuizTitle) detailQuizTitle.textContent = `${grade.quizTitle} • Nota: ${grade.score.toFixed(1)} / 5.0`;
+
+            const container = document.getElementById('detailAnswersContainer');
+            if (container) {
+                container.innerHTML = (grade.questions || []).map((q, i) => {
+                    const userAns = grade.answers ? grade.answers[q.id] : undefined;
+                    let isCorrect = false;
+                    let ansText = 'Sin responder';
+
+                    if (q.type === 'multiple') {
+                        isCorrect = (userAns === q.correctAnswer);
+                        ansText = userAns !== undefined ? `Opción ${String.fromCharCode(65 + userAns)}: ${q.options ? q.options[userAns] : ''}` : 'Sin responder';
+                    } else if (q.type === 'tf') {
+                        isCorrect = (userAns === q.correctAnswer);
+                        ansText = userAns !== undefined ? (userAns ? 'VERDADERO' : 'FALSO') : 'Sin responder';
+                    } else if (q.type === 'fill') {
+                        isCorrect = (userAns && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
+                        ansText = userAns || 'Sin responder';
+                    } else if (q.type === 'match') {
+                        ansText = JSON.stringify(userAns || {});
+                        isCorrect = true;
+                    }
+
+                    return `
+                        <div class="p-3.5 rounded-2xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/40':'border-red-200 bg-red-50/40'} text-xs">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-slate-800">Pregunta ${i+1}: ${q.title}</span>
+                                <span class="font-bold ${isCorrect ? 'text-emerald-700':'text-red-700'}">
+                                    ${isCorrect ? 'Correcta ✓':'Incorrecta ✗'}
+                                </span>
+                            </div>
+                            <p class="text-slate-600">Respuesta dada: <strong class="text-slate-900">${ansText}</strong></p>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const modal = document.getElementById('gradeDetailModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeGradeDetailModal() {
+            const modal = document.getElementById('gradeDetailModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function clearAllGrades() {
+            if (teacherSavedGrades.length === 0) return;
+            teacherSavedGrades = [];
+            saveGradesToStorage();
+            renderGradesTable();
+            showToast('Historial de notas borrado', 'info');
+        }
+
+        function exportGradesToCSV() {
+            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
+            let csvContent = "data:text/csv;charset=utf-8,Estudiante,Quiz,Nota (0-5),Aciertos,Total,Porcentaje,Hora\n";
+            teacherSavedGrades.forEach(g => {
+                csvContent += `"${g.studentName}","${g.quizTitle}",${g.score.toFixed(1)},${g.correctCount},${g.totalCount},${g.percentage}%,"${g.submittedAt}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Notas_Escuela_Rafael_Pombo_${roomCode}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+
+        function exportGradesToTXT() {
+            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
+            let txt = `====================================================\n`;
+            txt += `REPORTE DE EVALUACIONES Y QUIZZES - ESCUELA RAFAEL POMBO\n`;
+            txt += `Código de Aula: ${roomCode} | Docente: ${teacherName}\n`;
+            txt += `Fecha de Descarga: ${new Date().toLocaleString()}\n`;
+            txt += `====================================================\n\n`;
+
+            teacherSavedGrades.forEach((g, idx) => {
+                txt += `${idx+1}. ESTUDIANTE: ${g.studentName}\n`;
+                txt += `   Quiz: ${g.quizTitle}\n`;
+                txt += `   Calificación Final: ${g.score.toFixed(1)} / 5.0 (${g.percentage}%)\n`;
+                txt += `   Hora Entrega: ${g.submittedAt}\n`;
+                txt += `----------------------------------------------------\n`;
+            });
+
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Reporte_Respuestas_${roomCode}.txt`;
+            link.click();
+        }
+
+        function calculateQuizScore(questions, answers) {
+            let correctCount = 0;
+            const totalCount = questions ? questions.length : 0;
+
+            if (questions) {
+                questions.forEach(q => {
+                    const userAns = answers[q.id];
+                    if (q.type === 'multiple' || q.type === 'tf') {
+                        if (userAns !== undefined && userAns === q.correctAnswer) correctCount++;
+                    } else if (q.type === 'fill') {
+                        if (userAns && typeof userAns === 'string' && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()) {
+                            correctCount++;
+                        }
+                    } else if (q.type === 'match') {
+                        if (userAns && typeof userAns === 'object') {
+                            let matchesAll = true;
+                            if (q.pairs && q.pairs.length > 0) {
+                                q.pairs.forEach(p => {
+                                    if (userAns[p.left] !== p.right) matchesAll = false;
+                                });
+                            } else {
+                                matchesAll = false;
+                            }
+                            if (matchesAll) correctCount++;
+                        }
+                    }
+                });
+            }
+
+            const grade = totalCount > 0 ? (correctCount / totalCount) * 5.0 : 0;
+            const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
+            return { correctCount, totalCount, grade, percentage };
+        }
+
+        function handleTeacherReceivedQuizSubmission(payload) {
+            const quiz = activeQuizState || currentTeacherQuiz;
+            const scoreData = calculateQuizScore(quiz.questions || [], payload.answers || {});
+
+            const record = {
+                id: 'grade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                studentId: payload.studentId,
+                studentName: payload.studentName,
+                quizTitle: payload.quizTitle || quiz.title,
+                score: scoreData.grade,
+                correctCount: scoreData.correctCount,
+                totalCount: scoreData.totalCount,
+                percentage: scoreData.percentage,
+                submittedAt: payload.submittedAt || new Date().toLocaleTimeString(),
+                answers: payload.answers,
+                questions: quiz.questions
+            };
+
+            teacherSavedGrades.push(record);
+            saveGradesToStorage();
+            renderGradesTable();
+            
+            showToast(`⭐ Calificación recibida: ${payload.studentName} (${scoreData.grade.toFixed(1)}/5.0)`, 'success');
+            playChime();
+        }
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function renderStudentQuestions(questions, container) {
+            if (!container || !questions) return;
+            container.innerHTML = questions.map((q, idx) => {
+                let optionsHtml = '';
+
+                if (q.type === 'multiple') {
+                    const mappedOptions = q.options.map((opt, origIdx) => ({ opt, origIdx }));
+                    const shuffledOptions = shuffleArray(mappedOptions);
+
+                    optionsHtml = `
+                        <div class="space-y-2 mt-3">
+                            ${shuffledOptions.map((item, i) => `
+                                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-pombo-50 cursor-pointer transition">
+                                    <input type="radio" name="std_ans_${q.id}" value="${item.origIdx}" onchange="saveStudentAnswer('${q.id}', ${item.origIdx})" class="w-4 h-4 text-pombo-600">
+                                    <span class="font-bold text-xs text-slate-700">${String.fromCharCode(65+i)}:</span>
+                                    <span class="text-xs text-slate-800">${item.opt}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'tf') {
+                    const tfChoices = [
+                        { val: true, label: 'Verdadero', color: 'emerald' },
+                        { val: false, label: 'Falso', color: 'red' }
+                    ];
+
+                    optionsHtml = `
+                        <div class="flex gap-3 mt-3">
+                            ${tfChoices.map(c => `
+                                <label class="flex-1 text-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-${c.color}-50 cursor-pointer font-bold text-xs text-${c.color}-700">
+                                    <input type="radio" name="std_ans_${q.id}" value="${c.val}" onchange="saveStudentAnswer('${q.id}', ${c.val})" class="mr-1"> ${c.label}
+                                </label>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (q.type === 'fill') {
+                    optionsHtml = `
+                        <div class="mt-3">
+                            <input type="text" oninput="saveStudentAnswer('${q.id}', this.value)" placeholder="Escribe tu respuesta aquí..." class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
+                        </div>
+                    `;
+                } else if (q.type === 'match') {
+                    const rightOptions = shuffleArray(q.pairs.map(p => p.right));
+
+                    optionsHtml = `
+                        <div class="mt-3 space-y-2">
+                            ${q.pairs.map((p) => `
+                                <div class="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                    <span class="font-bold text-slate-800 flex-1">${p.left}</span>
+                                    <i class="fas fa-arrows-alt-h text-slate-400"></i>
+                                    <select onchange="saveStudentMatchAnswer('${q.id}', '${p.left}', this.value)" class="flex-1 p-2 rounded-lg border border-slate-300 text-xs">
+                                        <option value="">Selecciona pareja...</option>
+                                        ${rightOptions.map(rOpt => `<option value="${rOpt}">${rOpt}</option>`).join('')}
+                                    </select>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="p-4 sm:p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="bg-pombo-100 text-pombo-700 text-xs font-black px-2.5 py-1 rounded-lg">Pregunta ${idx+1}</span>
+                        </div>
+                        <h4 class="font-semibold text-slate-900 text-sm sm:text-base">${q.title}</h4>
+                        ${optionsHtml}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleStudentReceivedQuizStart(quizData) {
+            activeQuizState = quizData;
+            studentQuizAnswers = {};
+            studentHasSubmittedEarly = false;
+            
+            const noticeBar = document.getElementById('studentQuizNoticeBar');
+            if (noticeBar) noticeBar.classList.remove('hidden');
+            
+            playChime();
+            showToast('📋 ¡El docente ha iniciado un quiz en vivo!', 'warning');
+            openStudentQuizModal();
+        }
+
+        function openStudentQuizModal() {
+            if (!activeQuizState) return;
+            
+            const titleElem = document.getElementById('studentQuizModalTitle');
+            if (titleElem) titleElem.textContent = activeQuizState.title;
+            
+            const container = document.getElementById('studentQuizQuestionsContainer');
+            const resultBox = document.getElementById('studentQuizResultBox');
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
+            const btnClose = document.getElementById('btnCloseStudentQuizModal');
+
+            if (resultBox) resultBox.classList.add('hidden');
+            
+            if (studentHasSubmittedEarly) {
+                if (container) container.classList.add('hidden');
+                if (waitingBox) waitingBox.classList.remove('hidden');
+                if (btnSubmit) btnSubmit.classList.add('hidden');
+                if (btnClose) btnClose.classList.remove('hidden');
+            } else {
+                if (container) {
+                    container.classList.remove('hidden');
+                    renderStudentQuestions(activeQuizState.questions, container);
+                }
+                if (waitingBox) waitingBox.classList.add('hidden');
+                if (btnSubmit) btnSubmit.classList.remove('hidden');
+                if (btnClose) btnClose.classList.add('hidden');
+            }
+
+            const modal = document.getElementById('studentQuizModal');
+            if (modal) modal.classList.remove('hidden');
+            startStudentQuizTimer();
+        }
+
+        function closeStudentQuizModal() {
+            const modal = document.getElementById('studentQuizModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function saveStudentAnswer(qId, val) {
+            studentQuizAnswers[qId] = val;
+        }
+
+        function saveStudentMatchAnswer(qId, leftItem, selectedRight) {
+            if (!studentQuizAnswers[qId]) studentQuizAnswers[qId] = {};
+            studentQuizAnswers[qId][leftItem] = selectedRight;
+        }
+
+        function startStudentQuizTimer() {
+            if (studentQuizTimerInterval) clearInterval(studentQuizTimerInterval);
+            if (!activeQuizState) return;
+            
+            const totalDurationSec = (activeQuizState.durationMinutes || 5) * 60;
+            const timerDisplay = document.getElementById('studentQuizTimerDisplay');
+            const countdownDisplay = document.getElementById('studentWaitingCountdown');
+
+            studentQuizTimerInterval = setInterval(() => {
+                const elapsedSec = Math.floor((Date.now() - (activeQuizState.startTime || Date.now())) / 1000);
+                const remainingSec = Math.max(0, totalDurationSec - elapsedSec);
+
+                const mins = Math.floor(remainingSec / 60);
+                const secs = remainingSec % 60;
+                const formatted = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+                if (timerDisplay) timerDisplay.textContent = formatted;
+                if (countdownDisplay) countdownDisplay.textContent = formatted;
+
+                if (remainingSec <= 0) {
+                    clearInterval(studentQuizTimerInterval);
+                    onQuizTimerExpired();
+                }
+            }, 1000);
+        }
+
+        function submitStudentQuizAnswers() {
+            if (studentHasSubmittedEarly) return;
+            studentHasSubmittedEarly = true;
+
+            const name = document.getElementById('studentInputName')?.value || 'Estudiante';
+            const submissionPayload = {
+                studentId: currentStudentId,
+                studentName: name,
+                quizId: activeQuizState?.id,
+                quizTitle: activeQuizState?.title,
+                answers: studentQuizAnswers,
+                submittedAt: new Date().toLocaleTimeString()
+            };
+
+            sendSignalToTeacher('QUIZ_SUBMIT', submissionPayload);
+
+            const container = document.getElementById('studentQuizQuestionsContainer');
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
+            const btnClose = document.getElementById('btnCloseStudentQuizModal');
+
+            if (container) container.classList.add('hidden');
+            if (waitingBox) waitingBox.classList.remove('hidden');
+            if (btnSubmit) btnSubmit.classList.add('hidden');
+            if (btnClose) btnClose.classList.remove('hidden');
+
+            showToast('✅ Cuestionario entregado.', 'info');
+        }
+
+        function onQuizTimerExpired() {
+            if (!studentHasSubmittedEarly) {
+                submitStudentQuizAnswers();
+            }
+
+            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
+            const resultBox = document.getElementById('studentQuizResultBox');
+            
+            if (waitingBox) waitingBox.classList.add('hidden');
+            if (resultBox) resultBox.classList.remove('hidden');
+
+            const scoreData = calculateQuizScore(activeQuizState?.questions || [], studentQuizAnswers);
+            const gradeDisplay = document.getElementById('studentFinalGradeDisplay');
+            const scoreDetail = document.getElementById('studentFinalScoreDetail');
+            
+            if (gradeDisplay) gradeDisplay.textContent = `${scoreData.grade.toFixed(1)} / 5.0`;
+            if (scoreDetail) scoreDetail.textContent = `Aciertos: ${scoreData.correctCount} de ${scoreData.totalCount} preguntas (${scoreData.percentage}%)`;
+
+            showToast('⏰ El tiempo ha terminado.', 'success');
+        }
+
+        function handleFileUploadFlow(event) {
+            const files = Array.from(event.target.files);
+            if (!files || files.length === 0) return;
+            if (files[0].name.endsWith('.pptx') || files[0].name.endsWith('.ppt')) {
+                document.getElementById('pptxWarningModal')?.classList.remove('hidden'); event.target.value = ''; 
+            } else { processValidUpload(files); }
+        }
+        function closePptxWarning() { document.getElementById('pptxWarningModal')?.classList.add('hidden'); }
+
+        async function processValidUpload(files) {
+            showToast('Procesando archivo...', 'info');
+            let newSlides = [];
+            for (const file of files) {
+                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+                    try {
+                        const fileArrayBuffer = await file.arrayBuffer();
+                        const pdfDoc = await pdfjsLib.getDocument({ data: fileArrayBuffer }).promise;
+                        for (let i = 1; i <= pdfDoc.numPages; i++) {
+                            const page = await pdfDoc.getPage(i);
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            const tempCanvas = document.createElement('canvas');
+                            tempCanvas.width = viewport.width; tempCanvas.height = viewport.height;
+                            await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
+                            newSlides.push(tempCanvas.toDataURL('image/jpeg', 0.85));
+                        }
+                    } catch(err) { showToast('Error al procesar archivo PDF.', 'error'); }
+                } else if (file.type.startsWith('image/')) {
+                    const dataUrl = await new Promise((r) => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
+                    newSlides.push(dataUrl);
+                }
+            }
+            if (newSlides.length > 0) {
+                pptSlides = newSlides; currentPptIndex = 0; clearCanvas(); setStageMode('ppt');
+                const counter = document.getElementById('pptSlideCounter');
+                if (counter) counter.textContent = `1 / ${pptSlides.length}`;
+            }
+        }
+        function prevPptSlide() { if(currentPptIndex > 0) { currentPptIndex--; updatePptDisplay(); } }
+        function nextPptSlide() { if(currentPptIndex < pptSlides.length - 1) { currentPptIndex++; updatePptDisplay(); } }
+        function updatePptDisplay() {
+            const slideViewer = document.getElementById('teacherSlideViewer');
+            const counter = document.getElementById('pptSlideCounter');
+            if (slideViewer) slideViewer.src = pptSlides[currentPptIndex];
+            if (counter) counter.textContent = `${currentPptIndex + 1} / ${pptSlides.length}`;
+            clearCanvas(); broadcastStageMode();
+        }
+
+        function sendYouTubeToStage() {
+            const input = document.getElementById('ytUrlInput')?.value.trim();
+            if (!input) return;
+            let videoId = '';
+            if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
+            else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
+            
+            if (videoId) {
+                currentYoutubeUrl = videoId;
+                clearCanvas();
+                setStageMode('youtube', videoId);
+                if (document.getElementById('ytUrlInput')) document.getElementById('ytUrlInput').value = '';
+            } else { showToast('Enlace inválido', 'error'); }
+        }
+
+        function initTeacherYoutube(videoId) {
+            if (!teacherYTPlayer) {
+                createTeacherYTPlayer(videoId);
+                return;
+            }
+            try {
+                if (typeof teacherYTPlayer.loadVideoById === 'function') {
+                    teacherYTPlayer.stopVideo();
+                    setTimeout(() => {
+                        teacherYTPlayer.loadVideoById(videoId);
+                        startYTSync();
+                    }, 150);
+                } else {
+                    throw new Error("API no lista");
+                }
+            } catch (err) {
+                try { teacherYTPlayer.destroy(); } catch(e){}
+                const wrapper = document.getElementById('teacherYoutubeWrapper');
+                if (wrapper) wrapper.innerHTML = '<div id="teacherYoutubePlayer"></div><button onclick="closeYoutubeVideo()" class="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xl transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>';
+                createTeacherYTPlayer(videoId);
+            }
+        }
+
+        function createTeacherYTPlayer(videoId) {
+            if (typeof YT === 'undefined' || !YT.Player) return;
+            teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
+                videoId: videoId, 
+                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
+                events: { 
+                    'onReady': () => { startYTSync(); },
+                    'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); },
+                    'onError': () => { showToast('Error cargando video de YouTube', 'error'); }
+                }
+            });
+        }
+
+        function startYTSync() {
+            if (ytSyncInterval) clearInterval(ytSyncInterval);
+            ytSyncInterval = setInterval(() => {
+                if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
+                    const state = teacherYTPlayer.getPlayerState();
+                    if (state === 1) { 
+                        broadcastToAllStudents('YT_SYNC', { state: state, time: teacherYTPlayer.getCurrentTime() });
+                    }
+                } else if (stageMode !== 'youtube') {
+                    clearInterval(ytSyncInterval);
+                }
+            }, 1500);
+        }
+
+        function applyYoutubeSync(payload) {
+            if (!studentYTPlayer || typeof studentYTPlayer.getPlayerState !== 'function') return;
+            try {
+                const currentState = studentYTPlayer.getPlayerState();
+                const currentTime = studentYTPlayer.getCurrentTime();
+
+                if (payload.state === 1) { 
+                    if (currentState !== 1 && currentState !== 3) studentYTPlayer.playVideo();
+                    if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
+                } 
+                else if (payload.state === 2) { 
+                    if (currentState !== 2) {
+                        studentYTPlayer.pauseVideo(); 
+                        studentYTPlayer.seekTo(payload.time, true); 
+                    }
+                } 
+                else if (payload.state === 0) { 
+                    if (currentState !== 0) studentYTPlayer.stopVideo(); 
+                }
+            } catch(e) {}
+        }
+
+        function applyStageMode(payload) {
+            const ph = document.getElementById('studentStreamPlaceholder');
+            const vid = document.getElementById('studentReceivedVideo');
+            const img = document.getElementById('studentSlideImage');
+            const ytWrap = document.getElementById('studentYoutubeWrapper');
+            
+            [ph, vid, img, ytWrap].forEach(el => el && el.classList.add('hidden'));
+
+            if (payload.mode === 'none') { 
+                if (ph) ph.classList.remove('hidden'); 
+                if (studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
+            }
+            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
+                if (vid) {
+                    vid.classList.remove('hidden'); 
+                    if (vid.srcObject) {
+                        if (ph) ph.classList.add('hidden');
+                        vid.play().catch(e => {
+                            const overlay = document.getElementById('studentPlayOverlay');
+                            if (overlay) overlay.classList.remove('hidden');
+                        });
+                    } else {
+                        if (ph) ph.classList.remove('hidden');
+                        sendSignalToTeacher('REQUEST_STREAM', { studentId: currentStudentId });
+                    }
+                }
+            }
+            else if (payload.mode === 'ppt') { 
+                if (img) { img.src = payload.pptSlideUrl; img.classList.remove('hidden'); }
+            }
+            else if (payload.mode === 'youtube') {
+                if (ytWrap) ytWrap.classList.remove('hidden');
+                try {
+                    if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
+                        if (currentYoutubeUrl !== payload.youtubeId) {
+                            studentYTPlayer.loadVideoById(payload.youtubeId);
+                            currentYoutubeUrl = payload.youtubeId;
+                        }
+                    } else {
+                        currentYoutubeUrl = payload.youtubeId;
+                        if (typeof YT !== 'undefined' && YT.Player) {
+                            studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                                videoId: payload.youtubeId, 
+                                playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                            });
+                        }
+                    }
+                } catch(e) {
+                    if (ytWrap) ytWrap.innerHTML = '<div id="studentYoutubePlayer"></div>';
+                    if (typeof YT !== 'undefined' && YT.Player) {
+                        studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
+                            videoId: payload.youtubeId, 
+                            playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
+                        });
+                    }
+                    currentYoutubeUrl = payload.youtubeId;
+                }
+            }
+            setTimeout(resizeCanvas, 150);
+        }
+
+        function sendFullStateToStudent(targetConnection) {
+            const payload = { mode: stageMode, pptSlideUrl: pptSlides[currentPptIndex], youtubeId: currentYoutubeUrl, isWhiteboard: isWhiteBackground, strokes: drawingStrokes, activeQuiz: activeQuizState };
+            if (targetConnection && targetConnection.open) targetConnection.send({ type: 'FULL_STATE_SYNC', payload });
+            else broadcastToAllStudents('FULL_STATE_SYNC', payload);
+        }
+
+        function applyFullSync(payload) {
+            applyStageMode(payload); applyWhiteboardBg(payload.isWhiteboard);
+            drawingStrokes = payload.strokes || [];
+            const c = document.getElementById('studentCanvasMirror'); 
+            if (c) {
+                const rect = c.parentElement.getBoundingClientRect();
+                if (rect.width > 0) { c.width = rect.width; c.height = rect.height; }
+                redrawAllStrokes(c, drawingStrokes);
+            }
+            if (payload.activeQuiz) { handleStudentReceivedQuizStart(payload.activeQuiz); }
         }
 
         function applyStatelessDrawSegment(s) {
@@ -2581,619 +3306,6 @@
             `).join('');
         }
 
-        function handleFileUploadFlow(event) {
-            const files = Array.from(event.target.files);
-            if (!files || files.length === 0) return;
-            if (files[0].name.endsWith('.pptx') || files[0].name.endsWith('.ppt')) {
-                document.getElementById('pptxWarningModal').classList.remove('hidden'); event.target.value = ''; 
-            } else { processValidUpload(files); }
-        }
-        function closePptxWarning() { document.getElementById('pptxWarningModal').classList.add('hidden'); }
-
-        async function processValidUpload(files) {
-            showToast('Procesando archivo...', 'info');
-            let newSlides = [];
-            for (const file of files) {
-                if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-                    try {
-                        const fileArrayBuffer = await file.arrayBuffer();
-                        const pdfDoc = await pdfjsLib.getDocument({ data: fileArrayBuffer }).promise;
-                        for (let i = 1; i <= pdfDoc.numPages; i++) {
-                            const page = await pdfDoc.getPage(i);
-                            const viewport = page.getViewport({ scale: 1.5 });
-                            const tempCanvas = document.createElement('canvas');
-                            tempCanvas.width = viewport.width; tempCanvas.height = viewport.height;
-                            await page.render({ canvasContext: tempCanvas.getContext('2d'), viewport }).promise;
-                            newSlides.push(tempCanvas.toDataURL('image/jpeg', 0.85));
-                        }
-                    } catch(err) { showToast('Error al procesar archivo PDF.', 'error'); }
-                } else if (file.type.startsWith('image/')) {
-                    const dataUrl = await new Promise((r) => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
-                    newSlides.push(dataUrl);
-                }
-            }
-            if (newSlides.length > 0) {
-                pptSlides = newSlides; currentPptIndex = 0; clearCanvas(); setStageMode('ppt');
-                document.getElementById('pptSlideCounter').textContent = `1 / ${pptSlides.length}`;
-            }
-        }
-        function prevPptSlide() { if(currentPptIndex>0) { currentPptIndex--; updatePptDisplay(); } }
-        function nextPptSlide() { if(currentPptIndex<pptSlides.length-1) { currentPptIndex++; updatePptDisplay(); } }
-        function updatePptDisplay() {
-            document.getElementById('teacherSlideViewer').src = pptSlides[currentPptIndex];
-            document.getElementById('pptSlideCounter').textContent = `${currentPptIndex + 1} / ${pptSlides.length}`;
-            clearCanvas(); broadcastStageMode();
-        }
-
-        function sendYouTubeToStage() {
-            const input = document.getElementById('ytUrlInput').value.trim();
-            if (!input) return;
-            let videoId = '';
-            if (input.includes('v=')) videoId = input.split('v=')[1].split('&')[0];
-            else if (input.includes('youtu.be/')) videoId = input.split('youtu.be/')[1];
-            
-            if (videoId) {
-                currentYoutubeUrl = videoId;
-                clearCanvas();
-                setStageMode('youtube', videoId);
-                document.getElementById('ytUrlInput').value = '';
-            } else { showToast('Enlace inválido', 'error'); }
-        }
-
-        function initTeacherYoutube(videoId) {
-            if (!teacherYTPlayer) {
-                createTeacherYTPlayer(videoId);
-                return;
-            }
-            try {
-                if (typeof teacherYTPlayer.loadVideoById === 'function') {
-                    teacherYTPlayer.stopVideo();
-                    setTimeout(() => {
-                        teacherYTPlayer.loadVideoById(videoId);
-                        startYTSync();
-                    }, 150);
-                } else {
-                    throw new Error("API no lista");
-                }
-            } catch (err) {
-                try { teacherYTPlayer.destroy(); } catch(e){}
-                document.getElementById('teacherYoutubeWrapper').innerHTML = '<div id="teacherYoutubePlayer"></div><button onclick="closeYoutubeVideo()" class="absolute top-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xl transition flex items-center gap-2"><i class="fas fa-times"></i> Cerrar Video</button>';
-                createTeacherYTPlayer(videoId);
-            }
-        }
-
-        function createTeacherYTPlayer(videoId) {
-            teacherYTPlayer = new YT.Player('teacherYoutubePlayer', {
-                videoId: videoId, 
-                playerVars: { 'autoplay': 1, 'controls': 1, 'rel': 0 },
-                events: { 
-                    'onReady': (e) => { startYTSync(); },
-                    'onStateChange': (e) => { broadcastToAllStudents('YT_SYNC', { state: e.data, time: teacherYTPlayer.getCurrentTime() }); },
-                    'onError': (e) => { showToast('Error cargando video de YouTube', 'error'); }
-                }
-            });
-        }
-
-        function startYTSync() {
-            if (ytSyncInterval) clearInterval(ytSyncInterval);
-            ytSyncInterval = setInterval(() => {
-                if (stageMode === 'youtube' && teacherYTPlayer && typeof teacherYTPlayer.getPlayerState === 'function') {
-                    const state = teacherYTPlayer.getPlayerState();
-                    if (state === 1) { 
-                        broadcastToAllStudents('YT_SYNC', { state: state, time: teacherYTPlayer.getCurrentTime() });
-                    }
-                } else if (stageMode !== 'youtube') {
-                    clearInterval(ytSyncInterval);
-                }
-            }, 1500);
-        }
-
-        function applyYoutubeSync(payload) {
-            if (!studentYTPlayer || typeof studentYTPlayer.getPlayerState !== 'function') return;
-            try {
-                const currentState = studentYTPlayer.getPlayerState();
-                const currentTime = studentYTPlayer.getCurrentTime();
-
-                if (payload.state === 1) { 
-                    if (currentState !== 1 && currentState !== 3) studentYTPlayer.playVideo();
-                    if (Math.abs(currentTime - payload.time) > 2) studentYTPlayer.seekTo(payload.time, true);
-                } 
-                else if (payload.state === 2) { 
-                    if (currentState !== 2) {
-                        studentYTPlayer.pauseVideo(); 
-                        studentYTPlayer.seekTo(payload.time, true); 
-                    }
-                } 
-                else if (payload.state === 0) { 
-                    if (currentState !== 0) studentYTPlayer.stopVideo(); 
-                }
-            } catch(e) {}
-        }
-
-        function applyStageMode(payload) {
-            const ph = document.getElementById('studentStreamPlaceholder');
-            const vid = document.getElementById('studentReceivedVideo');
-            const img = document.getElementById('studentSlideImage');
-            const ytWrap = document.getElementById('studentYoutubeWrapper');
-            
-            [ph, vid, img, ytWrap].forEach(el => el.classList.add('hidden'));
-
-            if (payload.mode === 'none') { 
-                ph.classList.remove('hidden'); 
-                if(studentYTPlayer && typeof studentYTPlayer.stopVideo === 'function') studentYTPlayer.stopVideo(); 
-            }
-            else if (payload.mode === 'webcam' || payload.mode === 'screen') { 
-                vid.classList.remove('hidden'); 
-                if (vid.srcObject) vid.play().catch(e=>{}); 
-            }
-            else if (payload.mode === 'ppt') { 
-                img.src = payload.pptSlideUrl; img.classList.remove('hidden'); 
-            }
-            else if (payload.mode === 'youtube') {
-                ytWrap.classList.remove('hidden');
-                try {
-                    if (studentYTPlayer && typeof studentYTPlayer.loadVideoById === 'function') {
-                        if (currentYoutubeUrl !== payload.youtubeId) {
-                            studentYTPlayer.loadVideoById(payload.youtubeId);
-                            currentYoutubeUrl = payload.youtubeId;
-                        }
-                    } else {
-                        currentYoutubeUrl = payload.youtubeId;
-                        studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
-                            videoId: payload.youtubeId, 
-                            playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
-                        });
-                    }
-                } catch(e) {
-                    document.getElementById('studentYoutubeWrapper').innerHTML = '<div id="studentYoutubePlayer"></div>';
-                    studentYTPlayer = new YT.Player('studentYoutubePlayer', { 
-                        videoId: payload.youtubeId, 
-                        playerVars: { 'autoplay': 1, 'controls': 0, 'disablekb': 1 } 
-                    });
-                    currentYoutubeUrl = payload.youtubeId;
-                }
-            }
-            setTimeout(resizeCanvas, 150);
-        }
-
-        function shuffleArray(array) {
-            const arr = [...array];
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
-            return arr;
-        }
-
-        function renderStudentQuestions(questions, container) {
-            container.innerHTML = questions.map((q, idx) => {
-                let optionsHtml = '';
-
-                if (q.type === 'multiple') {
-                    const mappedOptions = q.options.map((opt, origIdx) => ({ opt, origIdx }));
-                    const shuffledOptions = shuffleArray(mappedOptions);
-
-                    optionsHtml = `
-                        <div class="space-y-2 mt-3">
-                            ${shuffledOptions.map((item, i) => `
-                                <label class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-pombo-50 cursor-pointer transition">
-                                    <input type="radio" name="std_ans_${q.id}" value="${item.origIdx}" onchange="saveStudentAnswer('${q.id}', ${item.origIdx})" class="w-4 h-4 text-pombo-600">
-                                    <span class="font-bold text-xs text-slate-700">${String.fromCharCode(65+i)}:</span>
-                                    <span class="text-xs text-slate-800">${item.opt}</span>
-                                </label>
-                            `).join('')}
-                        </div>
-                    `;
-                } else if (q.type === 'tf') {
-                    const tfChoices = Math.random() > 0.5 ? 
-                        [{ val: true, label: 'Verdadero', color: 'emerald' }, { val: false, label: 'Falso', color: 'red' }] :
-                        [{ val: false, label: 'Falso', color: 'red' }, { val: true, label: 'Verdadero', color: 'emerald' }];
-
-                    optionsHtml = `
-                        <div class="flex gap-3 mt-3">
-                            ${tfChoices.map(c => `
-                                <label class="flex-1 text-center p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-${c.color}-50 cursor-pointer font-bold text-xs text-${c.color}-700">
-                                    <input type="radio" name="std_ans_${q.id}" value="${c.val}" onchange="saveStudentAnswer('${q.id}', ${c.val})" class="mr-1"> ${c.label}
-                                </label>
-                            `).join('')}
-                        </div>
-                    `;
-                } else if (q.type === 'fill') {
-                    optionsHtml = `
-                        <div class="mt-3">
-                            <input type="text" oninput="saveStudentAnswer('${q.id}', this.value)" placeholder="Escribe tu respuesta aquí..." class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-pombo-500">
-                        </div>
-                    `;
-                } else if (q.type === 'match') {
-                    const rightOptions = shuffleArray(q.pairs.map(p => p.right));
-
-                    optionsHtml = `
-                        <div class="mt-3 space-y-2">
-                            ${q.pairs.map((p) => `
-                                <div class="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                                    <span class="font-bold text-slate-800 flex-1">${p.left}</span>
-                                    <i class="fas fa-arrows-alt-h text-slate-400"></i>
-                                    <select onchange="saveStudentMatchAnswer('${q.id}', '${p.left}', this.value)" class="flex-1 p-2 rounded-lg border border-slate-300 text-xs">
-                                        <option value="">Selecciona pareja...</option>
-                                        ${rightOptions.map(rOpt => `<option value="${rOpt}">${rOpt}</option>`).join('')}
-                                    </select>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `;
-                }
-
-                return `
-                    <div class="p-4 sm:p-5 bg-white border border-slate-200 rounded-2xl shadow-sm">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="bg-pombo-100 text-pombo-700 text-xs font-black px-2.5 py-1 rounded-lg">Pregunta ${idx+1}</span>
-                        </div>
-                        <h4 class="font-semibold text-slate-900 text-sm sm:text-base">${q.title}</h4>
-                        ${optionsHtml}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function handleStudentReceivedQuizStart(quizData) {
-            activeQuizState = quizData;
-            studentQuizAnswers = {};
-            studentHasSubmittedEarly = false;
-            
-            const noticeBar = document.getElementById('studentQuizNoticeBar');
-            if (noticeBar) noticeBar.classList.remove('hidden');
-            
-            playChime();
-            showToast('📋 ¡El docente ha iniciado un quiz en vivo!', 'warning');
-            openStudentQuizModal();
-        }
-
-        function openStudentQuizModal() {
-            if(!activeQuizState) return;
-            
-            document.getElementById('studentQuizModalTitle').textContent = activeQuizState.title;
-            const container = document.getElementById('studentQuizQuestionsContainer');
-            const resultBox = document.getElementById('studentQuizResultBox');
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
-            const btnClose = document.getElementById('btnCloseStudentQuizModal');
-
-            resultBox.classList.add('hidden');
-            
-            if (studentHasSubmittedEarly) {
-                container.classList.add('hidden');
-                waitingBox.classList.remove('hidden');
-                btnSubmit.classList.add('hidden');
-                btnClose.classList.remove('hidden');
-            } else {
-                container.classList.remove('hidden');
-                waitingBox.classList.add('hidden');
-                btnSubmit.classList.remove('hidden');
-                btnClose.classList.add('hidden');
-                renderStudentQuestions(activeQuizState.questions, container);
-            }
-
-            document.getElementById('studentQuizModal').classList.remove('hidden');
-            startStudentQuizTimer();
-        }
-
-        function closeStudentQuizModal() {
-            document.getElementById('studentQuizModal').classList.add('hidden');
-        }
-
-        function saveStudentAnswer(qId, val) {
-            studentQuizAnswers[qId] = val;
-        }
-
-        function saveStudentMatchAnswer(qId, leftItem, selectedRight) {
-            if(!studentQuizAnswers[qId]) studentQuizAnswers[qId] = {};
-            studentQuizAnswers[qId][leftItem] = selectedRight;
-        }
-
-        function startStudentQuizTimer() {
-            if (studentQuizTimerInterval) clearInterval(studentQuizTimerInterval);
-            
-            const totalDurationSec = activeQuizState.durationMinutes * 60;
-            const timerDisplay = document.getElementById('studentQuizTimerDisplay');
-            const countdownDisplay = document.getElementById('studentWaitingCountdown');
-
-            studentQuizTimerInterval = setInterval(() => {
-                const elapsedSec = Math.floor((Date.now() - activeQuizState.startTime) / 1000);
-                const remainingSec = Math.max(0, totalDurationSec - elapsedSec);
-
-                const mins = Math.floor(remainingSec / 60);
-                const secs = remainingSec % 60;
-                const formatted = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-
-                if(timerDisplay) timerDisplay.textContent = formatted;
-                if(countdownDisplay) countdownDisplay.textContent = formatted;
-
-                if (remainingSec <= 0) {
-                    clearInterval(studentQuizTimerInterval);
-                    onQuizTimerExpired();
-                }
-            }, 1000);
-        }
-
-        function submitStudentQuizAnswers() {
-            if (studentHasSubmittedEarly) return;
-            studentHasSubmittedEarly = true;
-
-            const name = document.getElementById('studentInputName').value || 'Estudiante';
-            const submissionPayload = {
-                studentId: currentStudentId,
-                studentName: name,
-                quizId: activeQuizState.id,
-                quizTitle: activeQuizState.title,
-                answers: studentQuizAnswers,
-                submittedAt: new Date().toLocaleTimeString()
-            };
-
-            sendSignalToTeacher('QUIZ_SUBMIT', submissionPayload);
-
-            const container = document.getElementById('studentQuizQuestionsContainer');
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const btnSubmit = document.getElementById('btnSubmitStudentQuiz');
-            const btnClose = document.getElementById('btnCloseStudentQuizModal');
-
-            container.classList.add('hidden');
-            waitingBox.classList.remove('hidden');
-            btnSubmit.classList.add('hidden');
-            btnClose.classList.remove('hidden');
-
-            showToast('✅ Cuestionario entregado. Esperando fin del tiempo oficial.', 'info');
-        }
-
-        function onQuizTimerExpired() {
-            if (!studentHasSubmittedEarly) {
-                submitStudentQuizAnswers();
-            }
-
-            const waitingBox = document.getElementById('studentQuizWaitingTimerBox');
-            const resultBox = document.getElementById('studentQuizResultBox');
-            
-            if(waitingBox) waitingBox.classList.add('hidden');
-            if(resultBox) resultBox.classList.remove('hidden');
-
-            const scoreData = calculateQuizScore(activeQuizState.questions, studentQuizAnswers);
-            document.getElementById('studentFinalGradeDisplay').textContent = `${scoreData.grade.toFixed(1)} / 5.0`;
-            document.getElementById('studentFinalScoreDetail').textContent = `Aciertos: ${scoreData.correctCount} de ${scoreData.totalCount} preguntas (${scoreData.percentage}%)`;
-
-            showToast('⏰ El tiempo ha terminado. ¡Revisa tu calificación!', 'success');
-        }
-
-        function calculateQuizScore(questions, answers) {
-            let correctCount = 0;
-            const totalCount = questions.length;
-
-            questions.forEach(q => {
-                const userAns = answers[q.id];
-                if (q.type === 'multiple' || q.type === 'tf') {
-                    if (userAns !== undefined && userAns === q.correctAnswer) correctCount++;
-                } else if (q.type === 'fill') {
-                    if (userAns && typeof userAns === 'string' && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase()) {
-                        correctCount++;
-                    }
-                } else if (q.type === 'match') {
-                    if (userAns && typeof userAns === 'object') {
-                        let matchesAll = true;
-                        q.pairs.forEach(p => {
-                            if (userAns[p.left] !== p.right) matchesAll = false;
-                        });
-                        if (matchesAll) correctCount++;
-                    }
-                }
-            });
-
-            const grade = totalCount > 0 ? (correctCount / totalCount) * 5.0 : 0;
-            const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
-
-            return { correctCount, totalCount, grade, percentage };
-        }
-
-        function handleTeacherReceivedQuizSubmission(payload) {
-            const quiz = activeQuizState || currentTeacherQuiz;
-            const scoreData = calculateQuizScore(quiz.questions, payload.answers);
-
-            const record = {
-                id: 'grade_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                studentId: payload.studentId,
-                studentName: payload.studentName,
-                quizTitle: payload.quizTitle || quiz.title,
-                score: scoreData.grade,
-                correctCount: scoreData.correctCount,
-                totalCount: scoreData.totalCount,
-                percentage: scoreData.percentage,
-                submittedAt: payload.submittedAt,
-                answers: payload.answers,
-                questions: quiz.questions
-            };
-
-            teacherSavedGrades.push(record);
-            saveGradesToStorage();
-            renderGradesTable();
-            
-            showToast(`⭐ Calificación recibida de: ${payload.studentName} (${scoreData.grade.toFixed(1)}/5.0)`, 'success');
-            playChime();
-        }
-
-        function renderGradesTable() {
-            const tbody = document.getElementById('gradesTableBody');
-            const countBadge = document.getElementById('gradesBadgeCount');
-            if(!tbody) return;
-
-            countBadge.textContent = teacherSavedGrades.length;
-
-            if (teacherSavedGrades.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center py-10 text-slate-400">
-                            <i class="fas fa-clipboard-list text-3xl mb-2 text-slate-300 block"></i>
-                            Aún no se han recibido evaluaciones respondidas.
-                        </td>
-                    </tr>`;
-                return;
-            }
-
-            tbody.innerHTML = teacherSavedGrades.map((g, idx) => `
-                <tr class="hover:bg-slate-50 transition">
-                    <td class="py-4 px-5 font-bold text-slate-800">${g.studentName}</td>
-                    <td class="py-4 px-5 text-slate-600 text-xs">${g.quizTitle}</td>
-                    <td class="py-4 px-5 text-center font-outfit font-black text-base ${g.score >= 3.0 ? 'text-emerald-600':'text-red-500'}">
-                        ${g.score.toFixed(1)}
-                    </td>
-                    <td class="py-4 px-5 text-center text-xs font-medium text-slate-500">
-                        ${g.correctCount} / ${g.totalCount} (${g.percentage}%)
-                    </td>
-                    <td class="py-4 px-5 text-xs text-slate-400 font-mono">${g.submittedAt}</td>
-                    <td class="py-4 px-5 text-center">
-                        <button onclick="viewGradeDetail(${idx})" class="bg-pombo-100 hover:bg-pombo-600 hover:text-white text-pombo-700 px-3 py-1.5 rounded-lg text-xs font-bold transition">
-                            <i class="fas fa-eye"></i> Ver Detalle
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function viewGradeDetail(index) {
-            const grade = teacherSavedGrades[index];
-            if(!grade) return;
-
-            document.getElementById('detailStudentName').textContent = `Estudiante: ${grade.studentName}`;
-            document.getElementById('detailQuizTitle').textContent = `${grade.quizTitle} • Nota: ${grade.score.toFixed(1)} / 5.0`;
-
-            const container = document.getElementById('detailAnswersContainer');
-            container.innerHTML = grade.questions.map((q, i) => {
-                const userAns = grade.answers[q.id];
-                let isCorrect = false;
-                let ansText = 'Sin responder';
-
-                if (q.type === 'multiple') {
-                    isCorrect = (userAns === q.correctAnswer);
-                    ansText = userAns !== undefined ? `Opción ${q.options[userAns]}` : 'Sin responder';
-                } else if (q.type === 'tf') {
-                    isCorrect = (userAns === q.correctAnswer);
-                    ansText = userAns !== undefined ? (userAns ? 'VERDADERO':'FALSO') : 'Sin responder';
-                } else if (q.type === 'fill') {
-                    isCorrect = (userAns && userAns.trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase());
-                    ansText = userAns || 'Sin responder';
-                } else if (q.type === 'match') {
-                    ansText = JSON.stringify(userAns || {});
-                    isCorrect = true;
-                }
-
-                return `
-                    <div class="p-3.5 rounded-2xl border ${isCorrect ? 'border-emerald-200 bg-emerald-50/40':'border-red-200 bg-red-50/40'} text-xs">
-                        <div class="flex items-center justify-between mb-1">
-                            <span class="font-bold text-slate-800">Pregunta ${i+1}: ${q.title}</span>
-                            <span class="font-bold ${isCorrect ? 'text-emerald-700':'text-red-700'}">
-                                ${isCorrect ? 'Correcta ✓':'Incorrecta ✗'}
-                            </span>
-                        </div>
-                        <p class="text-slate-600">Respuesta dada: <strong class="text-slate-900">${ansText}</strong></p>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('gradeDetailModal').classList.remove('hidden');
-        }
-
-        function closeGradeDetailModal() {
-            document.getElementById('gradeDetailModal').classList.add('hidden');
-        }
-
-        function saveGradesToStorage() {
-            try { localStorage.setItem(`pombo_grades_${roomCode}`, JSON.stringify(teacherSavedGrades)); } catch(e){}
-        }
-
-        function loadSavedGradesFromStorage() {
-            try {
-                const data = localStorage.getItem(`pombo_grades_${roomCode}`);
-                if(data) teacherSavedGrades = JSON.parse(data);
-            } catch(e){}
-        }
-
-        function clearAllGrades() {
-            if (teacherSavedGrades.length === 0) return;
-            teacherSavedGrades = [];
-            saveGradesToStorage();
-            renderGradesTable();
-            showToast('Historial de notas borrado correctamente', 'info');
-        }
-
-        function exportGradesToCSV() {
-            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
-            let csvContent = "data:text/csv;charset=utf-8,Estudiante,Quiz,Nota (0-5),Aciertos,Total,Porcentaje,Hora\n";
-            teacherSavedGrades.forEach(g => {
-                csvContent += `"${g.studentName}","${g.quizTitle}",${g.score.toFixed(1)},${g.correctCount},${g.totalCount},${g.percentage}%,"${g.submittedAt}"\n`;
-            });
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Notas_Escuela_Rafael_Pombo_${roomCode}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        }
-
-        function exportGradesToTXT() {
-            if (teacherSavedGrades.length === 0) { showToast('No hay calificaciones registradas', 'warning'); return; }
-            let txt = `====================================================\n`;
-            txt += `REPORTE DE EVALUACIONES Y QUIZZES - ESCUELA RAFAEL POMBO\n`;
-            txt += `Código de Aula: ${roomCode} | Docente: ${teacherName}\n`;
-            txt += `Fecha de Descarga: ${new Date().toLocaleString()}\n`;
-            txt += `====================================================\n\n`;
-
-            teacherSavedGrades.forEach((g, idx) => {
-                txt += `${idx+1}. ESTUDIANTE: ${g.studentName}\n`;
-                txt += `   Quiz: ${g.quizTitle}\n`;
-                txt += `   Calificación Final: ${g.score.toFixed(1)} / 5.0 (${g.percentage}%)\n`;
-                txt += `   Hora Entrega: ${g.submittedAt}\n`;
-                txt += `----------------------------------------------------\n`;
-            });
-
-            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `Reporte_Respuestas_${roomCode}.txt`;
-            link.click();
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50'); b.classList.add('text-slate-400'); });
-            
-            const targetTab = document.getElementById(`tab-${tabId}`);
-            if(targetTab) targetTab.classList.remove('hidden');
-            
-            const targetBtn = document.getElementById(`tab-btn-${tabId}`);
-            if(targetBtn) {
-                targetBtn.classList.add('border-b-2', 'border-pombo-500', 'text-pombo-500', 'bg-slate-800/50');
-                targetBtn.classList.remove('text-slate-400');
-            }
-            if (tabId === 'chat') { const handBadge = document.getElementById('handTabBadge'); if (handBadge) handBadge.classList.add('hidden'); }
-            if (tabId === 'live') { setTimeout(resizeCanvas, 100); }
-        }
-
-        function showToast(msg, type='info') {
-            const c = document.getElementById('toastContainer');
-            if(!c) return;
-            const t = document.createElement('div');
-            t.className = `px-4 py-3 rounded-xl shadow-xl text-white text-xs font-bold flex items-center gap-2.5 animate-fade-in ${type==='success'?'bg-emerald-600':type==='error'?'bg-red-600':type==='warning'?'bg-amber-600':'bg-pombo-600'}`;
-            t.innerHTML = `<i class="fas ${type==='success'?'fa-check-circle':type==='error'?'fa-exclamation-circle':'fa-info-circle'} text-lg"></i> <span>${msg}</span>`;
-            c.appendChild(t); setTimeout(() => t.remove(), 4000);
-        }
-
-        function playChime() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator(); const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.frequency.setValueAtTime(880, ctx.currentTime); gain.gain.setValueAtTime(0.1, ctx.currentTime);
-                osc.start(); osc.stop(ctx.currentTime + 0.1);
-            } catch(e){}
-        }
-
         function stopAllStreams() {
             if (localMediaStream) localMediaStream.getTracks().forEach(t=>t.stop());
             if (screenShareStream) screenShareStream.getTracks().forEach(t=>t.stop());
@@ -3215,17 +3327,6 @@
             currentYoutubeUrl = '';
             setStageMode(isCameraActive ? 'webcam' : (isScreenSharing ? 'screen' : 'none'));
             pushTeacherStreamToStudents();
-        }
-
-        function openWaitingRoomModal(){ document.getElementById('waitingRoomModal').classList.remove('hidden'); renderWaitingLists(); }
-        function closeWaitingRoomModal(){ document.getElementById('waitingRoomModal').classList.add('hidden'); }
-        function openShareModal(){ document.getElementById('shareModal').classList.remove('hidden'); }
-        function closeShareModal(){ document.getElementById('shareModal').classList.add('hidden'); }
-        function copyShareUrl(){ const input = document.getElementById('shareRoomUrl'); input.select(); document.execCommand('copy'); showToast('Link copiado', 'success'); }
-        function toggleStudentFullscreen() {
-            const container = document.getElementById('studentClassroomBox');
-            if (!document.fullscreenElement) { container.requestFullscreen && container.requestFullscreen(); } 
-            else { document.exitFullscreen && document.exitFullscreen(); }
         }
     </script>
 </body>
