@@ -16,7 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-    <!-- PeerJS (Canal de Datos Liviano para Quizzes, Asistencia, Chat y Pizarra) -->
+    <!-- PeerJS para datos livianos (Quizzes, Asistencia, Chat, Pizarra) -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
     <!-- PDF.js para Lectura de Presentaciones -->
@@ -24,9 +24,6 @@
 
     <!-- YouTube Iframe API -->
     <script src="https://www.youtube.com/iframe_api"></script>
-
-    <!-- Twitch Player JS SDK -->
-    <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 
     <script>
         if (typeof pdfjsLib !== 'undefined') {
@@ -76,7 +73,6 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col selection:bg-pombo-500 selection:text-white">
 
-    <!-- HEADER GLOBAL -->
     <header class="bg-pombo-900 text-white shadow-xl sticky top-0 z-40 border-b border-slate-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
@@ -103,7 +99,7 @@
                         <span class="hidden sm:inline">Sala Espera</span>
                         <span id="navWaitingCountBadge" class="bg-slate-900 text-amber-400 text-xs font-black px-2 py-0.5 rounded-full">0</span>
                     </button>
-                    <!-- BOTÓN Y BADGE DE GRABACIÓN DE CLASE -->
+                    
                     <button id="recClassBtn" onclick="openRecordModal()" class="bg-red-600 hover:bg-red-500 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition">
                         <i class="fas fa-record-vinyl text-white animate-pulse text-base"></i>
                         <span class="hidden sm:inline">Grabar Clase</span>
@@ -131,7 +127,7 @@
                     <i class="fas fa-chart-bar text-emerald-400"></i> Calificaciones (<span id="gradesBadgeCount">0</span>)
                 </button>
                 <button onclick="switchTab('media')" id="tab-btn-media" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
-                    <i class="fab fa-twitch text-twitch-500"></i> Transmisión Twitch / YouTube
+                    <i class="fab fa-twitch text-twitch-500"></i> Configurar Fuente Video
                 </button>
                 <button onclick="switchTab('schedule')" id="tab-btn-schedule" class="tab-btn px-4 py-2 rounded-t-lg font-medium text-xs sm:text-sm flex items-center gap-2 text-slate-400 hover:text-white transition">
                     <i class="fas fa-calendar-alt"></i> Programación
@@ -148,14 +144,13 @@
 
     <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        <!-- VISTA INGRESO DOCENTE -->
         <div id="teacherEntryView" class="space-y-6 animate-fade-in max-w-xl mx-auto mt-10">
             <div class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center">
                 <div class="w-20 h-20 bg-pombo-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg">
                     <i class="fas fa-chalkboard-teacher"></i>
                 </div>
                 <h2 class="font-outfit font-bold text-2xl text-slate-800 mb-1">Bienvenido Docente</h2>
-                <p class="text-sm text-slate-500 mb-6">Inicia tu aula virtual interactiva multicanal con soporte para 100+ alumnos en simultáneo.</p>
+                <p class="text-sm text-slate-500 mb-6">Inicia tu aula virtual interactiva multicanal para tus estudiantes.</p>
                 
                 <div class="space-y-4 text-left">
                     <div>
@@ -169,7 +164,6 @@
             </div>
         </div>
 
-        <!-- VISTA ESTUDIANTE -->
         <div id="studentContainerView" class="hidden space-y-6 animate-fade-in max-w-5xl mx-auto">
             
             <div id="studentFormBox" class="bg-white rounded-3xl shadow-xl border border-pombo-200 p-8 text-center max-w-xl mx-auto mt-10">
@@ -235,6 +229,7 @@
 
                 <!-- STREAM WRAPPER ESTUDIANTE -->
                 <div id="studentStreamWrapper" class="relative w-full aspect-video bg-slate-950 flex items-center justify-center overflow-hidden transition-colors duration-300">
+                    
                     <!-- CONTROLES FLOTANTES DE ZOOM Y PAN PARA EL ESTUDIANTE -->
                     <div id="studentZoomControls" class="absolute top-3 left-3 z-50 bg-slate-900/85 backdrop-blur border border-slate-700/80 rounded-xl p-1 flex items-center gap-1 shadow-2xl">
                         <button onclick="changeStudentZoom(0.25)" class="w-8 h-8 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded-lg flex items-center justify-center text-xs font-bold transition active:scale-95" title="Acercar (Zoom +)">
@@ -253,17 +248,17 @@
                     <!-- CONTENEDOR ESCALABLE (ZOOM & PAN) -->
                     <div id="studentZoomTargetContainer" class="absolute inset-0 w-full h-full flex items-center justify-center origin-center transition-transform duration-75">
                         
-                        <!-- CONTENEDOR DE TWITCH ESTUDIANTE -->
+                        <!-- CONTENEDOR TWITCH ESTUDIANTE -->
                         <div id="studentTwitchWrapper" class="absolute inset-0 w-full h-full hidden z-10 iframe-container">
-                            <div id="studentTwitchPlayer"></div>
+                            <div id="studentTwitchPlayer" class="w-full h-full"></div>
                         </div>
 
-                        <!-- CANAL DE YOUTUBE COMPLEMENTARIO -->
+                        <!-- CONTENEDOR YOUTUBE ESTUDIANTE -->
                         <div id="studentYoutubeWrapper" class="absolute inset-0 w-full h-full hidden z-10 iframe-container">
                             <div id="studentYoutubePlayer"></div>
                         </div>
 
-                        <!-- REPRODUCTOR SFU LIBRE -->
+                        <!-- REPRODUCTOR SFU CÁMARA DIRECTA LIBRE -->
                         <div id="studentSfuBox" class="absolute inset-0 w-full h-full z-10 iframe-container hidden"></div>
 
                         <img id="studentSlideImage" class="absolute inset-0 w-full h-full object-contain hidden z-10" src="" alt="Presentación">
@@ -275,13 +270,13 @@
                     <div id="studentStreamPlaceholder" class="text-center p-8 z-0">
                         <i class="fas fa-tv text-6xl text-pombo-500 mb-4 animate-pulse"></i>
                         <h3 class="text-white font-bold text-xl">Conectado al Aula Virtual</h3>
-                        <p class="text-sm text-slate-400 mt-2 max-w-sm mx-auto">Esperando a que el docente active la transmisión en vivo.</p>
+                        <p class="text-sm text-slate-400 mt-2 max-w-sm mx-auto">Esperando a que el docente active la transmisión o la cámara en vivo.</p>
                     </div>
                 </div>
 
                 <div class="p-4 bg-slate-950 border-t border-slate-800 flex justify-between items-center gap-3 z-30 flex-wrap">
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-400"><i class="fas fa-server text-emerald-400"></i> Servidores Globales Activos</span>
+                        <span class="text-xs text-slate-400"><i class="fas fa-server text-emerald-400"></i> Conexión Directa HD Activa</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <button id="studentHandBtn" onclick="studentRaiseHand()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 transition shadow-md">
@@ -293,7 +288,6 @@
             </div>
         </div>
 
-        <!-- TAB 1: AULA CENTRAL / ESCENARIO INTERACTIVO (DOCENTE) -->
         <div id="tab-live" class="tab-content hidden animate-fade-in space-y-6">
 
             <div id="teacherVideoStage" class="bg-slate-900 rounded-3xl shadow-2xl border border-slate-800 overflow-hidden relative">
@@ -310,18 +304,18 @@
                     
                     <div id="videoOffPlaceholder" class="text-center p-8 z-0">
                         <div class="w-24 h-24 rounded-full bg-slate-800/80 text-pombo-500 border-2 border-pombo-500/30 mx-auto flex items-center justify-center mb-5 shadow-inner">
-                            <i class="fab fa-twitch text-4xl text-twitch-500"></i>
+                            <i class="fas fa-video text-4xl text-pombo-400"></i>
                         </div>
                         <h3 class="text-2xl font-outfit font-bold text-white mb-2">Escenario de Transmisión HD</h3>
-                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Selecciona en la pestaña <strong>"Transmisión Twitch / YouTube"</strong> para proyectar la clase a más de 100 estudiantes sin interrupciones.</p>
-                        <button onclick="switchTab('media')" class="bg-twitch-600 hover:bg-twitch-500 text-white font-extrabold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition transform hover:scale-105">
-                            <i class="fab fa-twitch mr-2"></i> Configurar Canal / Stream
+                        <p class="text-sm text-slate-400 max-w-md mx-auto mb-6">Selecciona el modo de video en la pestaña <strong>"Configurar Fuente Video"</strong> (Cámara Directa, Twitch o YouTube).</p>
+                        <button onclick="switchTab('media')" class="bg-pombo-600 hover:bg-pombo-500 text-white font-extrabold text-sm px-6 py-3.5 rounded-2xl shadow-xl transition transform hover:scale-105">
+                            <i class="fas fa-sliders-h mr-2"></i> Configurar Fuente de Video
                         </button>
                     </div>
 
                     <!-- CONTAINER TWITCH DOCENTE (Z-10) -->
                     <div id="teacherTwitchWrapper" class="absolute inset-0 w-full h-full hidden z-10 iframe-container">
-                        <div id="teacherTwitchPlayer"></div>
+                        <div id="teacherTwitchPlayer" class="w-full h-full"></div>
                     </div>
 
                     <!-- CONTAINER YOUTUBE DOCENTE (Z-10) -->
@@ -393,23 +387,35 @@
             </div>
         </div>
 
-        <!-- TAB TWITCH Y MEDIA COMPLEMENTARIA -->
         <div id="tab-media" class="tab-content hidden animate-fade-in space-y-6 max-w-4xl mx-auto">
             <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 mt-6">
                 <div class="text-center mb-6">
-                    <div class="w-16 h-16 bg-twitch-500/10 text-twitch-500 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl font-bold">
-                        <i class="fab fa-twitch"></i>
+                    <div class="w-16 h-16 bg-pombo-100 text-pombo-600 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl font-bold">
+                        <i class="fas fa-video"></i>
                     </div>
-                    <h3 class="font-outfit font-bold text-2xl text-slate-800">Transmisión HD para 100+ Estudiantes</h3>
-                    <p class="text-sm text-slate-500 max-w-lg mx-auto mt-1">Elige la fuente de video deseada para proyectar a tus alumnos en tiempo real.</p>
+                    <h3 class="font-outfit font-bold text-2xl text-slate-800">Selecciona la Fuente de Transmisión</h3>
+                    <p class="text-sm text-slate-500 max-w-lg mx-auto mt-1">Soporte multicanal para transmitir a tus estudiantes en alta definición.</p>
                 </div>
 
                 <div class="space-y-6">
-                    <!-- OPCIÓN 1: TWITCH LIVE -->
+                    
+                    <!-- OPCIÓN A: CÁMARA DIRECTA (SFU LIBRE) -->
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs font-bold text-twitch-600 uppercase flex items-center gap-2"><i class="fab fa-twitch text-base"></i> Opción A: Canal de Twitch HD</span>
-                            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">Recomendado 100+ Alumnos</span>
+                            <span class="text-xs font-bold text-pombo-600 uppercase flex items-center gap-2"><i class="fas fa-camera text-base"></i> Opción 1: Cámara Directa Libre (Sin OBS ni limites)</span>
+                            <span class="bg-emerald-100 text-emerald-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">Recomendado Fácil</span>
+                        </div>
+                        <p class="text-xs text-slate-600">Conéctate directamente desde tu cámara web o celular. Sin límite de tiempo ni necesidad de programas externos:</p>
+                        <button onclick="startFreeSfuSession()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold text-sm py-3.5 rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                            <i class="fas fa-video"></i> Activar Cámara Directa
+                        </button>
+                    </div>
+
+                    <!-- OPCIÓN B: TWITCH LIVE -->
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-twitch-600 uppercase flex items-center gap-2"><i class="fab fa-twitch text-base"></i> Opción 2: Canal de Twitch HD</span>
+                            <span class="bg-purple-100 text-purple-700 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">Transmitiendo con OBS</span>
                         </div>
                         <p class="text-xs text-slate-600">Transmite desde OBS Studio a tu canal de Twitch. Escribe el nombre de usuario de tu canal:</p>
                         <div class="flex flex-col sm:flex-row gap-3">
@@ -418,11 +424,15 @@
                                 <i class="fas fa-broadcast-tower"></i> Proyectar Twitch
                             </button>
                         </div>
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800 flex items-start gap-2">
+                            <i class="fas fa-info-circle text-amber-600 mt-0.5"></i>
+                            <span><strong>Importante:</strong> Si el recuadro de Twitch se ve negro, asegúrate de haber iniciado transmisión <strong>EN VIVO</strong> en tu programa OBS Studio. Twitch muestra pantalla negra cuando tu canal está fuera de línea.</span>
+                        </div>
                     </div>
 
-                    <!-- OPCIÓN 2: YOUTUBE LIVE -->
+                    <!-- OPCIÓN C: YOUTUBE LIVE -->
                     <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                        <span class="text-xs font-bold text-red-600 uppercase flex items-center gap-2"><i class="fab fa-youtube text-base"></i> Opción B: Video o Live de YouTube</span>
+                        <span class="text-xs font-bold text-red-600 uppercase flex items-center gap-2"><i class="fab fa-youtube text-base"></i> Opción 3: Video o Live de YouTube</span>
                         <p class="text-xs text-slate-600">Pega un enlace de YouTube Live o video educativo:</p>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <input type="text" id="ytUrlInput" placeholder="https://www.youtube.com/watch?v=..." class="flex-grow px-4 py-3 rounded-xl border border-slate-300 text-sm font-semibold focus:ring-2 focus:ring-red-500 bg-white">
@@ -432,19 +442,10 @@
                         </div>
                     </div>
 
-                    <!-- OPCIÓN 3: SERVIDOR SFU LIBRE -->
-                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                        <span class="text-xs font-bold text-pombo-600 uppercase flex items-center gap-2"><i class="fas fa-video text-base"></i> Opción C: Cámara Directa (Servidor Libre sin límite)</span>
-                        <p class="text-xs text-slate-600">Usa videoconferencia directa sin OBS conectándose a un nodo libre sin corte de 5 minutos:</p>
-                        <button onclick="startFreeSfuSession()" class="w-full bg-pombo-600 hover:bg-pombo-500 text-white font-bold text-xs py-3.5 rounded-xl shadow-md transition flex items-center justify-center gap-2">
-                            <i class="fas fa-camera"></i> Activar Cámara Directa Libre
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: CREADOR Y GESTOR DE QUIZZES (DOCENTE) -->
         <div id="tab-quiz" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200">
                 <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100">
@@ -525,7 +526,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: CALIFICACIONES / REPORTES (DOCENTE) -->
         <div id="tab-grades" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200">
                 <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-100">
@@ -573,7 +573,6 @@
             </div>
         </div>
 
-        <!-- TAB PROGRAMACIÓN -->
         <div id="tab-schedule" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-slate-200 lg:col-span-1">
@@ -597,7 +596,6 @@
             </div>
         </div>
 
-        <!-- TAB CHAT -->
         <div id="tab-chat" class="tab-content hidden animate-fade-in space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="bg-white rounded-2xl shadow-md border border-slate-200 lg:col-span-2 flex flex-col h-[500px]">
@@ -614,7 +612,6 @@
             </div>
         </div>
 
-        <!-- TAB ASISTENCIA -->
         <div id="tab-attendance" class="tab-content hidden animate-fade-in space-y-6">
             <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-200">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
@@ -663,6 +660,7 @@
 
     </main>
 
+    
     <!-- MODAL DE QUIZ PARA EL ESTUDIANTE -->
     <div id="studentQuizModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
         <div class="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 shadow-2xl flex flex-col max-h-[90vh] my-auto relative">
@@ -823,7 +821,7 @@
                     </div>
                     <div>
                         <h4 class="font-bold text-slate-800 text-sm">Iniciar Grabación de Pestaña / Pantalla</h4>
-                        <p class="text-xs text-slate-500 mt-1">Sustituye la captura interna por grabación directa de navegador sin restricciones de iFrame.</p>
+                        <p class="text-xs text-slate-500 mt-1">Graba la señal de la clase en tiempo real junto con tu voz y explicaciones.</p>
                     </div>
                 </div>
 
@@ -864,21 +862,21 @@
 
     <!-- VERSIÓN APP -->
     <div class="fixed bottom-2 left-2 z-50 bg-slate-900/80 text-white text-[10px] px-2 py-1 rounded shadow pointer-events-none">
-        Versión: <span id="appVersionDisplay">4.0.0 (Twitch & Free SFU HD)</span>
+        Versión: <span id="appVersionDisplay">4.1.0 (Twitch & SFU Direct Fixed)</span>
     </div>
 
     <script>
         /*
          * ============================================================================
          * AULA VIRTUAL ESCUELA RAFAEL POMBO - TULUÁ
-         * Versión 4.0.0 (Twitch HD & Free SFU Edition):
-         * 1. Soporte Nativo Twitch Iframe API (1000+ alumnos sin lag ni cortes).
-         * 2. Servidores SFU Libres (Element Meet / FSF Open Jitsi) sin limite de 5 min.
-         * 3. Grabador de Pestaña/Pantalla 100% funcional con MediaRecorder API.
-         * 4. Retención del 100% de Quizzes, Asistencia, Pizarra y Chat.
+         * Versión 4.1.0 (Twitch & SFU Direct Fixed):
+         * 1. Parámetros de seguridad Twitch 'parent' corregidos para GitHub Pages y localhost.
+         * 2. Cámara Directa SFU 100% libre sin sala de espera ni límite de 5 min.
+         * 3. Permisos explícitos de cámara/micrófono en iFrames.
+         * 4. Sincronización continua de estado, rayado de pantalla, quizzes y asistencia.
          * ============================================================================
          */
-        let appVersion = "4.0.0 (Twitch & Free SFU HD)"; 
+        let appVersion = "4.1.0 (Twitch & SFU Direct Fixed)"; 
 
         let teacherName = "Docente";
         let currentRole = 'teacher';
@@ -889,13 +887,11 @@
         let teacherDataConnection = null;
 
         // INSTANCIAS DE REPRODUCTORES
-        let twitchPlayerInstance = null;
         let teacherYTPlayer = null;
         let studentYTPlayer = null;
         
         let currentTwitchChannel = 'escuelapombo';
         let currentYoutubeUrl = '';
-        let currentSfuDomain = 'meet.element.io';
 
         // GESTIÓN DE GRABACIÓN DE CLASE
         let mediaRecorder = null;
@@ -1056,8 +1052,15 @@
             showToast('Aula virtual multicanal activa', 'success');
         }
 
-        function getParentDomain() {
-            return window.location.hostname || 'localhost';
+        function getTwitchEmbedIframe(channelName) {
+            const host = window.location.hostname || 'localhost';
+            let parents = `parent=${host}`;
+            if (host.includes('github.io')) {
+                parents += `&parent=${host}&parent=github.io`;
+            } else if (host === 'localhost' || host === '127.0.0.1') {
+                parents += `&parent=localhost&parent=127.0.0.1`;
+            }
+            return `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(channelName)}&${parents}&muted=false&autoplay=true" height="100%" width="100%" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>`;
         }
 
         function sendTwitchStreamToStage() {
@@ -1070,10 +1073,9 @@
         }
 
         function initTwitchPlayer(containerId, channelName) {
-            const parentDomain = getParentDomain();
             const container = document.getElementById(containerId);
             if (!container) return;
-            container.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${channelName}&parent=${parentDomain}&muted=false" height="100%" width="100%" allowfullscreen></iframe>`;
+            container.innerHTML = getTwitchEmbedIframe(channelName);
         }
 
         function sendYouTubeToStage() {
@@ -1125,14 +1127,18 @@
             const cleanRoom = 'pombo_' + roomCode.replace(/[^a-zA-Z0-9]/g, '');
             clearCanvas();
             setStageMode('sfu', cleanRoom);
-            showToast('🟢 Transmisión activa en servidor libre sin límite', 'success');
+            showToast('🟢 Cámara Directa activa sin límites', 'success');
         }
 
         function initSfuIframe(containerId, roomName) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            // Usa servidor Jitsi abierto comunitario sin restriccion de 5 min
-            container.innerHTML = `<iframe src="https://meet.element.io/${roomName}#config.startWithVideoMuted=false&config.prejoinPageEnabled=false" allow="camera; microphone; display-capture" style="width:100%; height:100%; border:none;"></iframe>`;
+            
+            const displayName = currentRole === 'teacher' ? teacherName : (localStorage.getItem(`pombo_std_name_${roomCode}`) || 'Estudiante');
+            // Servidor SFU libre de código abierto con bypass total de sala de espera y permisos universales de hardware
+            const sfuUrl = `https://8x8.vc/vpaas-magic-cookie-3d8542c388484196884e9ebbe86a401b/${roomName}#userInfo.displayName="${encodeURIComponent(displayName)}"&config.prejoinPageEnabled=false&config.startWithVideoMuted=false&config.startWithAudioMuted=false&config.requireDisplayName=false`;
+            
+            container.innerHTML = `<iframe src="${sfuUrl}" allow="camera *; microphone *; display-capture *; autoplay *; clipboard-write *; fullscreen *" style="width:100%; height:100%; border:none; border-radius:1rem;"></iframe>`;
         }
 
         function setStageMode(mode, extraData = null) {
@@ -1167,7 +1173,7 @@
             } else if (mode === 'sfu') {
                 sfuBox.classList.remove('hidden');
                 initSfuIframe('teacherSfuBox', extraData || ('pombo_' + roomCode));
-                title.innerHTML = "<i class='fas fa-video text-emerald-400'></i> Videoconferencia Libre";
+                title.innerHTML = "<i class='fas fa-video text-emerald-400'></i> Cámara Directa Libre";
                 switchTab('live');
             } else if (mode === 'ppt') {
                 pptViewer.classList.remove('hidden'); pptControls.classList.remove('hidden');
@@ -1250,7 +1256,7 @@
                 });
 
                 if (!stream || stream.getTracks().length === 0) {
-                    showToast('No se otorgó permiso de grabación de pantalla/pestaña', 'error');
+                    showToast('No se otorgó permiso de grabación de pantalla', 'error');
                     return;
                 }
 
